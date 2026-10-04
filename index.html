@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAFAFA" />
+  <meta name="description" content="Free for friends and family. Make a day in St. Petersburg and share it by link. No payment." />
+  <title>City Day</title>
+  <style>
+    :root {
+      --bg: #FAFAFA;
+      --ink: #2A2A2A;
+      --cyan: #46C1D1;
+      --peach: #F5A791;
+      --red: #EE3124;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 1.05rem;
+      line-height: 1.45;
+      padding: 1.15rem 1.25rem 3rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .shell { max-width: 26rem; margin: 0 auto; }
+    .banner {
+      margin: 0 0 1.25rem;
+      padding: 0.7rem 0.85rem;
+      border-left: 3px solid var(--peach);
+      font-size: 0.95rem;
+    }
+    h1 {
+      font-size: clamp(2rem, 8.5vw, 2.7rem);
+      font-weight: 600;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      margin: 0.35rem 0 0.85rem;
+    }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin: 0 0 0.35rem;
+    }
+    p { margin: 0; }
+    .city {
+      width: 100%;
+      height: auto;
+      display: block;
+      margin: 0.15rem 0 0.35rem;
+    }
+    .lede { margin: 0 0 1.15rem; max-width: 20rem; }
+    .why { margin: 0 0 0.45rem; }
+    .meta {
+      opacity: 0.62;
+      font-size: 0.92rem;
+      margin: 0 0 0.2rem;
+    }
+    .meta a { color: inherit; }
+    .note { margin: 0 0 1rem; }
+    .group { margin: 0 0 1.05rem; }
+    .group > p,
+    label.field > span,
+    .recap-k {
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.62;
+      margin: 0 0 0.45rem;
+    }
+    .pills { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    .pills button {
+      border: 1.5px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 0.55rem 0.9rem;
+      font: inherit;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .pills button[aria-pressed="true"] {
+      background: var(--cyan);
+      border-color: var(--cyan);
+    }
+    label.field { display: block; margin: 0 0 1.05rem; }
+    input[type="text"],
+    input[type="date"],
+    .share-url {
+      width: 100%;
+      border: 1.5px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      border-radius: 0.9rem;
+      padding: 0.75rem 0.9rem;
+      font: inherit;
+      font-size: 1rem;
+    }
+    .city-fixed {
+      border: 1.5px solid rgba(42, 42, 42, 0.28);
+      border-radius: 0.9rem;
+      padding: 0.75rem 0.9rem;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      border: none;
+      border-radius: 999px;
+      padding: 1rem 1.2rem;
+      font: inherit;
+      font-weight: 650;
+      font-size: 1rem;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--red); color: var(--bg); margin-top: 0.35rem; }
+    .btn-ink { background: var(--ink); color: var(--bg); }
+    .stop {
+      padding: 0 0 1.25rem;
+      margin: 0 0 1.25rem;
+      border-bottom: 1px solid rgba(42, 42, 42, 0.12);
+    }
+    .stop .btn { margin-top: 0.85rem; }
+    .skip, .quiet {
+      background: none;
+      border: none;
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 0.22em;
+    }
+    .skip {
+      display: block;
+      margin: 0.75rem auto 0;
+      opacity: 0.55;
+      font-size: 0.92rem;
+    }
+    .quiet {
+      display: inline-block;
+      opacity: 0.55;
+      font-size: 0.95rem;
+    }
+    .moods { display: grid; gap: 0.7rem; margin: 0 0 1.1rem; }
+    .moods button {
+      text-align: left;
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid var(--ink);
+      border-radius: 1.05rem;
+      padding: 1rem 1.1rem;
+      font: inherit;
+      font-weight: 600;
+      font-size: 1.05rem;
+      cursor: pointer;
+    }
+    .moods button small {
+      display: block;
+      font-weight: 450;
+      opacity: 0.62;
+      margin-top: 0.2rem;
+    }
+    .recap {
+      margin: 0.4rem 0 1.4rem;
+      padding: 1rem 0 0.2rem;
+    }
+    .recap h2 { margin-bottom: 0.8rem; }
+    .recap ul { margin: 0.35rem 0 0; padding-left: 1.15rem; }
+    .recap li { margin: 0.2rem 0; }
+    .actions { margin-top: 0.4rem; display: grid; gap: 0.85rem; }
+    .err { color: var(--red); font-size: 0.92rem; margin: 0 0 0.75rem; }
+    .hidden { display: none !important; }
+    :focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <p class="banner">Free for friends and family. No payment.</p>
+
+    <section id="screen-form">
+      <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
+        <circle cx="292" cy="40" r="14" fill="#F5A791"/>
+        <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
+        <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
+        <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h1>Make a day.</h1>
+      <p class="lede">A day in St. Petersburg for two people. The link is the plan.</p>
+      <form id="day-form" novalidate>
+        <p class="err hidden" id="form-err"></p>
+        <label class="field">
+          <span>Your name</span>
+          <input type="text" id="you" name="you" autocomplete="name" maxlength="60" required />
+        </label>
+        <label class="field">
+          <span>Their name</span>
+          <input type="text" id="them" name="them" autocomplete="off" maxlength="60" required />
+        </label>
+        <div class="group" data-group="occasion">
+          <p>Occasion</p>
+          <div class="pills" role="group" aria-label="Occasion">
+            <button type="button" data-value="Anniversary" aria-pressed="false">Anniversary</button>
+            <button type="button" data-value="Date" aria-pressed="false">Date</button>
+            <button type="button" data-value="Birthday" aria-pressed="false">Birthday</button>
+            <button type="button" data-value="Just because" aria-pressed="false">Just because</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>In your words</span>
+          <input type="text" id="custom" name="custom" maxlength="80" placeholder="A few words, if you want" />
+        </label>
+        <label class="field">
+          <span>Date</span>
+          <input type="date" id="date" name="date" required />
+        </label>
+        <div class="group">
+          <p>City</p>
+          <div class="city-fixed">St. Petersburg</div>
+          <p class="meta" style="margin-top:0.35rem">This test only.</p>
+        </div>
+        <div class="group" data-group="drink">
+          <p>Drinking</p>
+          <div class="pills" role="group" aria-label="Drinking">
+            <button type="button" data-value="yes" aria-pressed="false">Yes</button>
+            <button type="button" data-value="no" aria-pressed="false">No</button>
+            <button type="button" data-value="either" aria-pressed="false">Doesn't matter</button>
+          </div>
+        </div>
+        <div class="group" data-group="style">
+          <p>Style</p>
+          <div class="pills" role="group" aria-label="Style">
+            <button type="button" data-value="mystery" aria-pressed="false">Mystery</button>
+            <button type="button" data-value="plan" aria-pressed="false">Just the plan</button>
+          </div>
+        </div>
+        <div class="group" data-group="lean">
+          <p>Lean</p>
+          <div class="pills" role="group" aria-label="Lean">
+            <button type="button" data-value="must" aria-pressed="false">Must-sees</button>
+            <button type="button" data-value="gems" aria-pressed="false">Hidden gems</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>One thing the day must include</span>
+          <input type="text" id="must" name="must" maxlength="120" placeholder="Optional" />
+        </label>
+        <button type="submit" class="btn btn-primary" id="make">Make the day</button>
+      </form>
+    </section>
+
+    <section id="screen-day" class="hidden">
+      <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
+        <circle cx="292" cy="40" r="14" fill="#F5A791"/>
+        <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
+        <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
+        <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h1 id="welcome"></h1>
+      <p class="meta" id="when-line"></p>
+      <p class="note" id="custom-line"></p>
+      <p class="note" id="drink-line"></p>
+      <p class="note" id="must-line"></p>
+      <p class="note hidden" id="gap-line"></p>
+      <div class="moods hidden" id="moods"></div>
+      <div id="stops"></div>
+      <section class="recap hidden" id="recap"></section>
+      <div class="actions">
+        <label class="field">
+          <span>Share link</span>
+          <input class="share-url" id="share-url" type="text" readonly />
+        </label>
+        <button type="button" class="btn btn-ink" id="copy">Copy link</button>
+        <p class="meta" id="save-note">Saved on this phone. The link is the same day for anyone you send it to.</p>
+        <button type="button" class="quiet" id="show-all">Show the day</button>
+        <button type="button" class="quiet" id="edit">Change the day</button>
+        <button type="button" class="quiet" id="fresh">New day</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    var STORE = "cityday-test-v1";
+    var plan = null;
+    var revealed = false;
+
+    function isoDate(d) {
+      var m = d.getMonth() + 1;
+      var day = d.getDate();
+      return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (day < 10 ? "0" : "") + day;
+    }
+
+    function parseDate(iso) {
+      var p = String(iso || "").split("-");
+      if (p.length !== 3) return null;
+      var y = Number(p[0]), m = Number(p[1]), d = Number(p[2]);
+      if (!y || !m || !d) return null;
+      var dt = new Date(y, m - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+      return dt;
+    }
+
+    function formatWhen(d) {
+      return d.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function mapsUrl(query) {
+      return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+    }
+
+    function inList(list, iso) {
+      return list.indexOf(iso) !== -1;
+    }
+
+    var CLOSED_DALI = ["2026-11-26", "2026-12-25"];
+    var CLOSED_MFA = ["2026-11-26", "2026-12-25"];
+    var CLOSED_MOREAN = ["2026-01-01", "2026-09-07", "2026-11-26", "2026-11-27", "2026-12-24", "2026-12-25", "2026-12-31", "2027-01-01"];
+    var CLOSED_GLASS = ["2026-09-07", "2026-11-26", "2026-12-25"];
+    var GLASS_EARLY = ["2026-04-05", "2026-05-25", "2026-07-04", "2026-12-24", "2026-12-31"];
+
+    function daliHours(iso, day) {
+      if (iso === "2026-10-22") return "10am–7pm";
+      if (iso === "2026-10-24") return "10am–3pm";
+      if (iso === "2026-12-24") return "10am–4pm";
+      if (day === 4) return "10am–8pm";
+      return "10am–6pm";
+    }
+
+    function benchHours(day) {
+      if (day === 0) return "12pm–9pm";
+      if (day === 5 || day === 6) return "12pm–12am";
+      return "12pm–10pm";
+    }
+
+    var STOPS = [
+      {
+        id: "boyd",
+        name: "Native grass planting at Boyd Hill",
+        address: "1101 Country Club Way South, St. Petersburg",
+        query: "Boyd Hill Nature Preserve, 1101 Country Club Way South, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: true,
+        order: 1,
+        covers: null,
+        source: "https://stpetecatalyst.com/?spc-impact-cboard=native-grass-planting-at-boyd-hill-nature-preserve",
+        isOpen: function (d, iso) { return iso === "2026-10-17"; },
+        hours: function () { return "7:30am–12pm"; },
+        start: function () { return 7.5; },
+        why: function (ctx) {
+          return "October 17 is a real volunteer morning here, 7:30am to noon, run with Friends of Boyd Hill and the St. Pete Eco Club. It is 18 and up and needs a reservation. A hands-in-the-dirt start if " + ctx.occ + " can get muddy.";
+        }
+      },
+      {
+        id: "market",
+        name: "Saturday Morning Market",
+        pin: function () { return true; },
+        address: "100 1st Ave SE, St. Petersburg",
+        query: "Saturday Morning Market, 100 1st Ave SE, St. Petersburg, FL",
+        gem: false,
+        bar: false,
+        dated: false,
+        order: 2,
+        covers: null,
+        source: "https://saturdaymorningmarket.com/about/",
+        isOpen: function (d) {
+          if (d.getDay() !== 6) return false;
+          var month = d.getMonth() + 1;
+          return [10, 11, 12, 1, 2, 3, 4, 5].indexOf(month) !== -1;
+        },
+        hours: function () { return "Sat 9am–2pm"; },
+        start: function () { return 9; },
+        why: function (ctx) {
+          return "This date lands on a Saturday in the October–May season, so the downtown market is on, 9am to 2pm, in the Al Lang lot. Food, music, and a slow start for " + ctx.occ + ".";
+        }
+      },
+      {
+        id: "mfa",
+        name: "Museum of Fine Arts",
+        pin: function (d, iso) { return iso === "2026-10-10"; },
+        address: "255 Beach Drive NE, St. Petersburg",
+        query: "Museum of Fine Arts, 255 Beach Drive NE, St. Petersburg, FL",
+        gem: false,
+        bar: false,
+        dated: false,
+        order: 3,
+        covers: null,
+        source: "https://mfastpete.org/visit/hours-and-admission/",
+        isOpen: function (d, iso) {
+          if (d.getDay() === 1) return false;
+          return !inList(CLOSED_MFA, iso);
+        },
+        hours: function (d, iso) {
+          if (iso === "2026-10-10") return "Studio Saturdays 9–11am · galleries 10am–5pm";
+          return "10am–5pm";
+        },
+        start: function (d, iso) { return iso === "2026-10-10" ? 9 : 10; },
+        why: function (ctx) {
+          if (ctx.iso === "2026-10-10") {
+            return "October 10 is Studio Saturdays: a free mosaic studio from 9am to 11am in the conservatory. Galleries stay open until 5. The studio is free; gallery admission is separate. A made-by-hand hour for " + ctx.occ + ".";
+          }
+          var extra = (ctx.day === 0 || ctx.day === 6) ? " Docent tours go out at 2pm on weekends." : "";
+          return "The MFA is open " + ctx.hours + " on this date, and it is closed Mondays, so this day works. A quiet must-see for " + ctx.occ + "." + extra;
+        }
+      },
+      {
+        id: "morean",
+        name: "Morean Arts Center",
+        address: "719 Central Ave, St. Petersburg",
+        query: "Morean Arts Center, 719 Central Ave, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: false,
+        order: 4,
+        covers: null,
+        source: "https://moreanartscenter.org/morean-arts-center-location/",
+        isOpen: function (d, iso) {
+          if (d.getDay() === 0) return false;
+          return !inList(CLOSED_MOREAN, iso);
+        },
+        hours: function () { return "10am–5pm"; },
+        start: function () { return 10; },
+        why: function (ctx) {
+          return "The Morean gallery is free and open " + ctx.hours + " this day (closed Sundays). A lighter art stop for " + ctx.occ + ", without a museum ticket.";
+        }
+      },
+      {
+        id: "dali",
+        name: "The Dalí Museum",
+        address: "One Dali Blvd, St. Petersburg",
+        query: "The Dalí Museum, One Dali Blvd, St. Petersburg, FL",
+        gem: false,
+        bar: false,
+        dated: false,
+        order: 5,
+        covers: null,
+        source: "https://thedali.org/the-dali-museum-hours/",
+        isOpen: function (d, iso) { return !inList(CLOSED_DALI, iso); },
+        hours: function (d, iso) { return daliHours(iso, d.getDay()); },
+        start: function () { return 10; },
+        why: function (ctx) {
+          return "The Dalí is open " + ctx.hours + " on this date. Timed tickets are recommended. The one big must-see if " + ctx.occ + " wants a long look indoors.";
+        }
+      },
+      {
+        id: "festival",
+        name: "St. Pete Fall Festival",
+        address: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg",
+        query: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg, FL",
+        gem: false,
+        bar: false,
+        dated: true,
+        order: 6,
+        covers: "pier",
+        source: "https://stpetepier.org/signature-event/st-pete-fall-festival/",
+        isOpen: function (d, iso) { return iso === "2026-10-10" || iso === "2026-10-11"; },
+        hours: function () { return "11am–7pm"; },
+        start: function () { return 11; },
+        why: function (ctx) {
+          return "The Pier’s own page lists the Fall Festival on " + ctx.when + ", 11am to 7pm. Free to walk in: music, food, and a pumpkin patch on the water. It is the afternoon for " + ctx.occ + ".";
+        }
+      },
+      {
+        id: "pier",
+        name: "The St. Pete Pier",
+        address: "800 2nd Ave NE, St. Petersburg",
+        query: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg, FL",
+        gem: false,
+        bar: false,
+        dated: false,
+        order: 7,
+        covers: null,
+        source: "https://stpetepier.org/faq/",
+        isOpen: function () { return true; },
+        hours: function () { return "Opens 30 min before sunrise, closes 11pm"; },
+        start: function () { return 11; },
+        why: function (ctx) {
+          return "The Pier is open this day, sunrise-side through 11pm, and it does not charge to walk in. Water and a long stroll for " + ctx.occ + ", with the restaurants left off the list.";
+        }
+      },
+      {
+        id: "pumpkin",
+        name: "Great Glass & Clay Pumpkin Patch",
+        address: "Morean Glass Studio, 714 1st Ave N, St. Petersburg",
+        query: "Morean Glass Studio, 714 1st Ave N, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: true,
+        order: 8,
+        covers: "glass",
+        source: "https://moreanartscenter.org/calendar/",
+        isOpen: function (d, iso) { return iso === "2026-10-10"; },
+        hours: function () { return "12–4pm"; },
+        start: function () { return 12; },
+        why: function (ctx) {
+          return "Only October 10: the Morean calendar has the Glass and Clay Pumpkin Patch at the glass studio, noon to 4, free, no signup. A strange little harvest for " + ctx.occ + ", not a field of ordinary pumpkins.";
+        }
+      },
+      {
+        id: "artpool",
+        name: "ARTpool",
+        pin: function () { return true; },
+        address: "2030 Central Ave, St. Petersburg",
+        query: "ARTpool, 2030 Central Ave, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: false,
+        order: 9,
+        covers: null,
+        source: "https://www.artpoolrules.com/",
+        isOpen: function (d) {
+          var day = d.getDay();
+          return day >= 2 && day <= 6;
+        },
+        hours: function () { return "12–5pm"; },
+        start: function () { return 12; },
+        why: function (ctx) {
+          return "ARTpool is open noon to 5 on this date (Tuesday through Saturday; closed Sunday and Monday). Vintage clothes and records at 2030 Central, with records next door at 2000. A dig-around stop for " + ctx.occ + ".";
+        }
+      },
+      {
+        id: "glass",
+        name: "Morean Glass Studio",
+        address: "714 1st Ave N, St. Petersburg",
+        query: "Morean Glass Studio, 714 1st Ave N, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: false,
+        order: 10,
+        covers: null,
+        source: "https://moreanartscenter.org/morean-glass-studio-location/",
+        isOpen: function (d, iso) {
+          var day = d.getDay();
+          if (day === 1 || day === 2) return false;
+          return !inList(CLOSED_GLASS, iso);
+        },
+        hours: function (d, iso) {
+          if (inList(GLASS_EARLY, iso)) return "12–3pm";
+          return "12–5pm";
+        },
+        start: function () { return 12; },
+        why: function (ctx) {
+          return "The glass studio is open " + ctx.hours + " this day (Wednesday through Sunday). Live demos are $12 unless you are a member or have a Chihuly ticket. A hot-shop hour for " + ctx.occ + ".";
+        }
+      },
+      {
+        id: "bench",
+        name: "Green Bench Brewing",
+        address: "1133 Baum Ave N, St. Petersburg",
+        query: "Green Bench Brewing Company, 1133 Baum Ave N, St. Petersburg, FL",
+        gem: true,
+        bar: true,
+        dated: false,
+        order: 11,
+        covers: null,
+        source: "https://www.greenbenchbrewing.com/brewery-hours-and-location",
+        isOpen: function () { return true; },
+        hours: function (d) { return benchHours(d.getDay()); },
+        start: function () { return 15; },
+        why: function (ctx) {
+          return "You said yes to drinks. The tasting room lists " + ctx.hours + " for this day, at 1133 Baum Ave N. One beer stop for " + ctx.occ + ", not a crawl.";
+        }
+      },
+      {
+        id: "palehorse",
+        name: "Palehorse opening at the Morean",
+        address: "719 Central Ave, St. Petersburg",
+        query: "Morean Arts Center, 719 Central Ave, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: true,
+        order: 12,
+        covers: "morean",
+        source: "https://moreanartscenter.org/calendar/",
+        isOpen: function (d, iso) { return iso === "2026-10-10"; },
+        hours: function () { return "5–8pm"; },
+        start: function () { return 17; },
+        why: function (ctx) {
+          return "The Morean calendar puts the Palehorse opening on October 10, 5pm to 8pm, at 719 Central. An evening indoors for " + ctx.occ + " after the daytime stops.";
+        }
+      },
+      {
+        id: "folk",
+        name: "Good Folk Fest",
+        address: "St. Petersburg Shuffleboard Club, 559 Mirror Lake Dr N, St. Petersburg",
+        query: "St. Petersburg Shuffleboard Club, 559 Mirror Lake Drive North, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: true,
+        order: 13,
+        covers: null,
+        source: "https://www.creativeclay.org/upcoming-events/2026/10/17/good-folk-fest",
+        isOpen: function (d, iso) { return iso === "2026-10-17"; },
+        hours: function () { return "6–9pm"; },
+        start: function () { return 18; },
+        why: function (ctx) {
+          return "Creative Clay lists Good Folk Fest on October 17, 6pm to 9pm, at the Shuffleboard Club: Betty Fox Band, an art auction, and food trucks. It is ticketed. A night out for " + ctx.occ + " that is about the music and the cause, not a bar.";
+        }
+      }
+    ];
+
+    function occasionPhrase(p) {
+      if (p.occasion === "Just because") return "a just-because day";
+      if (p.occasion === "Anniversary") return "an anniversary";
+      if (p.occasion === "Date") return "a date";
+      if (p.occasion === "Birthday") return "a birthday";
+      return "the day";
+    }
+
+    function welcomeLine(p) {
+      var who = [p.you, p.them].filter(Boolean).join(" and ");
+      var tail = who ? " for " + who : "";
+      if (p.occasion === "Just because") return "Just because, in St. Pete" + tail;
+      if (p.occasion === "Anniversary") return "An anniversary in St. Pete" + tail;
+      if (p.occasion === "Date") return "A date in St. Pete" + tail;
+      if (p.occasion === "Birthday") return "A birthday in St. Pete" + tail;
+      return "A day in St. Pete" + tail;
+    }
+
+    function pickStops(p) {
+      var d = parseDate(p.date);
+      var iso = isoDate(d);
+      var open = STOPS.filter(function (s) {
+        if (s.bar && p.drink !== "yes") return false;
+        return s.isOpen(d, iso);
+      });
+      var covered = {};
+      open.forEach(function (s) { if (s.covers) covered[s.covers] = true; });
+      open = open.filter(function (s) { return !covered[s.id]; });
+      function leanRank(s) {
+        var gemFirst = p.lean === "gems";
+        return (gemFirst ? (s.gem ? 0 : 1) : (s.gem ? 1 : 0));
+      }
+      var byLean = function (a, b) {
+        var lr = leanRank(a) - leanRank(b);
+        if (lr) return lr;
+        return a.order - b.order;
+      };
+      var pinned = open.filter(function (s) {
+        return s.dated || s.bar || (s.pin && s.pin(d, iso));
+      });
+      var rest = open.filter(function (s) { return pinned.indexOf(s) === -1; });
+      rest.sort(byLean);
+      var room = Math.max(0, 8 - pinned.length);
+      var chosen = pinned.concat(rest.slice(0, room));
+      var limit = p.drink === "yes" ? 7 : 6;
+      function droppable(s) {
+        if (s.dated || s.bar || s.id === "market") return false;
+        if (s.id === "mfa" && iso === "2026-10-10") return false;
+        if (p.lean === "must") return !!s.gem;
+        return !s.gem;
+      }
+      var guard = 0;
+      while (chosen.length > limit && guard < 8) {
+        guard += 1;
+        var idx = -1;
+        for (var i = chosen.length - 1; i >= 0; i--) {
+          if (droppable(chosen[i])) { idx = i; break; }
+        }
+        if (idx < 0) break;
+        chosen.splice(idx, 1);
+      }
+      chosen.sort(function (a, b) {
+        var as = a.start(d, iso), bs = b.start(d, iso);
+        if (as !== bs) return as - bs;
+        return a.order - b.order;
+      });
+      return chosen.map(function (s) {
+        var hours = s.hours(d, iso);
+        var ctx = {
+          iso: iso,
+          day: d.getDay(),
+          when: formatWhen(d),
+          hours: hours,
+          occ: occasionPhrase(p)
+        };
+        return {
+          id: s.id,
+          name: s.name,
+          address: s.address,
+          query: s.query,
+          hours: hours,
+          start: s.start(d, iso),
+          why: s.why(ctx),
+          source: s.source,
+          dated: s.dated
+        };
+      });
+    }
+
+    function moodFor(start) {
+      if (start < 12) return "morning";
+      if (start < 17) return "afternoon";
+      return "evening";
+    }
+
+    var MOODS = {
+      morning: { title: "While it’s still easy", hint: "The first part of the day" },
+      afternoon: { title: "The middle of the day", hint: "Somewhere to linger" },
+      evening: { title: "After the light drops", hint: "The last stop" }
+    };
+
+    function visibleStops() {
+      var skip = plan.skip || [];
+      return pickStops(plan).filter(function (s) { return skip.indexOf(s.id) === -1; });
+    }
+
+    function encodePlan(obj) {
+      var json = JSON.stringify(obj);
+      return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    function decodePlan(raw) {
+      var s = decodeURIComponent(raw || "");
+      var pad = s.length % 4 === 0 ? "" : "====".slice(s.length % 4);
+      var b64 = s.replace(/-/g, "+").replace(/_/g, "/") + pad;
+      var json = decodeURIComponent(escape(atob(b64)));
+      var obj = JSON.parse(json);
+      if (!obj || typeof obj !== "object") return null;
+      if (!obj.date || !parseDate(obj.date)) return null;
+      if (["Anniversary", "Date", "Birthday", "Just because"].indexOf(obj.occasion) === -1) return null;
+      if (["yes", "no", "either"].indexOf(obj.drink) === -1) return null;
+      if (["mystery", "plan"].indexOf(obj.style) === -1) return null;
+      if (["must", "gems"].indexOf(obj.lean) === -1) return null;
+      obj.you = String(obj.you || "").slice(0, 60);
+      obj.them = String(obj.them || "").slice(0, 60);
+      obj.custom = String(obj.custom || "").slice(0, 80);
+      obj.must = String(obj.must || "").slice(0, 120);
+      obj.skip = Array.isArray(obj.skip) ? obj.skip.map(String) : [];
+      obj.city = "St. Petersburg";
+      if (!obj.id) obj.id = uid();
+      return obj;
+    }
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    }
+
+    function shareUrl() {
+      return location.origin + location.pathname + "#" + encodePlan(plan);
+    }
+
+    function readStore() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(STORE) || "{}");
+        return raw && typeof raw === "object" ? raw : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function writeStore(extra) {
+      var store = readStore();
+      if (!store.plans || typeof store.plans !== "object") store.plans = {};
+      store.plans[plan.id] = plan;
+      store.last = plan.id;
+      if (extra) Object.keys(extra).forEach(function (k) { store[k] = extra[k]; });
+      localStorage.setItem(STORE, JSON.stringify(store));
+    }
+
+    function persist() {
+      writeStore();
+      var url = shareUrl();
+      history.replaceState(null, "", "#" + encodePlan(plan));
+      var box = document.getElementById("share-url");
+      if (box) box.value = url;
+    }
+
+    function setText(id, text) {
+      var el = document.getElementById(id);
+      if (!text) {
+        el.textContent = "";
+        el.classList.add("hidden");
+      } else {
+        el.textContent = text;
+        el.classList.remove("hidden");
+      }
+    }
+
+    function stopHtml(s) {
+      return (
+        '<article class="stop">' +
+          "<h2>" + esc(s.name) + "</h2>" +
+          '<p class="why">' + esc(s.why) + "</p>" +
+          '<p class="meta">' + esc(s.hours) + "</p>" +
+          '<p class="meta">' + esc(s.address) + "</p>" +
+          '<p class="meta"><a href="' + esc(s.source) + '" target="_blank" rel="noopener">Source</a></p>' +
+          '<a class="btn btn-ink" href="' + esc(mapsUrl(s.query)) + '" target="_blank" rel="noopener">Get directions</a>' +
+          '<button type="button" class="skip" data-skip="' + esc(s.id) + '">Not for us</button>' +
+        "</article>"
+      );
+    }
+
+    function renderRecap(stops) {
+      var when = formatWhen(parseDate(plan.date));
+      var occ = plan.occasion + (plan.custom ? " · " + plan.custom : "");
+      var names = [plan.you, plan.them].filter(Boolean).join(" and ");
+      var items = stops.length
+        ? "<ul>" + stops.map(function (s) { return "<li>" + esc(s.name) + "</li>"; }).join("") + "</ul>"
+        : "<p class=\"why\">You passed on every stop.</p>";
+      var must = plan.must ? "<p class=\"why\">Must include: " + esc(plan.must) + "</p>" : "";
+      document.getElementById("recap").innerHTML =
+        "<h2>The day</h2>" +
+        "<p class=\"recap-k\">Names</p><p class=\"why\">" + esc(names || "—") + "</p>" +
+        "<p class=\"recap-k\">Occasion</p><p class=\"why\">" + esc(occ) + "</p>" +
+        "<p class=\"recap-k\">Date</p><p class=\"why\">" + esc(when) + "</p>" +
+        "<p class=\"recap-k\">City</p><p class=\"why\">St. Petersburg</p>" +
+        "<p class=\"recap-k\">Stops</p>" + items + must;
+    }
+
+    function renderMoods(stops) {
+      var box = document.getElementById("moods");
+      var groups = { morning: [], afternoon: [], evening: [] };
+      stops.forEach(function (s) { groups[moodFor(s.start)].push(s); });
+      var html = "";
+      ["morning", "afternoon", "evening"].forEach(function (key) {
+        if (!groups[key].length) return;
+        var mood = MOODS[key];
+        html += '<button type="button" data-mood="' + key + '">' + esc(mood.title) +
+          "<small>" + esc(mood.hint) + "</small></button>";
+      });
+      box.innerHTML = html;
+    }
+
+    function renderDay() {
+      var d = parseDate(plan.date);
+      var stops = visibleStops();
+      document.getElementById("welcome").textContent = welcomeLine(plan);
+      setText("when-line", formatWhen(d) + " · St. Petersburg");
+      setText("custom-line", plan.custom ? plan.custom : "");
+      setText("drink-line", plan.drink === "no" ? "No bars on this one." : (plan.drink === "yes" ? "Drinks are in." : ""));
+      setText("must-line", plan.must ? "The day has to include: " + plan.must : "");
+      var known = plan.date === "2026-10-10" || plan.date === "2026-10-11" || plan.date === "2026-10-17";
+      setText("gap-line", known ? "" : "No special event was verified for this date. These are places with standing hours that are open then.");
+      var mystery = plan.style === "mystery" && !revealed;
+      document.getElementById("moods").classList.toggle("hidden", !mystery);
+      document.getElementById("show-all").classList.toggle("hidden", plan.style !== "mystery" || revealed);
+      document.getElementById("stops").classList.toggle("hidden", mystery);
+      document.getElementById("recap").classList.toggle("hidden", mystery);
+      if (mystery) {
+        renderMoods(stops);
+        document.getElementById("stops").innerHTML = "";
+      } else {
+        document.getElementById("stops").innerHTML = stops.length
+          ? stops.map(stopHtml).join("")
+          : '<p class="why">Nothing verified is open for this date.</p>';
+        renderRecap(stops);
+      }
+      document.getElementById("share-url").value = shareUrl();
+    }
+
+    function show(which) {
+      document.getElementById("screen-form").classList.toggle("hidden", which !== "form");
+      document.getElementById("screen-day").classList.toggle("hidden", which !== "day");
+      window.scrollTo(0, 0);
+    }
+
+    function openDay(next, fromShare) {
+      plan = next;
+      revealed = false;
+      if (!fromShare) persist();
+      else {
+        writeStore();
+        document.getElementById("share-url").value = shareUrl();
+        if (location.hash.slice(1) !== encodePlan(plan)) {
+          history.replaceState(null, "", "#" + encodePlan(plan));
+        }
+      }
+      renderDay();
+      show("day");
+    }
+
+    function readPills() {
+      var out = {};
+      document.querySelectorAll("#day-form .group[data-group]").forEach(function (g) {
+        var on = g.querySelector('[aria-pressed="true"]');
+        if (on) out[g.getAttribute("data-group")] = on.getAttribute("data-value");
+      });
+      return out;
+    }
+
+    function applyPills(values) {
+      document.querySelectorAll("#day-form .group[data-group]").forEach(function (g) {
+        var key = g.getAttribute("data-group");
+        g.querySelectorAll("[data-value]").forEach(function (btn) {
+          btn.setAttribute("aria-pressed", btn.getAttribute("data-value") === values[key] ? "true" : "false");
+        });
+      });
+    }
+
+    function fillForm(p) {
+      document.getElementById("you").value = p && p.you || "";
+      document.getElementById("them").value = p && p.them || "";
+      document.getElementById("custom").value = p && p.custom || "";
+      document.getElementById("date").value = p && p.date || "";
+      document.getElementById("must").value = p && p.must || "";
+      applyPills(p || {});
+      document.getElementById("form-err").classList.add("hidden");
+    }
+
+    document.querySelectorAll("#day-form .pills button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        btn.parentNode.querySelectorAll("[data-value]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+        });
+      });
+    });
+
+    document.getElementById("day-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var pills = readPills();
+      var you = document.getElementById("you").value.trim();
+      var them = document.getElementById("them").value.trim();
+      var date = document.getElementById("date").value;
+      var err = document.getElementById("form-err");
+      if (!you || !them || !pills.occasion || !date || !parseDate(date) || !pills.drink || !pills.style || !pills.lean) {
+        err.textContent = "Add both names, an occasion, a date, and the three choices.";
+        err.classList.remove("hidden");
+        return;
+      }
+      err.classList.add("hidden");
+      var next = {
+        id: plan && plan.id ? plan.id : uid(),
+        you: you,
+        them: them,
+        occasion: pills.occasion,
+        custom: document.getElementById("custom").value.trim(),
+        date: date,
+        city: "St. Petersburg",
+        drink: pills.drink,
+        style: pills.style,
+        lean: pills.lean,
+        must: document.getElementById("must").value.trim(),
+        skip: plan && plan.date === date ? (plan.skip || []) : []
+      };
+      openDay(next, false);
+    });
+
+    document.getElementById("screen-day").addEventListener("click", function (e) {
+      var moodBtn = e.target.closest("[data-mood]");
+      if (moodBtn) {
+        var key = moodBtn.getAttribute("data-mood");
+        var stops = visibleStops().filter(function (s) { return moodFor(s.start) === key; });
+        var box = document.getElementById("stops");
+        box.classList.remove("hidden");
+        box.innerHTML = stops.map(stopHtml).join("");
+        box.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      var skipBtn = e.target.closest("[data-skip]");
+      if (!skipBtn) return;
+      var id = skipBtn.getAttribute("data-skip");
+      if (plan.skip.indexOf(id) === -1) plan.skip.push(id);
+      persist();
+      renderDay();
+    });
+
+    document.getElementById("show-all").addEventListener("click", function () {
+      revealed = true;
+      renderDay();
+    });
+
+    document.getElementById("copy").addEventListener("click", function () {
+      var url = shareUrl();
+      document.getElementById("share-url").value = url;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () {
+          document.getElementById("save-note").textContent = "Link copied. Saved on this phone, too.";
+        }).catch(function () {
+          document.getElementById("share-url").focus();
+          document.getElementById("share-url").select();
+        });
+      } else {
+        document.getElementById("share-url").focus();
+        document.getElementById("share-url").select();
+      }
+    });
+
+    document.getElementById("edit").addEventListener("click", function () {
+      fillForm(plan);
+      show("form");
+    });
+
+    document.getElementById("fresh").addEventListener("click", function () {
+      plan = null;
+      revealed = false;
+      var store = readStore();
+      store.last = null;
+      localStorage.setItem(STORE, JSON.stringify(store));
+      history.replaceState(null, "", location.pathname);
+      fillForm(null);
+      show("form");
+    });
+
+    function boot() {
+      var hash = location.hash ? location.hash.slice(1) : "";
+      if (hash) {
+        try {
+          var decoded = decodePlan(hash);
+          if (decoded) {
+            openDay(decoded, true);
+            return;
+          }
+        } catch (e) {}
+      }
+      var store = readStore();
+      if (store.last && store.plans && store.plans[store.last]) {
+        try {
+          var saved = decodePlan(encodePlan(store.plans[store.last]));
+          if (saved) {
+            openDay(saved, false);
+            return;
+          }
+        } catch (e2) {}
+      }
+      fillForm(null);
+      show("form");
+    }
+
+    boot();
+  </script>
+</body>
+</html>
