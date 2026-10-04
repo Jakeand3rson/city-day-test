@@ -89,6 +89,7 @@
     }
     label.field { display: block; margin: 0 0 1.05rem; }
     input[type="text"],
+    input[type="number"],
     input[type="date"],
     textarea,
     .share-url {
@@ -154,6 +155,29 @@
       display: inline-block;
       opacity: 0.55;
       font-size: 0.95rem;
+    }
+    .kinds { display: grid; gap: 0.55rem; }
+    .kinds button {
+      text-align: left;
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid var(--ink);
+      border-radius: 1.05rem;
+      padding: 0.85rem 1rem;
+      font: inherit;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .kinds button[aria-pressed="true"] {
+      background: var(--cyan);
+      border-color: var(--cyan);
+    }
+    .kinds button small {
+      display: block;
+      font-weight: 450;
+      opacity: 0.72;
+      margin-top: 0.2rem;
     }
     .moods { display: grid; gap: 0.7rem; margin: 0 0 1.1rem; }
     .moods button {
@@ -226,10 +250,15 @@
             <button type="button" data-value="Just because" aria-pressed="false">Just because</button>
           </div>
         </div>
+        <div class="group" data-group="kind">
+          <p>What kind of day</p>
+          <div class="kinds" id="kinds" role="group" aria-label="What kind of day"></div>
+          <p class="meta" id="kind-hint" style="margin-top:0.45rem">Pick the occasion first. These say what kind of day it is.</p>
+        </div>
         <label class="field">
-          <span>Name the occasion</span>
-          <input type="text" id="custom" name="custom" maxlength="80" placeholder="first kid-free Saturday" />
-          <p class="meta" style="margin-top:0.45rem">Optional. Shows next to Anniversary, Date, and the rest. What you like goes in the box below.</p>
+          <span>Name this day</span>
+          <input type="text" id="custom" name="custom" maxlength="80" placeholder="our 15th, away from the kids" />
+          <p class="meta" style="margin-top:0.45rem">Optional. A short title for the day. What you like goes in the box at the bottom.</p>
         </label>
         <label class="field">
           <span>Date</span>
@@ -262,6 +291,19 @@
             <button type="button" data-value="gems" aria-pressed="false">Hidden gems</button>
           </div>
         </div>
+        <div class="group" data-group="budget">
+          <p>Budget for the day</p>
+          <div class="pills" role="group" aria-label="Budget">
+            <button type="button" data-value="100" aria-pressed="false">Under $100</button>
+            <button type="button" data-value="250" aria-pressed="false">A couple hundred</button>
+            <button type="button" data-value="none" aria-pressed="false">No limit</button>
+          </div>
+          <label class="field" style="margin-top:0.7rem;margin-bottom:0">
+            <span>Or a dollar amount</span>
+            <input type="number" id="budget-amount" name="budgetAmount" min="0" step="1" inputmode="numeric" placeholder="150" />
+          </label>
+          <p class="meta" style="margin-top:0.45rem">Under $100 stays with free walks and the market. No limit keeps the museums and ticketed nights, and would add a sit-down meal, a paid tour, or a rented car once one is verified for that date. A number here overrides the buttons.</p>
+        </div>
         <label class="field">
           <span>What do you two like?</span>
           <textarea id="must" name="must" rows="6" placeholder="an easy day of walking, people watching, live music, art…"></textarea>
@@ -287,6 +329,7 @@
       <p class="note hidden" id="weather-line">Daytime forecast</p>
       <p class="note" id="custom-line"></p>
       <p class="note" id="drink-line"></p>
+      <p class="note" id="plan-line"></p>
       <p class="note hidden" id="music-line"></p>
       <p class="note hidden" id="gap-line"></p>
       <div class="moods hidden" id="moods"></div>
@@ -423,6 +466,7 @@
       },
       {
         id: "mfa",
+        cost: "ticket",
         name: "Museum of Fine Arts",
         pin: function (d, iso) { return iso === "2026-10-10"; },
         address: "255 Beach Drive NE, St. Petersburg",
@@ -473,6 +517,7 @@
       },
       {
         id: "dali",
+        cost: "ticket",
         name: "The Dalí Museum",
         address: "One Dali Blvd, St. Petersburg",
         query: "The Dalí Museum, One Dali Blvd, St. Petersburg, FL",
@@ -570,6 +615,7 @@
       },
       {
         id: "glass",
+        cost: "small",
         name: "Morean Glass Studio",
         address: "714 1st Ave N, St. Petersburg",
         query: "Morean Glass Studio, 714 1st Ave N, St. Petersburg, FL",
@@ -631,6 +677,7 @@
       },
       {
         id: "folk",
+        cost: "ticket",
         name: "Good Folk Fest",
         outdoor: true,
         music: true,
@@ -669,6 +716,99 @@
       return "A day in St. Pete" + tail;
     }
 
+    var KINDS = {
+      Anniversary: [
+        { value: "away", label: "Away from the kids", hint: "Longer and quieter. Nothing built around a stroller." },
+        { value: "celebrate", label: "A celebration", hint: "The fancier stop. A ticket, a night that feels dressed up." },
+        { value: "easy", label: "An easy one", hint: "Walking, people watching, no schedule." }
+      ],
+      Date: [
+        { value: "away", label: "Just the two of you", hint: "Places that fall apart if kids come along." },
+        { value: "celebrate", label: "A little fancy", hint: "One paid stop, not a whole production." },
+        { value: "easy", label: "Low key", hint: "Wander, then head home when you feel like it." }
+      ],
+      Birthday: [
+        { value: "celebrate", label: "Celebrate them", hint: "The bigger stop, and a ticket if something is on." },
+        { value: "easy", label: "Their pace", hint: "What they already like. Nothing forced." },
+        { value: "away", label: "A grown-up birthday", hint: "Not a kids' party. Art, an evening, a long look indoors." }
+      ],
+      "Just because": [
+        { value: "easy", label: "No reason needed", hint: "A walk and whatever is actually open." },
+        { value: "away", label: "A stolen day", hint: "The stuff you skip when the kids are with you." },
+        { value: "celebrate", label: "A small splurge", hint: "One nicer stop, even with no occasion." }
+      ]
+    };
+
+    function renderKinds(occasion, selected) {
+      var box = document.getElementById("kinds");
+      var hint = document.getElementById("kind-hint");
+      var list = KINDS[occasion] || [];
+      if (!list.length) {
+        box.innerHTML = "";
+        hint.textContent = "Pick the occasion first. These say what kind of day it is.";
+        return;
+      }
+      box.innerHTML = list.map(function (k) {
+        var on = k.value === selected ? "true" : "false";
+        return '<button type="button" data-value="' + k.value + '" aria-pressed="' + on + '">' +
+          esc(k.label) + "<small>" + esc(k.hint) + "</small></button>";
+      }).join("");
+      hint.textContent = "This is the lean. The note at the bottom can still pull a stop forward.";
+    }
+
+    function kindLabel(p) {
+      var list = KINDS[p.occasion] || [];
+      var found = "";
+      list.forEach(function (k) { if (k.value === p.kind) found = k.label; });
+      return found;
+    }
+
+    function budgetLabel(p) {
+      if (p.budgetAmount) return "$" + p.budgetAmount;
+      if (p.budget === "100") return "Under $100";
+      if (p.budget === "250") return "A couple hundred";
+      if (p.budget === "none") return "No limit";
+      return "";
+    }
+
+    function spendCap(p) {
+      if (p.budgetAmount !== "" && p.budgetAmount != null) {
+        var n = Number(p.budgetAmount);
+        if (isFinite(n)) return n;
+      }
+      if (p.budget === "100") return 100;
+      if (p.budget === "250") return 250;
+      return null;
+    }
+
+    function pricey(s, iso) {
+      if (s.id === "glass") return false;
+      if (s.id === "mfa" && iso === "2026-10-10") return false;
+      return s.cost === "ticket";
+    }
+
+    function planLine(p) {
+      var bits = [];
+      if (kindLabel(p)) bits.push(kindLabel(p));
+      if (budgetLabel(p)) bits.push(budgetLabel(p));
+      if (!bits.length) return "";
+      var cap = spendCap(p);
+      var extra = "";
+      var noCap = p.budget === "none" || (cap !== null && cap >= 300);
+      if (p.kind === "easy" && !noCap) {
+        extra = " This kind of day stays easy. A fancy add-on stays off unless the note asks for it.";
+      } else if (cap !== null && cap < 150) {
+        extra = p.kind === "celebrate"
+          ? " A celebration on a tight budget, so the free stops carry it unless the note asks for art or music."
+          : " Tight budget, so museum tickets stay off unless the note asks for art or music.";
+      } else if (noCap) {
+        extra = " No dollar cap, so ticketed stops stay in. A sit-down meal, a paid tour, or a rented car would fit too, once one is verified for this date.";
+      } else if (cap !== null) {
+        extra = " Room for one ticketed stop. A fancier meal stays off until one is verified for this date.";
+      }
+      return (bits.join(" · ") + "." + extra).trim();
+    }
+
     function noteWants(p) {
       var text = String((p && p.must) || "").toLowerCase();
       if (!text.trim()) return { art: false, music: false, walk: false };
@@ -683,7 +823,9 @@
       var d = parseDate(p.date);
       var iso = isoDate(d);
       var wants = noteWants(p);
+      var cap = spendCap(p);
       var open = STOPS.filter(function (s) {
+        if (p.kind === "away" && s.id === "pumpkin") return false;
         if (s.bar && p.drink !== "yes") return false;
         return s.isOpen(d, iso);
       });
@@ -736,16 +878,45 @@
           if (found) chosen.push(found);
         });
       }
+      if (cap !== null && cap < 150) {
+        var keptMuseum = false;
+        chosen = chosen.filter(function (s) {
+          if (!pricey(s, iso)) return true;
+          if (wants.music && s.id === "folk") return true;
+          if (wants.art && (s.id === "dali" || s.id === "mfa") && !keptMuseum) {
+            keptMuseum = true;
+            return true;
+          }
+          return false;
+        });
+      }
       var prefer = [];
       if (wants.art) prefer = prefer.concat(["dali", "mfa", "artpool", "morean"]);
-      if (wants.walk) prefer = prefer.concat(["pier", "market"]);
+      if (wants.walk || p.kind === "easy") prefer = prefer.concat(["pier", "market"]);
       if (wants.music) prefer = prefer.concat(["folk", "market", "festival"]);
+      if (p.kind === "away") prefer = prefer.concat(["dali", "mfa", "artpool", "morean", "glass", "palehorse"]);
+      if (p.kind === "celebrate" || cap === null || (cap !== null && cap >= 200)) prefer = prefer.concat(["dali", "mfa", "folk", "glass"]);
+      if (p.kind === "easy" && !wants.art) prefer = prefer.filter(function (id) { return id !== "dali" && id !== "mfa"; });
       prefer.forEach(function (id) {
         if (chosen.some(function (s) { return s.id === id; })) return;
         var foundNote = null;
         open.forEach(function (s) { if (s.id === id) foundNote = s; });
-        if (foundNote) chosen.push(foundNote);
+        if (!foundNote) return;
+        if (cap !== null && cap < 150 && pricey(foundNote, iso)) {
+          var asked = (wants.art && (id === "dali" || id === "mfa")) || (wants.music && id === "folk");
+          if (!asked) return;
+        }
+        if (p.kind === "easy" && !wants.art && (id === "dali" || id === "mfa" || id === "folk")) return;
+        chosen.push(foundNote);
       });
+      if (cap !== null && cap < 300) {
+        var museums = 0;
+        chosen = chosen.filter(function (s) {
+          if (s.id !== "dali" && s.id !== "mfa") return true;
+          museums += 1;
+          return museums === 1;
+        });
+      }
       chosen.sort(function (a, b) {
         var as = a.start(d, iso), bs = b.start(d, iso);
         if (as !== bs) return as - bs;
@@ -897,6 +1068,13 @@
       obj.them = String(obj.them || "").slice(0, 60);
       obj.custom = String(obj.custom || "").slice(0, 80);
       obj.must = String(obj.must || "");
+      obj.kind = ["away", "celebrate", "easy"].indexOf(obj.kind) === -1 ? "" : obj.kind;
+      obj.budget = ["100", "250", "none"].indexOf(String(obj.budget || "")) === -1 ? "" : String(obj.budget);
+      if (obj.budgetAmount === "" || obj.budgetAmount == null) obj.budgetAmount = "";
+      else {
+        var budgetNum = Number(obj.budgetAmount);
+        obj.budgetAmount = isFinite(budgetNum) && budgetNum >= 0 ? String(Math.round(budgetNum)) : "";
+      }
       obj.skip = Array.isArray(obj.skip) ? obj.skip.map(String) : [];
       obj.city = "St. Petersburg";
       if (!obj.id) obj.id = uid();
@@ -978,6 +1156,8 @@
         "<h2>The day</h2>" +
         "<p class=\"recap-k\">Names</p><p class=\"why\">" + esc(names || "—") + "</p>" +
         "<p class=\"recap-k\">Occasion</p><p class=\"why\">" + esc(occ) + "</p>" +
+        (kindLabel(plan) ? "<p class=\"recap-k\">Kind</p><p class=\"why\">" + esc(kindLabel(plan)) + "</p>" : "") +
+        (budgetLabel(plan) ? "<p class=\"recap-k\">Budget</p><p class=\"why\">" + esc(budgetLabel(plan)) + "</p>" : "") +
         "<p class=\"recap-k\">Date</p><p class=\"why\">" + esc(when) + "</p>" +
         "<p class=\"recap-k\">City</p><p class=\"why\">St. Petersburg</p>" +
         "<p class=\"recap-k\">Stops</p>" + items + must;
@@ -1013,6 +1193,7 @@
       setText("weather-line", weatherLine(plan.date));
       setText("custom-line", plan.custom ? plan.custom : "");
       setText("drink-line", plan.drink === "no" ? "No bars on this one." : (plan.drink === "yes" ? "Drinks are in." : ""));
+      setText("plan-line", planLine(plan));
       setText("music-line", musicNote(plan, stops));
       var noteEdit = document.getElementById("note-edit");
       if (noteEdit && document.activeElement !== noteEdit) noteEdit.value = plan.must || "";
@@ -1081,7 +1262,9 @@
       document.getElementById("custom").value = p && p.custom || "";
       document.getElementById("date").value = p && p.date || "";
       document.getElementById("must").value = p && p.must || "";
+      document.getElementById("budget-amount").value = p && p.budgetAmount || "";
       applyPills(p || {});
+      renderKinds(p && p.occasion, p && p.kind);
       document.getElementById("form-err").classList.add("hidden");
     }
 
@@ -1090,6 +1273,26 @@
         btn.parentNode.querySelectorAll("[data-value]").forEach(function (b) {
           b.setAttribute("aria-pressed", b === btn ? "true" : "false");
         });
+        var group = btn.closest("[data-group]");
+        var name = group ? group.getAttribute("data-group") : "";
+        if (name === "occasion") renderKinds(btn.getAttribute("data-value"), "");
+        if (name === "budget") document.getElementById("budget-amount").value = "";
+      });
+    });
+
+    document.getElementById("kinds").addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-value]");
+      if (!btn || !btn.closest("#kinds")) return;
+      btn.parentNode.querySelectorAll("[data-value]").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+    });
+
+    document.getElementById("budget-amount").addEventListener("input", function () {
+      if (!document.getElementById("budget-amount").value.trim()) return;
+      var group = document.querySelector('#day-form .group[data-group="budget"]');
+      group.querySelectorAll(".pills [data-value]").forEach(function (b) {
+        b.setAttribute("aria-pressed", "false");
       });
     });
 
@@ -1100,8 +1303,10 @@
       var them = document.getElementById("them").value.trim();
       var date = document.getElementById("date").value;
       var err = document.getElementById("form-err");
-      if (!you || !them || !pills.occasion || !date || !parseDate(date) || !pills.drink || !pills.style || !pills.lean) {
-        err.textContent = "Add both names, an occasion, a date, and the three choices.";
+      var amount = document.getElementById("budget-amount").value.trim();
+      var budget = amount ? "" : (pills.budget || "");
+      if (!you || !them || !pills.occasion || !pills.kind || !date || !parseDate(date) || !pills.drink || !pills.style || !pills.lean || (!amount && !budget) || (amount && !/^\d+$/.test(amount))) {
+        err.textContent = "Add both names, an occasion, the kind of day, a date, a budget, and the other choices.";
         err.classList.remove("hidden");
         return;
       }
@@ -1111,12 +1316,15 @@
         you: you,
         them: them,
         occasion: pills.occasion,
+        kind: pills.kind,
         custom: document.getElementById("custom").value.trim(),
         date: date,
         city: "St. Petersburg",
         drink: pills.drink,
         style: pills.style,
         lean: pills.lean,
+        budget: budget,
+        budgetAmount: amount,
         must: document.getElementById("must").value.trim(),
         skip: plan && plan.date === date ? (plan.skip || []) : []
       };
