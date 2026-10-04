@@ -291,19 +291,11 @@
             <button type="button" data-value="gems" aria-pressed="false">Hidden gems</button>
           </div>
         </div>
-        <div class="group" data-group="budget">
-          <p>Budget for the day</p>
-          <div class="pills" role="group" aria-label="Budget">
-            <button type="button" data-value="100" aria-pressed="false">Under $100</button>
-            <button type="button" data-value="250" aria-pressed="false">A couple hundred</button>
-            <button type="button" data-value="none" aria-pressed="false">No limit</button>
-          </div>
-          <label class="field" style="margin-top:0.7rem;margin-bottom:0">
-            <span>Or a dollar amount</span>
-            <input type="number" id="budget-amount" name="budgetAmount" min="0" step="1" inputmode="numeric" placeholder="150" />
-          </label>
-          <p class="meta" style="margin-top:0.45rem">Under $100 stays with free walks and the market. No limit keeps the museums and ticketed nights, and would add a sit-down meal, a paid tour, or a rented car once one is verified for that date. A number here overrides the buttons.</p>
-        </div>
+        <label class="field">
+          <span>Budget for the day</span>
+          <input type="number" id="budget-amount" name="budgetAmount" min="0" step="1" inputmode="numeric" placeholder="200" required />
+          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. It gets checked against parking, food, and paid entertainment, the same way a person would. A lower number keeps ticketed stops off so parking and a meal still fit. Prices that are not verified are not invented.</p>
+        </label>
         <label class="field">
           <span>What do you two like?</span>
           <textarea id="must" name="must" rows="6" placeholder="an easy day of walking, people watching, live music, art…"></textarea>
@@ -765,9 +757,9 @@
 
     function budgetLabel(p) {
       if (p.budgetAmount) return "$" + p.budgetAmount;
-      if (p.budget === "100") return "Under $100";
-      if (p.budget === "250") return "A couple hundred";
-      if (p.budget === "none") return "No limit";
+      if (p.budget === "100") return "$100";
+      if (p.budget === "250") return "$250";
+      if (p.budget === "none") return "No set amount";
       return "";
     }
 
@@ -790,23 +782,22 @@
     function planLine(p) {
       var bits = [];
       if (kindLabel(p)) bits.push(kindLabel(p));
-      if (budgetLabel(p)) bits.push(budgetLabel(p));
+      if (p.budgetAmount || p.budget) bits.push(budgetLabel(p) + " for parking, food, and paid stops");
       if (!bits.length) return "";
       var cap = spendCap(p);
       var extra = "";
-      var noCap = p.budget === "none" || (cap !== null && cap >= 300);
-      if (p.kind === "easy" && !noCap) {
-        extra = " This kind of day stays easy. A fancy add-on stays off unless the note asks for it.";
+      if (p.kind === "easy") {
+        extra = " This kind of day stays easy, so a fancy add-on stays off unless the note asks for it.";
+      } else if (p.budget === "none") {
+        extra = " No dollar amount was set, so ticketed stops can stay. A paid tour or a rented car stays off until one is verified for this date.";
       } else if (cap !== null && cap < 150) {
-        extra = p.kind === "celebrate"
-          ? " A celebration on a tight budget, so the free stops carry it unless the note asks for art or music."
-          : " Tight budget, so museum tickets stay off unless the note asks for art or music.";
-      } else if (noCap) {
-        extra = " No dollar cap, so ticketed stops stay in. A sit-down meal, a paid tour, or a rented car would fit too, once one is verified for this date.";
+        extra = " That amount is tight, so ticketed museums stay off and the money stays for parking and food, unless the note asks for art or music.";
+      } else if (cap !== null && cap < 300) {
+        extra = " Room for one paid stop. The rest stays for parking and food.";
       } else if (cap !== null) {
-        extra = " Room for one ticketed stop. A fancier meal stays off until one is verified for this date.";
+        extra = " Room for ticketed stops plus parking and a meal. A paid tour or a rented car stays off until one is verified for this date.";
       }
-      return (bits.join(" · ") + "." + extra).trim();
+      return (bits.join(". ") + "." + extra).trim();
     }
 
     function noteWants(p) {
@@ -1276,7 +1267,6 @@
         var group = btn.closest("[data-group]");
         var name = group ? group.getAttribute("data-group") : "";
         if (name === "occasion") renderKinds(btn.getAttribute("data-value"), "");
-        if (name === "budget") document.getElementById("budget-amount").value = "";
       });
     });
 
@@ -1288,14 +1278,6 @@
       });
     });
 
-    document.getElementById("budget-amount").addEventListener("input", function () {
-      if (!document.getElementById("budget-amount").value.trim()) return;
-      var group = document.querySelector('#day-form .group[data-group="budget"]');
-      group.querySelectorAll(".pills [data-value]").forEach(function (b) {
-        b.setAttribute("aria-pressed", "false");
-      });
-    });
-
     document.getElementById("day-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var pills = readPills();
@@ -1304,8 +1286,7 @@
       var date = document.getElementById("date").value;
       var err = document.getElementById("form-err");
       var amount = document.getElementById("budget-amount").value.trim();
-      var budget = amount ? "" : (pills.budget || "");
-      if (!you || !them || !pills.occasion || !pills.kind || !date || !parseDate(date) || !pills.drink || !pills.style || !pills.lean || (!amount && !budget) || (amount && !/^\d+$/.test(amount))) {
+      if (!you || !them || !pills.occasion || !pills.kind || !date || !parseDate(date) || !pills.drink || !pills.style || !pills.lean || !/^\d+$/.test(amount)) {
         err.textContent = "Add both names, an occasion, the kind of day, a date, a budget, and the other choices.";
         err.classList.remove("hidden");
         return;
@@ -1323,7 +1304,7 @@
         drink: pills.drink,
         style: pills.style,
         lean: pills.lean,
-        budget: budget,
+        budget: "",
         budgetAmount: amount,
         must: document.getElementById("must").value.trim(),
         skip: plan && plan.date === date ? (plan.skip || []) : []
