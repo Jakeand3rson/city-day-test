@@ -218,7 +218,7 @@
   <div class="shell">
     <p class="banner">Free for friends and family. No payment.</p>
 
-    <section id="screen-form">
+    <section id="screen-about">
       <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
         <circle cx="292" cy="40" r="14" fill="#F5A791"/>
         <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
@@ -229,8 +229,26 @@
         <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
         <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <h1>Make a day.</h1>
-      <p class="lede">A day in St. Petersburg for two people. The link is the plan.</p>
+      <h1>A nudge, not a schedule.</h1>
+      <p class="lede">Tell it a little about the two of you, the day, and what you like. It points you toward a few things that are actually open, including something you might have missed, and it checks the weather so the day doesn't get caught in the rain.</p>
+      <p class="why">It is not a rigid plan. One or two things to draw on, then room to stop because the view is good, or because something smells right. The wandering is part of the day.</p>
+      <p class="meta">Use it when it helps. Put it away when you stumble onto something better.</p>
+      <button type="button" class="btn btn-primary" id="begin">Start a day</button>
+    </section>
+
+    <section id="screen-form" class="hidden">
+      <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
+        <circle cx="292" cy="40" r="14" fill="#F5A791"/>
+        <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
+        <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
+        <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h1>The day.</h1>
+      <p class="lede">A few things, then a pocket of the city. Not a timetable.</p>
       <form id="day-form" novalidate>
         <p class="err hidden" id="form-err"></p>
         <label class="field">
@@ -289,7 +307,7 @@
         <label class="field">
           <span>Budget for the day</span>
           <input type="number" id="budget-amount" name="budgetAmount" min="0" step="1" inputmode="numeric" placeholder="200" required />
-          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. It gets checked against parking, food, and a ticketed stop like a museum. A lower number keeps the ticket off so parking and a meal still fit. The day is a walk, a shop, and food, not a booked experience.</p>
+          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. It gets checked against parking, food, and a ticketed stop like a museum. A lower number keeps the ticket off so parking and a meal still fit.</p>
         </label>
         <label class="field">
           <span>What do you two like?</span>
@@ -784,13 +802,13 @@
       if (p.kind === "easy") {
         extra = " This kind of day stays easy, so a fancy add-on stays off unless the note asks for it.";
       } else if (p.budget === "none") {
-        extra = " No dollar amount was set, so a museum can stay. The day is still a walk, a shop, and food.";
+        extra = " No dollar amount was set, so a museum can stay.";
       } else if (cap !== null && cap < 150) {
         extra = " That amount is tight, so ticketed museums stay off and the money stays for parking and food, unless the note asks for art or music.";
       } else if (cap !== null && cap < 300) {
         extra = " Room for one paid stop. The rest stays for parking and food.";
       } else if (cap !== null) {
-        extra = " Room for a museum ticket plus parking and a meal. Still a walk and a shop, not a booked experience.";
+        extra = " Room for a museum ticket plus parking and a meal.";
       }
       return (bits.join(". ") + "." + extra).trim();
     }
@@ -1204,6 +1222,7 @@
     }
 
     function show(which) {
+      document.getElementById("screen-about").classList.toggle("hidden", which !== "about");
       document.getElementById("screen-form").classList.toggle("hidden", which !== "form");
       document.getElementById("screen-day").classList.toggle("hidden", which !== "day");
       window.scrollTo(0, 0);
@@ -1368,6 +1387,10 @@
       localStorage.setItem(STORE, JSON.stringify(store));
       history.replaceState(null, "", location.pathname);
       fillForm(null);
+      show("about");
+    });
+
+    document.getElementById("begin").addEventListener("click", function () {
       show("form");
     });
 
@@ -1393,7 +1416,7 @@
         } catch (e2) {}
       }
       fillForm(null);
-      show("form");
+      show("about");
     }
 
     boot();
