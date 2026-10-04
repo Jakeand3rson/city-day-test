@@ -90,6 +90,7 @@
     label.field { display: block; margin: 0 0 1.05rem; }
     input[type="text"],
     input[type="date"],
+    textarea,
     .share-url {
       width: 100%;
       border: 1.5px solid var(--ink);
@@ -99,6 +100,12 @@
       padding: 0.75rem 0.9rem;
       font: inherit;
       font-size: 1rem;
+    }
+    textarea {
+      display: block;
+      min-height: 9rem;
+      resize: vertical;
+      line-height: 1.45;
     }
     .city-fixed {
       border: 1.5px solid rgba(42, 42, 42, 0.28);
@@ -255,8 +262,9 @@
           </div>
         </div>
         <label class="field">
-          <span>One thing the day must include</span>
-          <input type="text" id="must" name="must" maxlength="120" placeholder="Optional" />
+          <span>What do you two like?</span>
+          <textarea id="must" name="must" rows="6" placeholder="an easy day of walking, people watching, live music, art…"></textarea>
+          <p class="meta" style="margin-top:0.45rem">The useful stuff is what you like, what has worked before, and anything to avoid.</p>
         </label>
         <button type="submit" class="btn btn-primary" id="make">Make the day</button>
       </form>
@@ -278,12 +286,18 @@
       <p class="note hidden" id="weather-line">Daytime forecast</p>
       <p class="note" id="custom-line"></p>
       <p class="note" id="drink-line"></p>
-      <p class="note" id="must-line"></p>
+      <p class="note hidden" id="music-line"></p>
       <p class="note hidden" id="gap-line"></p>
       <div class="moods hidden" id="moods"></div>
       <div id="stops"></div>
       <section class="recap hidden" id="recap"></section>
       <div class="actions">
+        <label class="field">
+          <span>What do you two like?</span>
+          <textarea id="note-edit" rows="6" placeholder="an easy day of walking, people watching, live music, art…"></textarea>
+          <p class="meta" style="margin-top:0.45rem">The useful stuff is what you like, what has worked before, and anything to avoid.</p>
+        </label>
+        <button type="button" class="btn btn-ink" id="rebuild">Rebuild the day</button>
         <label class="field">
           <span>Share link</span>
           <input class="share-url" id="share-url" type="text" readonly />
@@ -386,6 +400,7 @@
         name: "Saturday Morning Market",
         pin: function () { return true; },
         outdoor: true,
+        music: true,
         address: "100 1st Ave SE, St. Petersburg",
         query: "Saturday Morning Market, 100 1st Ave SE, St. Petersburg, FL",
         gem: false,
@@ -477,6 +492,7 @@
         id: "festival",
         name: "St. Pete Fall Festival",
         outdoor: true,
+        music: true,
         address: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg",
         query: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg, FL",
         gem: false,
@@ -616,6 +632,7 @@
         id: "folk",
         name: "Good Folk Fest",
         outdoor: true,
+        music: true,
         address: "St. Petersburg Shuffleboard Club, 559 Mirror Lake Dr N, St. Petersburg",
         query: "St. Petersburg Shuffleboard Club, 559 Mirror Lake Drive North, St. Petersburg, FL",
         gem: true,
@@ -651,9 +668,20 @@
       return "A day in St. Pete" + tail;
     }
 
+    function noteWants(p) {
+      var text = String((p && p.must) || "").toLowerCase();
+      if (!text.trim()) return { art: false, music: false, walk: false };
+      return {
+        art: text.indexOf("art") !== -1,
+        music: text.indexOf("music") !== -1,
+        walk: text.indexOf("walking") !== -1 || text.indexOf("people watching") !== -1
+      };
+    }
+
     function pickStops(p) {
       var d = parseDate(p.date);
       var iso = isoDate(d);
+      var wants = noteWants(p);
       var open = STOPS.filter(function (s) {
         if (s.bar && p.drink !== "yes") return false;
         return s.isOpen(d, iso);
@@ -680,6 +708,9 @@
       var limit = p.drink === "yes" ? 7 : 6;
       function droppable(s) {
         if (forecastWet(iso) && (s.id === "dali" || s.id === "mfa")) return false;
+        if (wants.art && (s.id === "dali" || s.id === "mfa" || s.id === "artpool" || s.id === "morean")) return false;
+        if (wants.walk && (s.id === "pier" || s.id === "market")) return false;
+        if (wants.music && s.music) return false;
         if (s.dated || s.bar || s.id === "market") return false;
         if (s.id === "mfa" && iso === "2026-10-10") return false;
         if (p.lean === "must") return !!s.gem;
@@ -704,6 +735,16 @@
           if (found) chosen.push(found);
         });
       }
+      var prefer = [];
+      if (wants.art) prefer = prefer.concat(["dali", "mfa", "artpool", "morean"]);
+      if (wants.walk) prefer = prefer.concat(["pier", "market"]);
+      if (wants.music) prefer = prefer.concat(["folk", "market", "festival"]);
+      prefer.forEach(function (id) {
+        if (chosen.some(function (s) { return s.id === id; })) return;
+        var foundNote = null;
+        open.forEach(function (s) { if (s.id === id) foundNote = s; });
+        if (foundNote) chosen.push(foundNote);
+      });
       chosen.sort(function (a, b) {
         var as = a.start(d, iso), bs = b.start(d, iso);
         if (as !== bs) return as - bs;
@@ -728,7 +769,8 @@
           why: s.why(ctx),
           source: s.source,
           dated: s.dated,
-          outdoor: !!s.outdoor
+          outdoor: !!s.outdoor,
+          music: !!s.music
         };
       });
     }
@@ -853,7 +895,7 @@
       obj.you = String(obj.you || "").slice(0, 60);
       obj.them = String(obj.them || "").slice(0, 60);
       obj.custom = String(obj.custom || "").slice(0, 80);
-      obj.must = String(obj.must || "").slice(0, 120);
+      obj.must = String(obj.must || "");
       obj.skip = Array.isArray(obj.skip) ? obj.skip.map(String) : [];
       obj.city = "St. Petersburg";
       if (!obj.id) obj.id = uid();
@@ -930,7 +972,7 @@
             return "<li>" + esc(s.name + extra) + "</li>";
           }).join("") + "</ul>"
         : "<p class=\"why\">You passed on every stop.</p>";
-      var must = plan.must ? "<p class=\"why\">Must include: " + esc(plan.must) + "</p>" : "";
+      var must = plan.must ? "<p class=\"recap-k\">What you two like</p><p class=\"why\">" + esc(plan.must) + "</p>" : "";
       document.getElementById("recap").innerHTML =
         "<h2>The day</h2>" +
         "<p class=\"recap-k\">Names</p><p class=\"why\">" + esc(names || "—") + "</p>" +
@@ -954,6 +996,14 @@
       box.innerHTML = html;
     }
 
+    function musicNote(p, stops) {
+      if (!noteWants(p).music) return "";
+      var folk = stops.some(function (s) { return s.id === "folk"; });
+      if (folk) return "";
+      var other = stops.some(function (s) { return s.music; });
+      return other ? "We'll look for music that day." : "";
+    }
+
     function renderDay() {
       var d = parseDate(plan.date);
       var stops = visibleStops();
@@ -962,7 +1012,9 @@
       setText("weather-line", weatherLine(plan.date));
       setText("custom-line", plan.custom ? plan.custom : "");
       setText("drink-line", plan.drink === "no" ? "No bars on this one." : (plan.drink === "yes" ? "Drinks are in." : ""));
-      setText("must-line", plan.must ? "The day has to include: " + plan.must : "");
+      setText("music-line", musicNote(plan, stops));
+      var noteEdit = document.getElementById("note-edit");
+      if (noteEdit && document.activeElement !== noteEdit) noteEdit.value = plan.must || "";
       var known = plan.date === "2026-10-10" || plan.date === "2026-10-11" || plan.date === "2026-10-17";
       setText("gap-line", known ? "" : "No special event was verified for this date. These are places with standing hours that are open then.");
       var mystery = plan.style === "mystery" && !revealed;
@@ -1110,7 +1162,16 @@
       }
     });
 
+    document.getElementById("rebuild").addEventListener("click", function () {
+      if (!plan) return;
+      plan.must = document.getElementById("note-edit").value.trim();
+      document.getElementById("must").value = plan.must;
+      persist();
+      renderDay();
+    });
+
     document.getElementById("edit").addEventListener("click", function () {
+      if (plan) plan.must = document.getElementById("note-edit").value.trim();
       fillForm(plan);
       show("form");
     });
