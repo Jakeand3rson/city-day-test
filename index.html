@@ -256,11 +256,6 @@
           <p class="meta" id="kind-hint" style="margin-top:0.45rem">Pick the occasion first. These say what kind of day it is.</p>
         </div>
         <label class="field">
-          <span>Name this day</span>
-          <input type="text" id="custom" name="custom" maxlength="80" placeholder="our 15th, away from the kids" />
-          <p class="meta" style="margin-top:0.45rem">Optional. A short title for the day. What you like goes in the box at the bottom.</p>
-        </label>
-        <label class="field">
           <span>Date</span>
           <input type="date" id="date" name="date" required />
         </label>
@@ -1250,7 +1245,6 @@
     function fillForm(p) {
       document.getElementById("you").value = p && p.you || "";
       document.getElementById("them").value = p && p.them || "";
-      document.getElementById("custom").value = p && p.custom || "";
       document.getElementById("date").value = p && p.date || "";
       document.getElementById("must").value = p && p.must || "";
       document.getElementById("budget-amount").value = p && p.budgetAmount || "";
@@ -1298,7 +1292,7 @@
         them: them,
         occasion: pills.occasion,
         kind: pills.kind,
-        custom: document.getElementById("custom").value.trim(),
+        custom: "",
         date: date,
         city: "St. Petersburg",
         drink: pills.drink,
