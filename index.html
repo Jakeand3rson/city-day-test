@@ -294,7 +294,7 @@
         <label class="field">
           <span>Budget for the day</span>
           <input type="number" id="budget-amount" name="budgetAmount" min="0" step="1" inputmode="numeric" placeholder="200" required />
-          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. It gets checked against parking, food, and paid entertainment, the same way a person would. A lower number keeps ticketed stops off so parking and a meal still fit. Prices that are not verified are not invented.</p>
+          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. It gets checked against parking, food, and a ticketed stop like a museum. A lower number keeps the ticket off so parking and a meal still fit. The day is a walk, a shop, and food, not a booked experience.</p>
         </label>
         <label class="field">
           <span>What do you two like?</span>
@@ -789,13 +789,13 @@
       if (p.kind === "easy") {
         extra = " This kind of day stays easy, so a fancy add-on stays off unless the note asks for it.";
       } else if (p.budget === "none") {
-        extra = " No dollar amount was set, so ticketed stops can stay. A paid tour or a rented car stays off until one is verified for this date.";
+        extra = " No dollar amount was set, so a museum can stay. The day is still a walk, a shop, and food.";
       } else if (cap !== null && cap < 150) {
         extra = " That amount is tight, so ticketed museums stay off and the money stays for parking and food, unless the note asks for art or music.";
       } else if (cap !== null && cap < 300) {
         extra = " Room for one paid stop. The rest stays for parking and food.";
       } else if (cap !== null) {
-        extra = " Room for ticketed stops plus parking and a meal. A paid tour or a rented car stays off until one is verified for this date.";
+        extra = " Room for a museum ticket plus parking and a meal. Still a walk and a shop, not a booked experience.";
       }
       return (bits.join(". ") + "." + extra).trim();
     }
