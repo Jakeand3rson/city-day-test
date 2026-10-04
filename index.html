@@ -275,6 +275,7 @@
       </svg>
       <h1 id="welcome"></h1>
       <p class="meta" id="when-line"></p>
+      <p class="note hidden" id="weather-line">Daytime forecast</p>
       <p class="note" id="custom-line"></p>
       <p class="note" id="drink-line"></p>
       <p class="note" id="must-line"></p>
@@ -364,6 +365,7 @@
       {
         id: "boyd",
         name: "Native grass planting at Boyd Hill",
+        outdoor: true,
         address: "1101 Country Club Way South, St. Petersburg",
         query: "Boyd Hill Nature Preserve, 1101 Country Club Way South, St. Petersburg, FL",
         gem: true,
@@ -383,6 +385,7 @@
         id: "market",
         name: "Saturday Morning Market",
         pin: function () { return true; },
+        outdoor: true,
         address: "100 1st Ave SE, St. Petersburg",
         query: "Saturday Morning Market, 100 1st Ave SE, St. Petersburg, FL",
         gem: false,
@@ -473,6 +476,7 @@
       {
         id: "festival",
         name: "St. Pete Fall Festival",
+        outdoor: true,
         address: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg",
         query: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg, FL",
         gem: false,
@@ -491,6 +495,7 @@
       {
         id: "pier",
         name: "The St. Pete Pier",
+        outdoor: true,
         address: "800 2nd Ave NE, St. Petersburg",
         query: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg, FL",
         gem: false,
@@ -610,6 +615,7 @@
       {
         id: "folk",
         name: "Good Folk Fest",
+        outdoor: true,
         address: "St. Petersburg Shuffleboard Club, 559 Mirror Lake Dr N, St. Petersburg",
         query: "St. Petersburg Shuffleboard Club, 559 Mirror Lake Drive North, St. Petersburg, FL",
         gem: true,
@@ -673,6 +679,7 @@
       var chosen = pinned.concat(rest.slice(0, room));
       var limit = p.drink === "yes" ? 7 : 6;
       function droppable(s) {
+        if (forecastWet(iso) && (s.id === "dali" || s.id === "mfa")) return false;
         if (s.dated || s.bar || s.id === "market") return false;
         if (s.id === "mfa" && iso === "2026-10-10") return false;
         if (p.lean === "must") return !!s.gem;
@@ -687,6 +694,15 @@
         }
         if (idx < 0) break;
         chosen.splice(idx, 1);
+      }
+      if (forecastWet(iso)) {
+        ["dali", "mfa"].forEach(function (id) {
+          var already = chosen.some(function (s) { return s.id === id; });
+          if (already) return;
+          var found = null;
+          open.forEach(function (s) { if (s.id === id) found = s; });
+          if (found) chosen.push(found);
+        });
       }
       chosen.sort(function (a, b) {
         var as = a.start(d, iso), bs = b.start(d, iso);
@@ -711,7 +727,8 @@
           start: s.start(d, iso),
           why: s.why(ctx),
           source: s.source,
-          dated: s.dated
+          dated: s.dated,
+          outdoor: !!s.outdoor
         };
       });
     }
@@ -727,6 +744,89 @@
       afternoon: { title: "The middle of the day", hint: "Somewhere to linger" },
       evening: { title: "After the light drops", hint: "The last stop" }
     };
+
+    var weatherByDate = {};
+
+    function periodDate(startTime) {
+      return String(startTime || "").slice(0, 10);
+    }
+
+    function forecastMentionsWet(text) {
+      return /\b(rain|storms?|thunder)/i.test(text || "");
+    }
+
+    function forecastWet(iso) {
+      var w = weatherByDate[iso];
+      return !!(w && w.status === "ready" && w.wet);
+    }
+
+    function nwsFetch(url, withUa) {
+      var headers = { Accept: "application/geo+json" };
+      if (withUa) {
+        headers["User-Agent"] = "CityDay friends-and-family (https://jakeand3rson.github.io/city-day-test/)";
+      }
+      return fetch(url, { headers: headers }).then(function (res) {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json();
+      });
+    }
+
+    function nwsGet(url) {
+      return nwsFetch(url, true).catch(function () {
+        return nwsFetch(url, false);
+      });
+    }
+
+    function weatherLine(iso) {
+      var w = weatherByDate[iso];
+      if (!w || w.status === "loading") return "Checking the daytime forecast…";
+      if (w.status === "later") return "The forecast isn't out yet for this date.";
+      if (w.status === "error") return "The forecast didn't load. No weather was invented.";
+      var line = w.name + ", " + w.temp + ", wind " + w.wind + ". " + w.short + ".";
+      if (w.wet) {
+        line += " Lean indoors. The Dalí and the MFA stay on the day. Outdoor stops are only if it clears.";
+      }
+      return line;
+    }
+
+    function applyForecast(iso, forecast) {
+      var periods = (forecast && forecast.properties && forecast.properties.periods) || [];
+      var day = null;
+      periods.forEach(function (per) {
+        if (!day && per && per.isDaytime && periodDate(per.startTime) === iso) day = per;
+      });
+      if (!day) {
+        weatherByDate[iso] = { status: "later" };
+        return;
+      }
+      var blob = (day.name || "") + " " + (day.shortForecast || "") + " " + (day.detailedForecast || "");
+      var wind = ((day.windSpeed || "") + " " + (day.windDirection || "")).trim();
+      weatherByDate[iso] = {
+        status: "ready",
+        name: day.name || "Daytime",
+        temp: (day.temperature != null ? day.temperature : "—") + "°" + (day.temperatureUnit || "F"),
+        wind: wind || "—",
+        short: day.shortForecast || "No short forecast",
+        wet: forecastMentionsWet(blob)
+      };
+    }
+
+    function loadWeather(iso) {
+      var existing = weatherByDate[iso];
+      if (existing) return;
+      weatherByDate[iso] = { status: "loading" };
+      nwsGet("https://api.weather.gov/points/27.770,-82.640").then(function (point) {
+        var forecastUrl = point && point.properties && point.properties.forecast;
+        if (!forecastUrl) throw new Error("no forecast url");
+        return nwsGet(forecastUrl);
+      }).then(function (forecast) {
+        applyForecast(iso, forecast);
+        if (plan && plan.date === iso) renderDay();
+      }).catch(function () {
+        weatherByDate[iso] = { status: "error" };
+        if (plan && plan.date === iso) renderDay();
+      });
+    }
 
     function visibleStops() {
       var skip = plan.skip || [];
@@ -811,6 +911,7 @@
           "<h2>" + esc(s.name) + "</h2>" +
           '<p class="why">' + esc(s.why) + "</p>" +
           '<p class="meta">' + esc(s.hours) + "</p>" +
+          (s.outdoor && forecastWet(plan.date) ? '<p class="meta">Only if it clears.</p>' : "") +
           '<p class="meta">' + esc(s.address) + "</p>" +
           '<p class="meta"><a href="' + esc(s.source) + '" target="_blank" rel="noopener">Source</a></p>' +
           '<a class="btn btn-ink" href="' + esc(mapsUrl(s.query)) + '" target="_blank" rel="noopener">Get directions</a>' +
@@ -824,7 +925,10 @@
       var occ = plan.occasion + (plan.custom ? " · " + plan.custom : "");
       var names = [plan.you, plan.them].filter(Boolean).join(" and ");
       var items = stops.length
-        ? "<ul>" + stops.map(function (s) { return "<li>" + esc(s.name) + "</li>"; }).join("") + "</ul>"
+        ? "<ul>" + stops.map(function (s) {
+            var extra = s.outdoor && forecastWet(plan.date) ? " (only if it clears)" : "";
+            return "<li>" + esc(s.name + extra) + "</li>";
+          }).join("") + "</ul>"
         : "<p class=\"why\">You passed on every stop.</p>";
       var must = plan.must ? "<p class=\"why\">Must include: " + esc(plan.must) + "</p>" : "";
       document.getElementById("recap").innerHTML =
@@ -855,6 +959,7 @@
       var stops = visibleStops();
       document.getElementById("welcome").textContent = welcomeLine(plan);
       setText("when-line", formatWhen(d) + " · St. Petersburg");
+      setText("weather-line", weatherLine(plan.date));
       setText("custom-line", plan.custom ? plan.custom : "");
       setText("drink-line", plan.drink === "no" ? "No bars on this one." : (plan.drink === "yes" ? "Drinks are in." : ""));
       setText("must-line", plan.must ? "The day has to include: " + plan.must : "");
@@ -875,6 +980,7 @@
         renderRecap(stops);
       }
       document.getElementById("share-url").value = shareUrl();
+      loadWeather(plan.date);
     }
 
     function show(which) {
