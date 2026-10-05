@@ -207,6 +207,40 @@
     .recap li { margin: 0.2rem 0; }
     .actions { margin-top: 0.4rem; display: grid; gap: 0.85rem; }
     .err { color: var(--red); font-size: 0.92rem; margin: 0 0 0.75rem; }
+    .learn-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.55rem 0.85rem;
+      margin-top: 0.45rem;
+    }
+    .learn-row .meta { margin: 0; flex: 1 1 12rem; }
+    .learn {
+      background: none;
+      border: none;
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.92rem;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 0.22em;
+      opacity: 0.72;
+    }
+    dialog.context-help {
+      border: 1.5px solid var(--ink);
+      border-radius: 1.1rem;
+      padding: 1.25rem 1.2rem 1.1rem;
+      max-width: 22rem;
+      width: calc(100% - 2rem);
+      background: var(--bg);
+      color: var(--ink);
+    }
+    dialog.context-help::backdrop { background: rgba(42, 42, 42, 0.35); }
+    dialog.context-help h2 { font-size: 1.15rem; margin: 0 0 0.7rem; }
+    dialog.context-help p { margin: 0 0 0.7rem; }
+    dialog.context-help ul { margin: 0 0 1rem; padding-left: 1.1rem; }
+    dialog.context-help li { margin: 0.25rem 0; }
     .hidden { display: none !important; }
     :focus-visible {
       outline: 2px solid var(--cyan);
@@ -311,11 +345,26 @@
         </label>
         <label class="field">
           <span>What do you two like?</span>
-          <textarea id="must" name="must" rows="6" placeholder="an easy day of walking, people watching, live music, art…"></textarea>
-          <p class="meta" style="margin-top:0.45rem">The useful stuff is what you like, what has worked before, and anything to avoid.</p>
+          <textarea id="must" name="must" rows="6" placeholder="easy walking, people watching, coffee in the morning, tacos or pasta, no long waits…"></textarea>
+          <div class="learn-row">
+            <p class="meta">This is what shapes the day. Add food likes, pace, and anything to avoid. Different notes make different days.</p>
+            <button type="button" class="learn" id="learn-context">Learn more</button>
+          </div>
         </label>
         <button type="submit" class="btn btn-primary" id="make">Make the day</button>
       </form>
+      <dialog class="context-help" id="context-help" aria-labelledby="context-help-title">
+        <h2 id="context-help-title">What helps</h2>
+        <p>Write like you are briefing a friend who will pick spots for you. The day is built from this note, the date, the weather, and the budget — not a fixed list.</p>
+        <ul>
+          <li>Food: coffee, tacos, pasta, vegetarian, gelato, a nicer dinner, no seafood.</li>
+          <li>Pace: easy walking, people watching, dig through shops, live music if it is on.</li>
+          <li>What has worked before, and what to skip.</li>
+          <li>Driving: say if you need parking, or if you are already downtown on foot.</li>
+        </ul>
+        <p class="meta">A few specific likes beat “fun day.” You can edit this later and rebuild.</p>
+        <button type="button" class="btn btn-ink" id="close-context">Got it</button>
+      </dialog>
     </section>
 
     <section id="screen-day" class="hidden">
@@ -343,8 +392,8 @@
       <div class="actions">
         <label class="field">
           <span>What do you two like?</span>
-          <textarea id="note-edit" rows="6" placeholder="an easy day of walking, people watching, live music, art…"></textarea>
-          <p class="meta" style="margin-top:0.45rem">The useful stuff is what you like, what has worked before, and anything to avoid.</p>
+          <textarea id="note-edit" rows="6" placeholder="easy walking, people watching, coffee in the morning, tacos or pasta, no long waits…"></textarea>
+          <p class="meta" style="margin-top:0.45rem">Food, pace, and avoid-list. Edit and rebuild for a new pocket.</p>
         </label>
         <button type="button" class="btn btn-ink" id="rebuild">Rebuild the day</button>
         <label class="field">
@@ -426,6 +475,156 @@
 
     var STOPS = [
       {
+        id: "parking",
+        name: "SouthCore Garage",
+        parking: true,
+        tags: ["parking", "drive", "car", "garage"],
+        costBand: "cheap",
+        address: "101 1st Ave S, St. Petersburg",
+        query: "SouthCore Parking Garage, 101 1st Ave S, St. Petersburg, FL",
+        gem: false,
+        bar: false,
+        dated: false,
+        order: 0,
+        covers: null,
+        source: "https://www.stpete.org/residents/parking___transportation/where_to_park.php",
+        isOpen: function () { return true; },
+        hours: function () { return "Open 24 hours · about $2/hr, $16 day max"; },
+        start: function () { return 8; },
+        why: function (ctx) {
+          return "You mentioned driving or parking. The city lists SouthCore at 101 1st Ave S, open around the clock, about $2 an hour with a $16 day max. Leave the car and walk for " + ctx.occ + ".";
+        }
+      },
+      {
+        id: "kahwa",
+        name: "Kahwa Coffee (Downtown South)",
+        meal: "coffee",
+        tags: ["coffee", "cafe", "café", "breakfast", "pastry"],
+        costBand: "cheap",
+        address: "204 2nd Ave S, St. Petersburg",
+        query: "Kahwa Coffee, 204 2nd Ave S, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: false,
+        order: 1.4,
+        covers: null,
+        source: "https://kahwacoffee.com/pages/cafe-st-petersburg-downtown-south",
+        isOpen: function () { return true; },
+        hours: function (d) { return d.getDay() === 0 ? "8am–6pm" : "7am–6:30pm"; },
+        start: function (d) { return d.getDay() === 0 ? 8 : 7; },
+        why: function (ctx) {
+          return "Your note pointed at coffee. Kahwa lists " + ctx.hours + " today at 204 2nd Ave S — local roast and an easy start for " + ctx.occ + ".";
+        }
+      },
+      {
+        id: "bodega",
+        name: "Bodega",
+        meal: "lunch",
+        tags: ["taco", "tacos", "cuban", "mexican", "latin", "sandwich", "casual", "cheap lunch"],
+        costBand: "cheap",
+        address: "1180 Central Ave, St. Petersburg",
+        query: "Bodega, 1180 Central Ave, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: false,
+        order: 8.4,
+        covers: null,
+        source: "https://eatatbodega.com/",
+        isOpen: function () { return true; },
+        hours: function (d) {
+          var day = d.getDay();
+          return (day === 4 || day === 5 || day === 6) ? "11am–11pm" : "11am–9pm";
+        },
+        start: function () { return 12; },
+        why: function (ctx) {
+          return "Your note leaned casual / Latin. Bodega’s site lists " + ctx.hours + " today at 1180 Central — a lunch that still respects the budget for " + ctx.occ + ".";
+        }
+      },
+      {
+        id: "stillwaters",
+        name: "Stillwaters Tavern",
+        meal: "lunch",
+        tags: ["seafood", "american", "waterfront", "sit-down", "sit down", "lunch", "dinner"],
+        costBand: "mid",
+        address: "224 Beach Dr NE, St. Petersburg",
+        query: "Stillwaters Tavern, 224 Beach Dr NE, St. Petersburg, FL",
+        gem: false,
+        bar: false,
+        dated: false,
+        order: 8.5,
+        covers: null,
+        source: "https://stillwaterstavern.com/faq",
+        isOpen: function () { return true; },
+        hours: function (d) {
+          var day = d.getDay();
+          if (day === 0) return "11am–9pm";
+          if (day === 5) return "11:30am–11pm";
+          if (day === 6) return "11am–11pm";
+          return "11:30am–10pm";
+        },
+        start: function (d) { return d.getDay() === 0 || d.getDay() === 6 ? 11 : 11.5; },
+        why: function (ctx) {
+          return "Your note asked for a sit-down meal. Stillwaters lists " + ctx.hours + " on Beach Drive today — scratch kitchen by the water for " + ctx.occ + ", without making the day a bar crawl.";
+        }
+      },
+      {
+        id: "bellabrava",
+        name: "BellaBrava",
+        meal: "dinner",
+        tags: ["italian", "pasta", "pizza", "nice dinner", "nicer dinner", "fancy", "dinner"],
+        costBand: "nice",
+        address: "204 Beach Dr NE, St. Petersburg",
+        query: "BellaBrava, 204 Beach Dr NE, St. Petersburg, FL",
+        gem: false,
+        bar: false,
+        dated: false,
+        order: 12.4,
+        covers: null,
+        source: "https://bellabrava.com/faq",
+        isOpen: function () { return true; },
+        hours: function (d) {
+          var day = d.getDay();
+          if (day === 0) return "11am–10pm";
+          if (day === 5) return "11:30am–11pm";
+          if (day === 6) return "11am–11pm";
+          return "11:30am–10pm";
+        },
+        start: function () { return 17.5; },
+        why: function (ctx) {
+          return "Your note asked for Italian or a nicer dinner. BellaBrava lists " + ctx.hours + " on Beach Drive today — a sit-down evening for " + ctx.occ + " if the budget has room.";
+        }
+      },
+      {
+        id: "paciugo",
+        name: "Paciugo Gelato & Caffè",
+        meal: "dessert",
+        tags: ["gelato", "dessert", "ice cream", "sweet", "treat"],
+        costBand: "cheap",
+        address: "300 Beach Dr NE, St. Petersburg",
+        query: "Paciugo Gelato, 300 Beach Dr NE, St. Petersburg, FL",
+        gem: true,
+        bar: false,
+        dated: false,
+        order: 14,
+        covers: null,
+        source: "https://paciugostpete.com/",
+        isOpen: function () { return true; },
+        hours: function (d) {
+          var day = d.getDay();
+          if (day === 5) return "12–11pm";
+          if (day === 6) return "11am–11pm";
+          if (day === 0) return "11am–10pm";
+          return "12–10pm";
+        },
+        start: function (d) {
+          var day = d.getDay();
+          return (day === 0 || day === 6) ? 11 : 12;
+        },
+        why: function (ctx) {
+          return "Your note asked for something sweet. Paciugo lists " + ctx.hours + " on Beach Drive today — gelato after the walk for " + ctx.occ + ".";
+        }
+      },
+      {
         id: "boyd",
         name: "Native grass planting at Boyd Hill",
         outdoor: true,
@@ -446,6 +645,7 @@
       },
       {
         id: "market",
+        tags: ["market", "food", "walking", "people watching", "music"],
         name: "Saturday Morning Market",
         pin: function () { return true; },
         outdoor: true,
@@ -471,6 +671,7 @@
       },
       {
         id: "mfa",
+        tags: ["art", "museum"],
         cost: "ticket",
         name: "Museum of Fine Arts",
         pin: function (d, iso) { return iso === "2026-10-10"; },
@@ -501,6 +702,7 @@
       },
       {
         id: "morean",
+        tags: ["art", "gallery"],
         name: "Morean Arts Center",
         address: "719 Central Ave, St. Petersburg",
         query: "Morean Arts Center, 719 Central Ave, St. Petersburg, FL",
@@ -522,6 +724,7 @@
       },
       {
         id: "dali",
+        tags: ["art", "museum", "must-see"],
         cost: "ticket",
         name: "The Dalí Museum",
         address: "One Dali Blvd, St. Petersburg",
@@ -541,6 +744,7 @@
       },
       {
         id: "festival",
+        tags: ["music", "food", "festival", "outdoor"],
         name: "St. Pete Fall Festival",
         outdoor: true,
         music: true,
@@ -561,6 +765,7 @@
       },
       {
         id: "pier",
+        tags: ["walking", "people watching", "water", "stroll"],
         name: "The St. Pete Pier",
         outdoor: true,
         address: "800 2nd Ave NE, St. Petersburg",
@@ -598,6 +803,7 @@
       },
       {
         id: "artpool",
+        tags: ["vintage", "records", "shopping", "dig", "art"],
         name: "ARTpool",
         pin: function () { return true; },
         address: "2030 Central Ave, St. Petersburg",
@@ -620,6 +826,7 @@
       },
       {
         id: "glass",
+        tags: ["art", "glass"],
         cost: "small",
         name: "Morean Glass Studio",
         address: "714 1st Ave N, St. Petersburg",
@@ -682,6 +889,7 @@
       },
       {
         id: "folk",
+        tags: ["music", "live music", "evening"],
         cost: "ticket",
         name: "Good Folk Fest",
         outdoor: true,
@@ -796,131 +1004,192 @@
       var bits = [];
       if (kindLabel(p)) bits.push(kindLabel(p));
       if (p.budgetAmount || p.budget) bits.push(budgetLabel(p) + " for parking, food, and paid stops");
-      if (!bits.length) return "";
-      var cap = spendCap(p);
+      var wants = noteWants(p);
       var extra = "";
-      if (p.kind === "easy") {
-        extra = " This kind of day stays easy, so a fancy add-on stays off unless the note asks for it.";
-      } else if (p.budget === "none") {
-        extra = " No dollar amount was set, so a museum can stay.";
-      } else if (cap !== null && cap < 150) {
-        extra = " That amount is tight, so ticketed museums stay off and the money stays for parking and food, unless the note asks for art or music.";
-      } else if (cap !== null && cap < 300) {
-        extra = " Room for one paid stop. The rest stays for parking and food.";
-      } else if (cap !== null) {
-        extra = " Room for a museum ticket plus parking and a meal.";
+      if (wants.empty) {
+        extra = " Add food likes, pace, and anything to avoid in the note, then rebuild — that is what makes each day different.";
+      } else if (wants.food || wants.coffee || wants.dessert || wants.parking) {
+        extra = " Built from your note for this date, with weather checked when the forecast is out.";
+      } else if (p.kind === "easy") {
+        extra = " Easy day. A fancy add-on stays off unless the note asks for it.";
+      } else if (spendCap(p) !== null && spendCap(p) < 150) {
+        extra = " Tight budget, so museum tickets stay off unless the note asks for art or music.";
+      } else {
+        extra = " Built for this date from what you wrote.";
       }
-      return (bits.join(". ") + "." + extra).trim();
+      if (!bits.length && !extra) return "";
+      return ((bits.length ? bits.join(". ") + "." : "") + extra).trim();
+    }
+
+    function noteText(p) {
+      return String((p && p.must) || "").toLowerCase();
     }
 
     function noteWants(p) {
-      var text = String((p && p.must) || "").toLowerCase();
-      if (!text.trim()) return { art: false, music: false, walk: false };
+      var text = noteText(p);
+      if (!text.trim()) {
+        return {
+          art: false, music: false, walk: false, parking: false,
+          coffee: false, food: false, dessert: false, empty: true
+        };
+      }
       return {
-        art: text.indexOf("art") !== -1,
-        music: text.indexOf("music") !== -1,
-        walk: text.indexOf("walking") !== -1 || text.indexOf("people watching") !== -1
+        empty: false,
+        art: /\bart\b|museum|gallery|dali/.test(text),
+        music: /music|live band|concert/.test(text),
+        walk: /walking|people watching|stroll|wander/.test(text),
+        parking: /parking|garage|\bcar\b|driving|drove|drive downtown/.test(text),
+        coffee: /coffee|cafe|café|espresso|breakfast/.test(text),
+        food: /taco|cuban|mexican|latin|italian|pasta|pizza|seafood|lunch|dinner|eat|food|hungry|vegetarian|vegan|sandwich|sit-down|sit down|nice dinner|nicer dinner|fancy/.test(text),
+        dessert: /gelato|dessert|ice cream|sweet|treat/.test(text)
       };
+    }
+
+    function stablePick(seed, list) {
+      if (!list.length) return null;
+      var h = 0;
+      var s = String(seed || "");
+      for (var i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+      return list[Math.abs(h) % list.length];
+    }
+
+    function tagScore(s, text) {
+      var tags = s.tags || [];
+      var score = 0;
+      tags.forEach(function (tag) {
+        if (text.indexOf(String(tag).toLowerCase()) !== -1) score += 2;
+      });
+      return score;
+    }
+
+    function fitsBudget(s, cap) {
+      if (cap === null) return true;
+      if (s.costBand === "nice") return cap >= 150;
+      if (s.costBand === "mid") return cap >= 80;
+      return true;
     }
 
     function pickStops(p) {
       var d = parseDate(p.date);
       var iso = isoDate(d);
       var wants = noteWants(p);
+      var text = noteText(p);
       var cap = spendCap(p);
+      var seed = (p.must || "") + "|" + iso + "|" + (p.kind || "") + "|" + (p.lean || "") + "|" + (p.budgetAmount || "");
       var open = STOPS.filter(function (s) {
         if (p.kind === "away" && s.id === "pumpkin") return false;
         if (s.bar && p.drink !== "yes") return false;
+        if ((s.meal || s.parking) && !fitsBudget(s, cap)) return false;
         return s.isOpen(d, iso);
       });
       var covered = {};
       open.forEach(function (s) { if (s.covers) covered[s.covers] = true; });
       open = open.filter(function (s) { return !covered[s.id]; });
+
       function leanRank(s) {
-        var gemFirst = p.lean === "gems";
-        return (gemFirst ? (s.gem ? 0 : 1) : (s.gem ? 1 : 0));
+        return p.lean === "gems" ? (s.gem ? 0 : 1) : (s.gem ? 1 : 0);
       }
-      var byLean = function (a, b) {
-        var lr = leanRank(a) - leanRank(b);
-        if (lr) return lr;
-        return a.order - b.order;
-      };
-      var pinned = open.filter(function (s) {
-        return s.dated || s.bar || (s.pin && s.pin(d, iso));
+
+      // Dated events and drink stop stay when they apply.
+      var chosen = open.filter(function (s) {
+        return s.dated || s.bar || (s.pin && s.pin(d, iso) && !s.parking && !s.meal);
       });
-      var rest = open.filter(function (s) { return pinned.indexOf(s) === -1; });
-      rest.sort(byLean);
-      var room = Math.max(0, 8 - pinned.length);
-      var chosen = pinned.concat(rest.slice(0, room));
-      var limit = p.drink === "yes" ? 7 : 6;
-      function droppable(s) {
-        if (forecastWet(iso) && (s.id === "dali" || s.id === "mfa")) return false;
-        if (wants.art && (s.id === "dali" || s.id === "mfa" || s.id === "artpool" || s.id === "morean")) return false;
-        if (wants.walk && (s.id === "pier" || s.id === "market")) return false;
-        if (wants.music && s.music) return false;
-        if (s.dated || s.bar || s.id === "market") return false;
-        if (s.id === "mfa" && iso === "2026-10-10") return false;
-        if (p.lean === "must") return !!s.gem;
-        return !s.gem;
+
+      function addUnique(s) {
+        if (!s) return;
+        if (chosen.some(function (c) { return c.id === s.id; })) return;
+        chosen.push(s);
       }
-      var guard = 0;
-      while (chosen.length > limit && guard < 8) {
-        guard += 1;
-        var idx = -1;
-        for (var i = chosen.length - 1; i >= 0; i--) {
-          if (droppable(chosen[i])) { idx = i; break; }
+
+      // Preference-matched catalog picks (parking / food / tagged places).
+      function candidates(pred) {
+        return open.filter(function (s) {
+          if (!pred(s)) return false;
+          if (chosen.some(function (c) { return c.id === s.id; })) return false;
+          return true;
+        }).sort(function (a, b) {
+          var sa = tagScore(a, text) - tagScore(b, text);
+          if (sa) return -sa;
+          return leanRank(a) - leanRank(b) || a.order - b.order;
+        });
+      }
+
+      if (wants.parking) {
+        addUnique(stablePick(seed + "|park", candidates(function (s) { return s.parking; })));
+      }
+
+      if (wants.coffee) {
+        addUnique(stablePick(seed + "|coffee", candidates(function (s) { return s.meal === "coffee"; })));
+      }
+
+      if (wants.food) {
+        var meals = candidates(function (s) { return s.meal === "lunch" || s.meal === "dinner"; });
+        // Prefer stronger tag matches; pick one lunch-ish and maybe one dinner if note asks for both or celebrate.
+        var lunchPool = meals.filter(function (s) { return s.meal === "lunch" || s.id === "bodega" || s.id === "stillwaters"; });
+        var dinnerPool = meals.filter(function (s) { return s.meal === "dinner" || s.id === "bellabrava" || s.id === "stillwaters"; });
+        addUnique(stablePick(seed + "|meal1", lunchPool.length ? lunchPool : meals));
+        if (p.kind === "celebrate" || /dinner|evening|night|nice dinner|nicer dinner/.test(text)) {
+          var second = stablePick(seed + "|meal2", dinnerPool);
+          if (second) addUnique(second);
         }
-        if (idx < 0) break;
-        chosen.splice(idx, 1);
       }
+
+      if (wants.dessert) {
+        addUnique(stablePick(seed + "|sweet", candidates(function (s) { return s.meal === "dessert"; })));
+      }
+
+      // Mood matches from the note.
+      if (wants.art) {
+        candidates(function (s) { return !s.meal && !s.parking && tagScore(s, text) > 0 && (s.id === "dali" || s.id === "mfa" || s.id === "artpool" || s.id === "morean" || s.id === "glass"); })
+          .slice(0, 2).forEach(addUnique);
+      }
+      if (wants.walk) {
+        candidates(function (s) { return s.id === "pier" || s.id === "market"; }).slice(0, 2).forEach(addUnique);
+      }
+      if (wants.music) {
+        candidates(function (s) { return !!s.music; }).slice(0, 2).forEach(addUnique);
+      }
+
+      // Fill the pocket with open places scored by the note, not a fixed loop.
+      var fillers = open.filter(function (s) {
+        if (s.parking || s.meal) return false;
+        if (chosen.some(function (c) { return c.id === s.id; })) return false;
+        if (p.kind === "easy" && (s.id === "dali" || s.id === "mfa") && !wants.art) return false;
+        if (cap !== null && cap < 150 && pricey(s, iso) && !wants.art && !(wants.music && s.id === "folk")) return false;
+        return true;
+      }).sort(function (a, b) {
+        var sa = tagScore(a, text) - tagScore(b, text);
+        if (sa) return -sa;
+        return leanRank(a) - leanRank(b) || a.order - b.order;
+      });
+      var limit = p.drink === "yes" ? 7 : 6;
+      while (chosen.length < limit && fillers.length) {
+        var next = fillers.shift();
+        // Prefer higher-scoring fillers first; among equals, stablePick once for variety.
+        if (tagScore(next, text) === 0 && fillers.length) {
+          var zero = [next].concat(fillers.filter(function (s) { return tagScore(s, text) === 0; }));
+          fillers = fillers.filter(function (s) { return tagScore(s, text) > 0; });
+          next = stablePick(seed + "|fill" + chosen.length, zero);
+        }
+        addUnique(next);
+      }
+
       if (forecastWet(iso)) {
         ["dali", "mfa"].forEach(function (id) {
-          var already = chosen.some(function (s) { return s.id === id; });
-          if (already) return;
-          var found = null;
-          open.forEach(function (s) { if (s.id === id) found = s; });
-          if (found) chosen.push(found);
+          open.forEach(function (s) { if (s.id === id) addUnique(s); });
         });
       }
-      if (cap !== null && cap < 150) {
-        var keptMuseum = false;
-        chosen = chosen.filter(function (s) {
-          if (!pricey(s, iso)) return true;
-          if (wants.music && s.id === "folk") return true;
-          if (wants.art && (s.id === "dali" || s.id === "mfa") && !keptMuseum) {
-            keptMuseum = true;
-            return true;
-          }
-          return false;
-        });
-      }
-      var prefer = [];
-      if (wants.art) prefer = prefer.concat(["dali", "mfa", "artpool", "morean"]);
-      if (wants.walk || p.kind === "easy") prefer = prefer.concat(["pier", "market"]);
-      if (wants.music) prefer = prefer.concat(["folk", "market", "festival"]);
-      if (p.kind === "away") prefer = prefer.concat(["dali", "mfa", "artpool", "morean", "glass", "palehorse"]);
-      if (p.kind === "celebrate" || cap === null || (cap !== null && cap >= 200)) prefer = prefer.concat(["dali", "mfa", "folk", "glass"]);
-      if (p.kind === "easy" && !wants.art) prefer = prefer.filter(function (id) { return id !== "dali" && id !== "mfa"; });
-      prefer.forEach(function (id) {
-        if (chosen.some(function (s) { return s.id === id; })) return;
-        var foundNote = null;
-        open.forEach(function (s) { if (s.id === id) foundNote = s; });
-        if (!foundNote) return;
-        if (cap !== null && cap < 150 && pricey(foundNote, iso)) {
-          var asked = (wants.art && (id === "dali" || id === "mfa")) || (wants.music && id === "folk");
-          if (!asked) return;
-        }
-        if (p.kind === "easy" && !wants.art && (id === "dali" || id === "mfa" || id === "folk")) return;
-        chosen.push(foundNote);
-      });
+
       if (cap !== null && cap < 300) {
         var museums = 0;
         chosen = chosen.filter(function (s) {
           if (s.id !== "dali" && s.id !== "mfa") return true;
           museums += 1;
-          return museums === 1;
+          return museums === 1 || wants.art;
         });
       }
+
+      // If they asked for food but nothing matched, say so later via planLine; do not invent.
       chosen.sort(function (a, b) {
         var as = a.start(d, iso), bs = b.start(d, iso);
         if (as !== bs) return as - bs;
@@ -946,7 +1215,9 @@
           source: s.source,
           dated: s.dated,
           outdoor: !!s.outdoor,
-          music: !!s.music
+          music: !!s.music,
+          meal: s.meal || "",
+          parking: !!s.parking
         };
       });
     }
@@ -1029,9 +1300,10 @@
       };
     }
 
-    function loadWeather(iso) {
+    function loadWeather(iso, force) {
       var existing = weatherByDate[iso];
-      if (existing) return;
+      if (existing && !force && existing.status === "ready") return;
+      if (existing && !force && existing.status === "loading") return;
       weatherByDate[iso] = { status: "loading" };
       nwsGet("https://api.weather.gov/points/27.770,-82.640").then(function (point) {
         var forecastUrl = point && point.properties && point.properties.forecast;
@@ -1202,7 +1474,7 @@
       var noteEdit = document.getElementById("note-edit");
       if (noteEdit && document.activeElement !== noteEdit) noteEdit.value = plan.must || "";
       var known = plan.date === "2026-10-10" || plan.date === "2026-10-11" || plan.date === "2026-10-17";
-      setText("gap-line", known ? "" : "No special event was verified for this date. These are places with standing hours that are open then.");
+      setText("gap-line", known ? "" : "No dated event is verified for this day yet. The pocket is still built from your note, places with standing hours that are open, and the forecast when it is out.");
       var mystery = plan.style === "mystery" && !revealed;
       document.getElementById("moods").classList.toggle("hidden", !mystery);
       document.getElementById("show-all").classList.toggle("hidden", plan.style !== "mystery" || revealed);
@@ -1218,7 +1490,7 @@
         renderRecap(stops);
       }
       document.getElementById("share-url").value = shareUrl();
-      loadWeather(plan.date);
+      loadWeather(plan.date, true);
     }
 
     function show(which) {
@@ -1392,6 +1664,13 @@
 
     document.getElementById("begin").addEventListener("click", function () {
       show("form");
+    });
+
+    document.getElementById("learn-context").addEventListener("click", function () {
+      document.getElementById("context-help").showModal();
+    });
+    document.getElementById("close-context").addEventListener("click", function () {
+      document.getElementById("context-help").close();
     });
 
     function boot() {
