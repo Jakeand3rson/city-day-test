@@ -414,6 +414,7 @@
     var STORE = "cityday-test-v1";
     var plan = null;
     var revealed = false;
+    var moodFocus = null;
 
     function isoDate(d) {
       var m = d.getMonth() + 1;
@@ -1026,8 +1027,16 @@
       return String((p && p.must) || "").toLowerCase();
     }
 
+    function noteAvoids(p) {
+      var text = noteText(p);
+      return {
+        museums: /no museums?\b|skip museums?\b|avoid museums?\b|without museums?\b|don'?t want museums?\b|no dali\b|skip dali\b|no mfa\b|skip mfa\b/.test(text)
+      };
+    }
+
     function noteWants(p) {
       var text = noteText(p);
+      var avoids = noteAvoids(p);
       if (!text.trim()) {
         return {
           art: false, music: false, walk: false, parking: false,
@@ -1036,7 +1045,7 @@
       }
       return {
         empty: false,
-        art: /\bart\b|museum|gallery|dali/.test(text),
+        art: (/\bart\b|museum|gallery|dali/.test(text) && !avoids.museums),
         music: /music|live band|concert/.test(text),
         walk: /walking|people watching|stroll|wander/.test(text),
         parking: /parking|garage|\bcar\b|driving|drove|drive downtown/.test(text),
@@ -1074,10 +1083,12 @@
       var d = parseDate(p.date);
       var iso = isoDate(d);
       var wants = noteWants(p);
+      var avoids = noteAvoids(p);
       var text = noteText(p);
       var cap = spendCap(p);
       var seed = (p.must || "") + "|" + iso + "|" + (p.kind || "") + "|" + (p.lean || "") + "|" + (p.budgetAmount || "") + "|" + (p.rebuild || 0);
       var open = STOPS.filter(function (s) {
+        if (avoids.museums && (s.id === "dali" || s.id === "mfa")) return false;
         if (p.kind === "away" && s.id === "pumpkin") return false;
         if (s.bar && p.drink !== "yes") return false;
         if ((s.meal || s.parking) && !fitsBudget(s, cap)) return false;
@@ -1175,19 +1186,25 @@
         addUnique(next);
       }
 
-      if (forecastWet(iso)) {
+      if (forecastWet(iso) && !avoids.museums) {
         ["dali", "mfa"].forEach(function (id) {
           open.forEach(function (s) { if (s.id === id) addUnique(s); });
         });
       }
 
       if (cap !== null && cap < 300) {
-        var museums = 0;
-        chosen = chosen.filter(function (s) {
-          if (s.id !== "dali" && s.id !== "mfa") return true;
-          museums += 1;
-          return museums === 1 || wants.art;
-        });
+        if (avoids.museums) {
+          chosen = chosen.filter(function (s) {
+            return s.id !== "dali" && s.id !== "mfa";
+          });
+        } else {
+          var museums = 0;
+          chosen = chosen.filter(function (s) {
+            if (s.id !== "dali" && s.id !== "mfa") return true;
+            museums += 1;
+            return museums === 1 || wants.art;
+          });
+        }
       }
 
       // If they asked for food but nothing matched, say so later via planLine; do not invent.
@@ -1274,7 +1291,11 @@
       if (w.status === "error") return "The forecast didn't load. No weather was invented.";
       var line = w.name + ", " + w.temp + ", wind " + w.wind + ". " + w.short + ".";
       if (w.wet) {
-        line += " Lean indoors. The Dalí and the MFA stay on the day. Outdoor stops are only if it clears.";
+        if (plan && plan.style === "mystery" && !revealed) {
+          line += " Lean indoors. Outdoor stops are only if it clears.";
+        } else {
+          line += " Lean indoors. The Dalí and the MFA stay on the day. Outdoor stops are only if it clears.";
+        }
       }
       return line;
     }
@@ -1303,8 +1324,7 @@
 
     function loadWeather(iso, force) {
       var existing = weatherByDate[iso];
-      if (existing && !force && existing.status === "ready") return;
-      if (existing && !force && existing.status === "loading") return;
+      if (!force && existing && (existing.status === "ready" || existing.status === "loading" || existing.status === "later" || existing.status === "error")) return;
       weatherByDate[iso] = { status: "loading" };
       nwsGet("https://api.weather.gov/points/27.770,-82.640").then(function (point) {
         var forecastUrl = point && point.properties && point.properties.forecast;
@@ -1483,12 +1503,17 @@
         : (plan.style === "mystery" ? "Mystery is on, and the day is open." : ""));
       document.getElementById("moods").classList.toggle("hidden", !mystery);
       document.getElementById("show-all").classList.toggle("hidden", plan.style !== "mystery" || revealed);
-      document.getElementById("stops").classList.toggle("hidden", mystery);
+      document.getElementById("stops").classList.toggle("hidden", mystery && !moodFocus);
       document.getElementById("recap").classList.toggle("hidden", mystery);
       if (mystery) {
         renderMoods(stops);
-        document.getElementById("stops").innerHTML = "";
         document.getElementById("recap").innerHTML = "";
+        if (moodFocus) {
+          var moodStops = stops.filter(function (s) { return moodFor(s.start) === moodFocus; });
+          document.getElementById("stops").innerHTML = moodStops.map(stopHtml).join("");
+        } else {
+          document.getElementById("stops").innerHTML = "";
+        }
         if (!document.getElementById("moods").innerHTML.trim()) {
           document.getElementById("moods").innerHTML =
             '<p class="why">Nothing verified is open for this date yet. Edit the note or the date and rebuild.</p>';
@@ -1500,7 +1525,7 @@
         renderRecap(stops);
       }
       document.getElementById("share-url").value = shareUrl();
-      loadWeather(plan.date, true);
+      loadWeather(plan.date);
     }
 
     function show(which) {
@@ -1513,6 +1538,7 @@
     function openDay(next, fromShare) {
       plan = next;
       revealed = false;
+      moodFocus = null;
       if (!fromShare) persist();
       else {
         writeStore();
@@ -1610,12 +1636,9 @@
     document.getElementById("screen-day").addEventListener("click", function (e) {
       var moodBtn = e.target.closest("[data-mood]");
       if (moodBtn) {
-        var key = moodBtn.getAttribute("data-mood");
-        var stops = visibleStops().filter(function (s) { return moodFor(s.start) === key; });
-        var box = document.getElementById("stops");
-        box.classList.remove("hidden");
-        box.innerHTML = stops.map(stopHtml).join("");
-        box.scrollIntoView({ behavior: "smooth", block: "start" });
+        moodFocus = moodBtn.getAttribute("data-mood");
+        renderDay();
+        document.getElementById("stops").scrollIntoView({ behavior: "smooth", block: "start" });
         return;
       }
       var skipBtn = e.target.closest("[data-skip]");
@@ -1628,6 +1651,7 @@
 
     document.getElementById("show-all").addEventListener("click", function () {
       revealed = true;
+      moodFocus = null;
       renderDay();
     });
 
@@ -1653,6 +1677,7 @@
       document.getElementById("must").value = plan.must;
       plan.rebuild = (Number(plan.rebuild) || 0) + 1;
       revealed = false;
+      moodFocus = null;
       persist();
       renderDay();
       document.getElementById("save-note").textContent = "Day rebuilt from your note. Mystery hides the stops again if that style is on.";
@@ -1668,6 +1693,8 @@
     document.getElementById("fresh").addEventListener("click", function () {
       plan = null;
       revealed = false;
+      moodFocus = null;
+      document.getElementById("save-note").textContent = "";
       var store = readStore();
       store.last = null;
       localStorage.setItem(STORE, JSON.stringify(store));
