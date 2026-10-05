@@ -386,7 +386,9 @@
       <p class="note" id="plan-line"></p>
       <p class="note hidden" id="music-line"></p>
       <p class="note hidden" id="gap-line"></p>
+      <p class="note hidden" id="mystery-line"></p>
       <div class="moods hidden" id="moods"></div>
+      <button type="button" class="btn btn-ink hidden" id="show-all" style="margin-bottom:1rem">Show the day</button>
       <div id="stops"></div>
       <section class="recap hidden" id="recap"></section>
       <div class="actions">
@@ -402,7 +404,6 @@
         </label>
         <button type="button" class="btn btn-ink" id="copy">Copy link</button>
         <p class="meta" id="save-note">Saved on this phone. The link is the same day for anyone you send it to.</p>
-        <button type="button" class="quiet" id="show-all">Show the day</button>
         <button type="button" class="quiet" id="edit">Change the day</button>
         <button type="button" class="quiet" id="fresh">New day</button>
       </div>
@@ -1075,7 +1076,7 @@
       var wants = noteWants(p);
       var text = noteText(p);
       var cap = spendCap(p);
-      var seed = (p.must || "") + "|" + iso + "|" + (p.kind || "") + "|" + (p.lean || "") + "|" + (p.budgetAmount || "");
+      var seed = (p.must || "") + "|" + iso + "|" + (p.kind || "") + "|" + (p.lean || "") + "|" + (p.budgetAmount || "") + "|" + (p.rebuild || 0);
       var open = STOPS.filter(function (s) {
         if (p.kind === "away" && s.id === "pumpkin") return false;
         if (s.bar && p.drink !== "yes") return false;
@@ -1344,6 +1345,7 @@
       obj.them = String(obj.them || "").slice(0, 60);
       obj.custom = String(obj.custom || "").slice(0, 80);
       obj.must = String(obj.must || "");
+      obj.rebuild = Number(obj.rebuild) || 0;
       obj.kind = ["away", "celebrate", "easy"].indexOf(obj.kind) === -1 ? "" : obj.kind;
       obj.budget = ["100", "250", "none"].indexOf(String(obj.budget || "")) === -1 ? "" : String(obj.budget);
       if (obj.budgetAmount === "" || obj.budgetAmount == null) obj.budgetAmount = "";
@@ -1476,6 +1478,9 @@
       var known = plan.date === "2026-10-10" || plan.date === "2026-10-11" || plan.date === "2026-10-17";
       setText("gap-line", known ? "" : "No dated event is verified for this day yet. The pocket is still built from your note, places with standing hours that are open, and the forecast when it is out.");
       var mystery = plan.style === "mystery" && !revealed;
+      setText("mystery-line", mystery
+        ? "Mystery day. The stops stay hidden. Pick a mood, or show the day when you are ready."
+        : (plan.style === "mystery" ? "Mystery is on, and the day is open." : ""));
       document.getElementById("moods").classList.toggle("hidden", !mystery);
       document.getElementById("show-all").classList.toggle("hidden", plan.style !== "mystery" || revealed);
       document.getElementById("stops").classList.toggle("hidden", mystery);
@@ -1483,6 +1488,11 @@
       if (mystery) {
         renderMoods(stops);
         document.getElementById("stops").innerHTML = "";
+        document.getElementById("recap").innerHTML = "";
+        if (!document.getElementById("moods").innerHTML.trim()) {
+          document.getElementById("moods").innerHTML =
+            '<p class="why">Nothing verified is open for this date yet. Edit the note or the date and rebuild.</p>';
+        }
       } else {
         document.getElementById("stops").innerHTML = stops.length
           ? stops.map(stopHtml).join("")
@@ -1641,8 +1651,12 @@
       if (!plan) return;
       plan.must = document.getElementById("note-edit").value.trim();
       document.getElementById("must").value = plan.must;
+      plan.rebuild = (Number(plan.rebuild) || 0) + 1;
+      revealed = false;
       persist();
       renderDay();
+      document.getElementById("save-note").textContent = "Day rebuilt from your note. Mystery hides the stops again if that style is on.";
+      window.scrollTo(0, 0);
     });
 
     document.getElementById("edit").addEventListener("click", function () {
