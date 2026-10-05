@@ -242,6 +242,48 @@
     dialog.context-help ul { margin: 0 0 1rem; padding-left: 1.1rem; }
     dialog.context-help li { margin: 0.25rem 0; }
     .hidden { display: none !important; }
+    body.mode-play .banner-create,
+    body.mode-play #creator-desk,
+    body.mode-play #screen-about,
+    body.mode-play #screen-form { display: none !important; }
+    body.mode-create #play-landing,
+    body.mode-create #play-quiet { display: none !important; }
+    .kicker {
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 650;
+      opacity: 0.55;
+      margin: 0 0 0.65rem;
+    }
+    .play-hero {
+      background: var(--cyan);
+      color: #fff;
+      border-radius: 1.35rem;
+      padding: 1.55rem 1.25rem 1.35rem;
+      margin: 0 0 1.15rem;
+    }
+    .play-hero h1 { color: #fff; margin: 0 0 0.55rem; font-size: clamp(1.7rem, 7vw, 2.2rem); }
+    .play-hero .lede { color: rgba(255,255,255,0.88); margin: 0 0 0.85rem; max-width: none; }
+    .play-hero .meta { opacity: 0.85; color: #fff; }
+    .desk-tip {
+      margin: 0 0 1rem;
+      padding: 0.85rem 0.95rem;
+      border-left: 3px solid var(--cyan);
+      font-size: 0.95rem;
+    }
+    .desk-tip strong { font-weight: 650; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid rgba(42, 42, 42, 0.28);
+      font-weight: 600;
+    }
+    .breath { margin-bottom: 1.35rem; }
+    .moods button[aria-pressed="true"] {
+      background: var(--peach);
+      border-color: var(--peach);
+    }
     :focus-visible {
       outline: 2px solid var(--cyan);
       outline-offset: 3px;
@@ -250,7 +292,7 @@
 </head>
 <body>
   <div class="shell">
-    <p class="banner">Free for friends and family. No payment.</p>
+    <p class="banner banner-create">Free for friends and family. No payment.</p>
 
     <section id="screen-about">
       <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
@@ -368,53 +410,77 @@
     </section>
 
     <section id="screen-day" class="hidden">
-      <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
-        <circle cx="292" cy="40" r="14" fill="#F5A791"/>
-        <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
-        <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round"/>
-        <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round"/>
-        <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
-        <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <h1 id="welcome"></h1>
-      <p class="meta" id="when-line"></p>
-      <p class="note hidden" id="weather-line">Daytime forecast</p>
-      <p class="note" id="custom-line"></p>
-      <p class="note" id="drink-line"></p>
-      <p class="note" id="plan-line"></p>
-      <p class="note hidden" id="music-line"></p>
-      <p class="note hidden" id="gap-line"></p>
-      <p class="note hidden" id="mystery-line"></p>
-      <div class="moods hidden" id="moods"></div>
-      <button type="button" class="btn btn-ink hidden" id="show-all" style="margin-bottom:1rem">Show the day</button>
-      <div id="stops"></div>
-      <section class="recap hidden" id="recap"></section>
-      <div class="actions">
+      <div id="play-landing" class="hidden">
+        <div class="play-hero">
+          <p class="kicker" style="color:rgba(255,255,255,0.8); opacity:1">A day for you</p>
+          <h1 id="land-welcome"></h1>
+          <p class="lede" id="land-lede"></p>
+          <p class="meta" id="land-when"></p>
+          <p class="meta" id="land-weather"></p>
+        </div>
+        <p class="note breath" id="land-frame"></p>
+        <button type="button" class="btn btn-primary" id="land-begin">Begin</button>
+      </div>
+
+      <div id="day-flow">
+        <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
+          <circle cx="292" cy="40" r="14" fill="#F5A791"/>
+          <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
+          <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
+          <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p class="kicker" id="day-kicker">City Day</p>
+        <h1 id="welcome"></h1>
+        <p class="meta" id="when-line"></p>
+        <p class="note hidden" id="weather-line">Daytime forecast</p>
+        <p class="note" id="custom-line"></p>
+        <p class="note" id="drink-line"></p>
+        <p class="note" id="plan-line"></p>
+        <p class="note hidden" id="music-line"></p>
+        <p class="note hidden" id="gap-line"></p>
+        <p class="note hidden" id="mystery-line"></p>
+        <div class="moods hidden" id="moods"></div>
+        <button type="button" class="btn btn-primary hidden" id="show-all" style="margin-bottom:1rem">Show the day</button>
+        <div id="stops"></div>
+        <section class="recap hidden" id="recap"></section>
+      </div>
+
+      <div class="actions" id="creator-desk">
+        <p class="desk-tip" id="desk-tip"><strong>Send this link</strong> — they get the mystery walk, not your form.</p>
+        <label class="field">
+          <span>Share link</span>
+          <input class="share-url" id="share-url" type="text" readonly />
+        </label>
+        <button type="button" class="btn btn-primary" id="copy">Copy link</button>
+        <button type="button" class="btn btn-ghost" id="open-guest">Open as guest</button>
+        <p class="meta" id="save-note">Saved on this phone. The link is the same day for anyone you send it to.</p>
         <label class="field">
           <span>What do you two like?</span>
           <textarea id="note-edit" rows="6" placeholder="easy walking, people watching, coffee in the morning, tacos or pasta, no long waits…"></textarea>
           <p class="meta" style="margin-top:0.45rem">Food, pace, and avoid-list. Edit and rebuild for a new pocket.</p>
         </label>
         <button type="button" class="btn btn-ink" id="rebuild">Rebuild the day</button>
-        <label class="field">
-          <span>Share link</span>
-          <input class="share-url" id="share-url" type="text" readonly />
-        </label>
-        <button type="button" class="btn btn-ink" id="copy">Copy link</button>
-        <p class="meta" id="save-note">Saved on this phone. The link is the same day for anyone you send it to.</p>
         <button type="button" class="quiet" id="edit">Change the day</button>
         <button type="button" class="quiet" id="fresh">New day</button>
       </div>
+
+      <p class="meta hidden" id="play-quiet" style="margin-top:1.5rem; text-align:center">Skips stay on this phone only. This link cannot edit the day.</p>
+    </section>
     </section>
   </div>
 
   <script>
     var STORE = "cityday-test-v1";
+    var PLAY_SKIP_PREFIX = "cityday-play-skip-";
     var plan = null;
     var revealed = false;
     var moodFocus = null;
+    var mode = "create";
+    var playStarted = false;
 
     function isoDate(d) {
       var m = d.getMonth() + 1;
@@ -1383,8 +1449,49 @@
       return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     }
 
+    function playHash(encoded) {
+      return "#play/" + encoded;
+    }
+
     function shareUrl() {
-      return location.origin + location.pathname + "#" + encodePlan(plan);
+      return location.origin + location.pathname + playHash(encodePlan(plan));
+    }
+
+    function parseIncomingHash() {
+      var raw = location.hash ? location.hash.slice(1) : "";
+      if (!raw) return { mode: "create", encoded: "" };
+      if (raw.indexOf("play/") === 0) {
+        return { mode: "play", encoded: raw.slice(5) };
+      }
+      // Bare hash = consumer play (backward compatible share links).
+      return { mode: "play", encoded: raw };
+    }
+
+    function setMode(next) {
+      mode = next === "play" ? "play" : "create";
+      document.body.classList.toggle("mode-play", mode === "play");
+      document.body.classList.toggle("mode-create", mode === "create");
+    }
+
+    function readPlaySkips(id) {
+      try {
+        var raw = JSON.parse(localStorage.getItem(PLAY_SKIP_PREFIX + id) || "[]");
+        return Array.isArray(raw) ? raw.map(String) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function writePlaySkips() {
+      if (!plan || !plan.id) return;
+      try {
+        localStorage.setItem(PLAY_SKIP_PREFIX + plan.id, JSON.stringify(plan.skip || []));
+      } catch (e) {}
+    }
+
+    function creatorPath() {
+      var q = location.search || "";
+      return location.pathname + q;
     }
 
     function readStore() {
@@ -1406,11 +1513,14 @@
     }
 
     function persist() {
+      if (mode === "play") {
+        writePlaySkips();
+        return;
+      }
       writeStore();
-      var url = shareUrl();
-      history.replaceState(null, "", "#" + encodePlan(plan));
+      history.replaceState(null, "", creatorPath());
       var box = document.getElementById("share-url");
-      if (box) box.value = url;
+      if (box) box.value = shareUrl();
     }
 
     function setText(id, text) {
@@ -1469,7 +1579,8 @@
       ["morning", "afternoon", "evening"].forEach(function (key) {
         if (!groups[key].length) return;
         var mood = MOODS[key];
-        html += '<button type="button" data-mood="' + key + '">' + esc(mood.title) +
+        var pressed = moodFocus === key ? "true" : "false";
+        html += '<button type="button" data-mood="' + key + '" aria-pressed="' + pressed + '">' + esc(mood.title) +
           "<small>" + esc(mood.hint) + "</small></button>";
       });
       box.innerHTML = html;
@@ -1483,28 +1594,79 @@
       return other ? "We'll look for music that day." : "";
     }
 
+    function playFrameCopy(p) {
+      if (p.style === "mystery") {
+        return "The stops stay hidden until you pick a mood — or open the whole day when you are ready. No spoilers yet.";
+      }
+      return "A quiet walk through the day. Tap through the stops when you like.";
+    }
+
+    function syncPlayChrome() {
+      var landing = document.getElementById("play-landing");
+      var flow = document.getElementById("day-flow");
+      var quiet = document.getElementById("play-quiet");
+      var showLanding = mode === "play" && !playStarted;
+      landing.classList.toggle("hidden", !showLanding);
+      flow.classList.toggle("hidden", showLanding);
+      quiet.classList.toggle("hidden", mode !== "play" || showLanding);
+      document.getElementById("day-kicker").textContent = mode === "play" ? "Your day" : "Creator desk";
+      // Consumer: hide budget/kind plan chrome that spoils the desk feel.
+      var hidePlanBits = mode === "play";
+      if (hidePlanBits) {
+        document.getElementById("plan-line").classList.add("hidden");
+        document.getElementById("plan-line").textContent = "";
+      }
+    }
+
+    function fillLanding() {
+      var d = parseDate(plan.date);
+      document.getElementById("land-welcome").textContent = welcomeLine(plan);
+      var who = [plan.you, plan.them].filter(Boolean).join(" and ");
+      var vibe = plan.occasion === "Just because"
+        ? "Just because."
+        : (plan.occasion + (who ? " for " + who : "") + ".");
+      document.getElementById("land-lede").textContent = vibe + " St. Petersburg. The city opens as you go.";
+      document.getElementById("land-when").textContent = formatWhen(d) + " · St. Petersburg";
+      document.getElementById("land-weather").textContent = weatherLine(plan.date);
+      document.getElementById("land-frame").textContent = playFrameCopy(plan);
+    }
+
     function renderDay() {
       var d = parseDate(plan.date);
       var stops = visibleStops();
+      syncPlayChrome();
+      if (mode === "play" && !playStarted) {
+        fillLanding();
+        loadWeather(plan.date);
+        return;
+      }
       document.getElementById("welcome").textContent = welcomeLine(plan);
       setText("when-line", formatWhen(d) + " · St. Petersburg");
       setText("weather-line", weatherLine(plan.date));
       setText("custom-line", plan.custom ? plan.custom : "");
       setText("drink-line", plan.drink === "no" ? "No bars on this one." : (plan.drink === "yes" ? "Drinks are in." : ""));
-      setText("plan-line", planLine(plan));
+      if (mode === "create") {
+        setText("plan-line", planLine(plan));
+      } else {
+        setText("plan-line", "");
+      }
       setText("music-line", musicNote(plan, stops));
       var noteEdit = document.getElementById("note-edit");
       if (noteEdit && document.activeElement !== noteEdit) noteEdit.value = plan.must || "";
       var known = plan.date === "2026-10-10" || plan.date === "2026-10-11" || plan.date === "2026-10-17";
-      setText("gap-line", known ? "" : "No dated event is verified for this day yet. The pocket is still built from your note, places with standing hours that are open, and the forecast when it is out.");
+      var gapCreate = "No dated event is verified for this day yet. The pocket is still built from your note, places with standing hours that are open, and the forecast when it is out.";
+      var gapPlay = "No dated event is verified for this day yet. The pocket still uses places with standing hours that are open, and the forecast when it is out.";
+      setText("gap-line", known ? "" : (mode === "play" ? gapPlay : gapCreate));
       var mystery = plan.style === "mystery" && !revealed;
       setText("mystery-line", mystery
-        ? "Mystery day. The stops stay hidden. Pick a mood, or show the day when you are ready."
+        ? (mode === "play"
+          ? "Pick a feeling. The places stay hidden until you do — or show the day when you are ready."
+          : "Mystery day. The stops stay hidden. Pick a mood, or show the day when you are ready.")
         : (plan.style === "mystery" ? "Mystery is on, and the day is open." : ""));
       document.getElementById("moods").classList.toggle("hidden", !mystery);
       document.getElementById("show-all").classList.toggle("hidden", plan.style !== "mystery" || revealed);
       document.getElementById("stops").classList.toggle("hidden", mystery && !moodFocus);
-      document.getElementById("recap").classList.toggle("hidden", mystery);
+      document.getElementById("recap").classList.toggle("hidden", mystery || mode === "play");
       if (mystery) {
         renderMoods(stops);
         document.getElementById("recap").innerHTML = "";
@@ -1515,37 +1677,63 @@
           document.getElementById("stops").innerHTML = "";
         }
         if (!document.getElementById("moods").innerHTML.trim()) {
-          document.getElementById("moods").innerHTML =
-            '<p class="why">Nothing verified is open for this date yet. Edit the note or the date and rebuild.</p>';
+          document.getElementById("moods").innerHTML = mode === "play"
+            ? '<p class="why">Nothing verified is open for this date yet.</p>'
+            : '<p class="why">Nothing verified is open for this date yet. Edit the note or the date and rebuild.</p>';
         }
       } else {
         document.getElementById("stops").innerHTML = stops.length
           ? stops.map(stopHtml).join("")
           : '<p class="why">Nothing verified is open for this date.</p>';
-        renderRecap(stops);
+        if (mode === "create") renderRecap(stops);
+        else document.getElementById("recap").innerHTML = "";
       }
-      document.getElementById("share-url").value = shareUrl();
+      if (mode === "create") {
+        document.getElementById("share-url").value = shareUrl();
+        document.getElementById("desk-tip").innerHTML =
+          plan.style === "mystery"
+            ? "<strong>Send this link</strong> — they get the mystery walk, not your form."
+            : "<strong>Send this link</strong> — they get the day walk, not your form.";
+      }
       loadWeather(plan.date);
     }
 
     function show(which) {
-      document.getElementById("screen-about").classList.toggle("hidden", which !== "about");
-      document.getElementById("screen-form").classList.toggle("hidden", which !== "form");
-      document.getElementById("screen-day").classList.toggle("hidden", which !== "day");
+      if (mode === "play") {
+        document.getElementById("screen-about").classList.add("hidden");
+        document.getElementById("screen-form").classList.add("hidden");
+        document.getElementById("screen-day").classList.toggle("hidden", which !== "day");
+      } else {
+        document.getElementById("screen-about").classList.toggle("hidden", which !== "about");
+        document.getElementById("screen-form").classList.toggle("hidden", which !== "form");
+        document.getElementById("screen-day").classList.toggle("hidden", which !== "day");
+      }
       window.scrollTo(0, 0);
     }
 
-    function openDay(next, fromShare) {
+    function openDay(next, opts) {
+      opts = opts || {};
       plan = next;
-      revealed = false;
-      moodFocus = null;
-      if (!fromShare) persist();
-      else {
-        writeStore();
-        document.getElementById("share-url").value = shareUrl();
-        if (location.hash.slice(1) !== encodePlan(plan)) {
-          history.replaceState(null, "", "#" + encodePlan(plan));
+      revealed = !!opts.revealed;
+      moodFocus = opts.moodFocus || null;
+      if (opts.mode) setMode(opts.mode);
+      if (mode === "play") {
+        playStarted = !!opts.playStarted;
+        var savedSkips = readPlaySkips(plan.id);
+        if (savedSkips.length) {
+          var merged = (plan.skip || []).slice();
+          savedSkips.forEach(function (id) {
+            if (merged.indexOf(id) === -1) merged.push(id);
+          });
+          plan.skip = merged;
         }
+        // Keep the play hash stable for recipients; migrate bare hash to #play/.
+        var encoded = encodePlan(plan);
+        var want = playHash(encoded);
+        if (location.hash !== want) history.replaceState(null, "", want);
+      } else {
+        playStarted = true;
+        persist();
       }
       renderDay();
       show("day");
@@ -1630,7 +1818,7 @@
         must: document.getElementById("must").value.trim(),
         skip: plan && plan.date === date ? (plan.skip || []) : []
       };
-      openDay(next, false);
+      openDay(next, { mode: "create" });
     });
 
     document.getElementById("screen-day").addEventListener("click", function (e) {
@@ -1660,7 +1848,7 @@
       document.getElementById("share-url").value = url;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(function () {
-          document.getElementById("save-note").textContent = "Link copied. Saved on this phone, too.";
+          document.getElementById("save-note").textContent = "Link copied. They get the walk — not your form. Saved on this phone, too.";
         }).catch(function () {
           document.getElementById("share-url").focus();
           document.getElementById("share-url").select();
@@ -1671,8 +1859,20 @@
       }
     });
 
-    document.getElementById("rebuild").addEventListener("click", function () {
+    document.getElementById("open-guest").addEventListener("click", function () {
       if (!plan) return;
+      var url = shareUrl();
+      window.location.assign(url);
+    });
+
+    document.getElementById("land-begin").addEventListener("click", function () {
+      playStarted = true;
+      renderDay();
+      window.scrollTo(0, 0);
+    });
+
+    document.getElementById("rebuild").addEventListener("click", function () {
+      if (!plan || mode !== "create") return;
       plan.must = document.getElementById("note-edit").value.trim();
       document.getElementById("must").value = plan.must;
       plan.rebuild = (Number(plan.rebuild) || 0) + 1;
@@ -1685,21 +1885,26 @@
     });
 
     document.getElementById("edit").addEventListener("click", function () {
+      if (mode !== "create") return;
       if (plan) plan.must = document.getElementById("note-edit").value.trim();
+      setMode("create");
       fillForm(plan);
       show("form");
     });
 
     document.getElementById("fresh").addEventListener("click", function () {
+      if (mode !== "create") return;
       plan = null;
       revealed = false;
       moodFocus = null;
+      playStarted = false;
       document.getElementById("save-note").textContent = "";
       var store = readStore();
       store.last = null;
       localStorage.setItem(STORE, JSON.stringify(store));
-      history.replaceState(null, "", location.pathname);
+      history.replaceState(null, "", creatorPath());
       fillForm(null);
+      setMode("create");
       show("about");
     });
 
@@ -1714,23 +1919,34 @@
       document.getElementById("context-help").close();
     });
 
+    function wantCreate() {
+      try {
+        var q = new URLSearchParams(location.search || "");
+        return q.has("create") || q.get("mode") === "create";
+      } catch (e) {
+        return /(?:\?|&)create(?:&|=|$)/.test(location.search || "");
+      }
+    }
+
     function boot() {
-      var hash = location.hash ? location.hash.slice(1) : "";
-      if (hash) {
+      var incoming = parseIncomingHash();
+      if (incoming.encoded && !wantCreate()) {
         try {
-          var decoded = decodePlan(hash);
+          var decoded = decodePlan(incoming.encoded);
           if (decoded) {
-            openDay(decoded, true);
+            openDay(decoded, { mode: "play", playStarted: false });
             return;
           }
         } catch (e) {}
       }
+      setMode("create");
+      playStarted = false;
       var store = readStore();
       if (store.last && store.plans && store.plans[store.last]) {
         try {
           var saved = decodePlan(encodePlan(store.plans[store.last]));
           if (saved) {
-            openDay(saved, false);
+            openDay(saved, { mode: "create" });
             return;
           }
         } catch (e2) {}
@@ -1739,6 +1955,7 @@
       show("about");
     }
 
+    setMode("create");
     boot();
   </script>
 </body>
