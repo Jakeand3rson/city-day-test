@@ -13,6 +13,7 @@
       --cyan: #46C1D1;
       --peach: #F5A791;
       --red: #EE3124;
+      --line: rgba(42, 42, 42, 0.12);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
@@ -46,6 +47,7 @@
       line-height: 1.2;
       margin: 0 0 0.35rem;
     }
+    h3 { font-size: 1.05rem; font-weight: 650; margin: 1.1rem 0 0.4rem; }
     p { margin: 0; }
     .city {
       width: 100%;
@@ -73,7 +75,7 @@
       margin: 0 0 0.45rem;
     }
     .pills { display: flex; flex-wrap: wrap; gap: 0.45rem; }
-    .pills button {
+    .pills button, .rate button {
       border: 1.5px solid var(--ink);
       background: transparent;
       color: var(--ink);
@@ -83,7 +85,8 @@
       font-size: 0.95rem;
       cursor: pointer;
     }
-    .pills button[aria-pressed="true"] {
+    .pills button[aria-pressed="true"],
+    .rate button[aria-pressed="true"] {
       background: var(--cyan);
       border-color: var(--cyan);
     }
@@ -91,6 +94,7 @@
     input[type="text"],
     input[type="number"],
     input[type="date"],
+    input[type="time"],
     textarea,
     .share-url {
       width: 100%;
@@ -113,6 +117,14 @@
       border-radius: 0.9rem;
       padding: 0.75rem 0.9rem;
     }
+    details.set {
+      border: 1.5px solid rgba(42, 42, 42, 0.28);
+      border-radius: 0.9rem;
+      padding: 0.75rem 0.9rem;
+      margin: 0 0 1.05rem;
+    }
+    details.set summary { cursor: pointer; font-weight: 600; }
+    details.set[open] summary { margin-bottom: 0.85rem; }
     .btn {
       display: block;
       width: 100%;
@@ -125,14 +137,23 @@
       text-align: center;
       text-decoration: none;
       cursor: pointer;
+      margin-top: 0.55rem;
     }
     .btn:active { transform: scale(0.98); }
-    .btn-primary { background: var(--red); color: var(--bg); margin-top: 0.35rem; }
+    .btn-primary { background: var(--red); color: var(--bg); }
     .btn-ink { background: var(--ink); color: var(--bg); }
+    .btn-cyan { background: var(--cyan); color: var(--ink); }
+    .btn-peach { background: var(--peach); color: var(--ink); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid rgba(42, 42, 42, 0.28);
+      font-weight: 600;
+    }
     .stop {
       padding: 0 0 1.25rem;
       margin: 0 0 1.25rem;
-      border-bottom: 1px solid rgba(42, 42, 42, 0.12);
+      border-bottom: 1px solid var(--line);
     }
     .stop .btn { margin-top: 0.85rem; }
     .skip, .quiet {
@@ -153,59 +174,49 @@
     }
     .quiet {
       display: inline-block;
-      opacity: 0.55;
+      opacity: 0.62;
       font-size: 0.95rem;
     }
-    .kinds { display: grid; gap: 0.55rem; }
-    .kinds button {
+    .escapes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1.1rem;
+      margin: 1.2rem 0 0;
+    }
+    .kinds, .moods { display: grid; gap: 0.6rem; }
+    .moods { margin: 0 0 0.6rem; }
+    .kinds button, .moods button {
       text-align: left;
       background: transparent;
       color: var(--ink);
       border: 1.5px solid var(--ink);
       border-radius: 1.05rem;
-      padding: 0.85rem 1rem;
+      padding: 0.95rem 1.05rem;
       font: inherit;
       font-weight: 600;
-      font-size: 1rem;
+      font-size: 1.02rem;
       cursor: pointer;
     }
     .kinds button[aria-pressed="true"] {
       background: var(--cyan);
       border-color: var(--cyan);
     }
-    .kinds button small {
+    .kinds button small, .moods button small {
       display: block;
       font-weight: 450;
-      opacity: 0.72;
+      opacity: 0.68;
       margin-top: 0.2rem;
     }
-    .moods { display: grid; gap: 0.7rem; margin: 0 0 1.1rem; }
-    .moods button {
-      text-align: left;
-      background: transparent;
-      color: var(--ink);
-      border: 1.5px solid var(--ink);
-      border-radius: 1.05rem;
-      padding: 1rem 1.1rem;
-      font: inherit;
-      font-weight: 600;
-      font-size: 1.05rem;
-      cursor: pointer;
-    }
-    .moods button small {
-      display: block;
-      font-weight: 450;
-      opacity: 0.62;
-      margin-top: 0.2rem;
-    }
+    .moods button.surprise { border-style: dashed; }
     .recap {
-      margin: 0.4rem 0 1.4rem;
+      margin: 1.4rem 0 1.4rem;
       padding: 1rem 0 0.2rem;
+      border-top: 1px solid var(--line);
     }
     .recap h2 { margin-bottom: 0.8rem; }
-    .recap ul { margin: 0.35rem 0 0; padding-left: 1.15rem; }
+    .recap ul, .trail { margin: 0.35rem 0 0; padding-left: 1.15rem; }
     .recap li { margin: 0.2rem 0; }
-    .actions { margin-top: 0.4rem; display: grid; gap: 0.85rem; }
+    .actions { margin-top: 0.4rem; display: grid; gap: 0.6rem; }
     .err { color: var(--red); font-size: 0.92rem; margin: 0 0 0.75rem; }
     .learn-row {
       display: flex;
@@ -242,12 +253,7 @@
     dialog.context-help ul { margin: 0 0 1rem; padding-left: 1.1rem; }
     dialog.context-help li { margin: 0.25rem 0; }
     .hidden { display: none !important; }
-    body.mode-play .banner-create,
-    body.mode-play #creator-desk,
-    body.mode-play #screen-about,
-    body.mode-play #screen-form { display: none !important; }
-    body.mode-create #play-landing,
-    body.mode-create #play-quiet { display: none !important; }
+    body.mode-play .banner-create { display: none !important; }
     .kicker {
       font-size: 0.72rem;
       letter-spacing: 0.18em;
@@ -256,77 +262,113 @@
       opacity: 0.55;
       margin: 0 0 0.65rem;
     }
-    .play-hero {
+    .hero {
       background: var(--cyan);
       color: #fff;
       border-radius: 1.35rem;
       padding: 1.55rem 1.25rem 1.35rem;
       margin: 0 0 1.15rem;
     }
-    .play-hero h1 { color: #fff; margin: 0 0 0.55rem; font-size: clamp(1.7rem, 7vw, 2.2rem); }
-    .play-hero .lede { color: rgba(255,255,255,0.88); margin: 0 0 0.85rem; max-width: none; }
-    .play-hero .meta { opacity: 0.85; color: #fff; }
-    .desk-tip {
+    .hero h1 { color: #fff; margin: 0 0 0.55rem; font-size: clamp(1.7rem, 7vw, 2.2rem); }
+    .hero .lede { color: rgba(255,255,255,0.92); margin: 0 0 0.85rem; max-width: none; }
+    .hero .meta { opacity: 0.9; color: #fff; }
+    .hero .kicker { color: rgba(255,255,255,0.85); opacity: 1; }
+    .card {
+      border: 1.5px solid rgba(42, 42, 42, 0.18);
+      border-radius: 1.2rem;
+      padding: 1.2rem 1.1rem 1.1rem;
       margin: 0 0 1rem;
+    }
+    .reveal { text-align: center; animation: rise 0.45s ease; }
+    .reveal .why, .reveal .meta { text-align: left; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: none; }
+    }
+    .stamp {
+      width: 68px; height: 68px;
+      margin: 0 auto 0.9rem;
+      border-radius: 50%;
+      border: 3px solid var(--cyan);
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 0.66rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .stamp.peach { border-color: var(--peach); }
+    .place { font-size: 1.6rem; font-weight: 650; letter-spacing: -0.02em; margin: 0.2rem 0 0.7rem; }
+    .hint {
+      font-size: 0.9rem;
+      background: rgba(70, 193, 209, 0.12);
+      border-radius: 0.75rem;
+      padding: 0.7rem 0.85rem;
+      margin: 0.6rem 0;
+      text-align: left;
+    }
+    .pips { display: flex; gap: 0.4rem; justify-content: center; margin: 0 0 1.1rem; }
+    .pip { width: 8px; height: 8px; border-radius: 50%; background: rgba(42, 42, 42, 0.15); }
+    .pip.done { background: var(--peach); }
+    .pip.on { background: var(--cyan); }
+    .strip {
+      border-left: 3px solid var(--peach);
+      padding: 0.55rem 0.8rem;
+      margin: 0 0 1rem;
+      font-size: 0.95rem;
+    }
+    .rate { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.45rem 0 0; }
+    .ask { margin: 0 0 1.1rem; padding: 0.8rem 0.9rem; border-radius: 0.9rem; background: rgba(245, 167, 145, 0.16); }
+    .check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 0.4rem 0 0.9rem; cursor: pointer; }
+    .check input { margin-top: 0.3rem; width: 1.1rem; height: 1.1rem; }
+    .desk-tip {
+      margin: 0 0 0.6rem;
       padding: 0.85rem 0.95rem;
       border-left: 3px solid var(--cyan);
       font-size: 0.95rem;
     }
     .desk-tip strong { font-weight: 650; }
-    .btn-ghost {
-      background: transparent;
-      color: var(--ink);
-      border: 1.5px solid rgba(42, 42, 42, 0.28);
-      font-weight: 600;
-    }
-    .breath { margin-bottom: 1.35rem; }
-    .moods button[aria-pressed="true"] {
-      background: var(--peach);
-      border-color: var(--peach);
-    }
+    .mini { margin: 0 0 0.7rem; }
+    .mini .meta { margin: 0; }
+    .trail li { margin: 0 0 0.7rem; }
     :focus-visible {
       outline: 2px solid var(--cyan);
       outline-offset: 3px;
     }
   </style>
 </head>
-<body>
+<body class="mode-create">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="skyline" viewBox="0 0 360 170">
+      <circle cx="292" cy="40" r="14" fill="#F5A791"/>
+      <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+      <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+      <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
+      <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round" fill="none"/>
+    </symbol>
+  </svg>
   <div class="shell">
     <p class="banner banner-create">Free for friends and family. No payment.</p>
 
     <section id="screen-about">
-      <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
-        <circle cx="292" cy="40" r="14" fill="#F5A791"/>
-        <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
-        <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round"/>
-        <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round"/>
-        <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
-        <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
-      </svg>
+      <svg class="city" viewBox="0 0 360 170" role="img" aria-label="Sun over a low skyline and the water"><use href="#skyline"/></svg>
       <h1>A nudge, not a schedule.</h1>
-      <p class="lede">Tell it a little about the two of you, the day, and what you like. It points you toward a few things that are actually open, including something you might have missed, and it checks the weather so the day doesn't get caught in the rain.</p>
-      <p class="why">It is not a rigid plan. One or two things to draw on, then room to stop because the view is good, or because something smells right. The wandering is part of the day.</p>
+      <p class="lede">Tell it a little about the two of you, the day, and what you like. It finds a few things that are actually open that day, including something you might have missed, and checks the weather.</p>
+      <p class="why">Then the day is a game. Pick what's calling, reveal one place, go. When you get there, pick again. Want options instead? Show the list.</p>
       <p class="meta">Use it when it helps. Put it away when you stumble onto something better.</p>
       <button type="button" class="btn btn-primary" id="begin">Start a day</button>
     </section>
 
     <section id="screen-form" class="hidden">
-      <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
-        <circle cx="292" cy="40" r="14" fill="#F5A791"/>
-        <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
-        <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round"/>
-        <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round"/>
-        <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
-        <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
-      </svg>
+      <svg class="city" viewBox="0 0 360 170" role="img" aria-label="Sun over a low skyline and the water"><use href="#skyline"/></svg>
       <h1>The day.</h1>
       <p class="lede">A few things, then a pocket of the city. Not a timetable.</p>
       <form id="day-form" novalidate>
-        <p class="err hidden" id="form-err"></p>
+        <p class="err hidden" id="form-err" role="alert"></p>
         <label class="field">
           <span>Your name</span>
           <input type="text" id="you" name="you" autocomplete="name" maxlength="60" required />
@@ -358,19 +400,28 @@
           <div class="city-fixed">St. Petersburg</div>
           <p class="meta" style="margin-top:0.35rem">This test only.</p>
         </div>
+        <details class="set" id="set-box">
+          <summary>Anything already set? (optional)</summary>
+          <p class="meta" style="margin-bottom:0.8rem">A reservation or a show. The day is built around it, with a leave-by time.</p>
+          <label class="field">
+            <span>What</span>
+            <input type="text" id="anchor-name" maxlength="80" placeholder="Dinner at Beso" />
+          </label>
+          <label class="field">
+            <span>Time</span>
+            <input type="time" id="anchor-time" />
+          </label>
+          <label class="field" style="margin-bottom:0">
+            <span>Where</span>
+            <input type="text" id="anchor-where" maxlength="120" placeholder="Address or place name" />
+          </label>
+        </details>
         <div class="group" data-group="drink">
           <p>Drinking</p>
           <div class="pills" role="group" aria-label="Drinking">
             <button type="button" data-value="yes" aria-pressed="false">Yes</button>
             <button type="button" data-value="no" aria-pressed="false">No</button>
             <button type="button" data-value="either" aria-pressed="false">Doesn't matter</button>
-          </div>
-        </div>
-        <div class="group" data-group="style">
-          <p>Style</p>
-          <div class="pills" role="group" aria-label="Style">
-            <button type="button" data-value="mystery" aria-pressed="false">Mystery</button>
-            <button type="button" data-value="plan" aria-pressed="false">Just the plan</button>
           </div>
         </div>
         <div class="group" data-group="lean">
@@ -383,11 +434,11 @@
         <label class="field">
           <span>Budget for the day</span>
           <input type="number" id="budget-amount" name="budgetAmount" min="0" step="1" inputmode="numeric" placeholder="200" required />
-          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. It gets checked against parking, food, and a ticketed stop like a museum. A lower number keeps the ticket off so parking and a meal still fit.</p>
+          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. A lower number keeps the pricier dinners and ticketed stops off, unless your note asks for them (art, live music). It is a guide, not a receipt.</p>
         </label>
         <label class="field">
           <span>What do you two like?</span>
-          <textarea id="must" name="must" rows="6" placeholder="easy walking, people watching, coffee in the morning, tacos or pasta, no long waits…"></textarea>
+          <textarea id="must" name="must" rows="6" maxlength="400" placeholder="easy walking, people watching, coffee in the morning, tacos or pasta, no seafood…"></textarea>
           <div class="learn-row">
             <p class="meta">This is what shapes the day. Add food likes, pace, and anything to avoid. Different notes make different days.</p>
             <button type="button" class="learn" id="learn-context">Learn more</button>
@@ -397,90 +448,62 @@
       </form>
       <dialog class="context-help" id="context-help" aria-labelledby="context-help-title">
         <h2 id="context-help-title">What helps</h2>
-        <p>Write like you are briefing a friend who will pick spots for you. The day is built from this note, the date, the weather, and the budget — not a fixed list.</p>
+        <p>Write like you are briefing a friend who will pick spots for you. The day is built from this note, the date, and the budget — not a fixed list.</p>
         <ul>
-          <li>Food: coffee, tacos, pasta, vegetarian, gelato, a nicer dinner, no seafood.</li>
+          <li>Food: coffee, tacos, pasta, gelato, a nicer dinner, no seafood.</li>
           <li>Pace: easy walking, people watching, dig through shops, live music if it is on.</li>
-          <li>What has worked before, and what to skip.</li>
+          <li>What to skip: "no museums," "no seafood," "not too fancy."</li>
           <li>Driving: say if you need parking, or if you are already downtown on foot.</li>
         </ul>
-        <p class="meta">A few specific likes beat “fun day.” You can edit this later and rebuild.</p>
+        <p class="meta">A few specific likes beat "fun day." You can edit this later and rebuild.</p>
         <button type="button" class="btn btn-ink" id="close-context">Got it</button>
       </dialog>
     </section>
 
-    <section id="screen-day" class="hidden">
-      <div id="play-landing" class="hidden">
-        <div class="play-hero">
-          <p class="kicker" style="color:rgba(255,255,255,0.8); opacity:1">A day for you</p>
-          <h1 id="land-welcome"></h1>
-          <p class="lede" id="land-lede"></p>
-          <p class="meta" id="land-when"></p>
-          <p class="meta" id="land-weather"></p>
-        </div>
-        <p class="note breath" id="land-frame"></p>
-        <button type="button" class="btn btn-primary" id="land-begin">Begin</button>
-      </div>
-
-      <div id="day-flow">
-        <svg class="city" viewBox="0 0 360 170" fill="none" role="img" aria-label="Sun over a low skyline and the water">
-          <circle cx="292" cy="40" r="14" fill="#F5A791"/>
-          <path d="M292 16v8M292 56v8M268 40h8M308 40h8M274 22l6 6M304 52l6 6M274 58l6-6M304 28l6-6" stroke="#F5A791" stroke-width="2" stroke-linecap="round"/>
-          <path d="M24 128V96h22V78h16v26h24V70h18v22h24V60h18v50h30V84h20v44" stroke="#2A2A2A" stroke-width="2.5" stroke-linejoin="round"/>
-          <path d="M196 128h144" stroke="#2A2A2A" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M292 128V104h42v24" stroke="#46C1D1" stroke-width="2.5" stroke-linejoin="round"/>
-          <path d="M313 104V92" stroke="#46C1D1" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M0 140c50-10 80 10 130 0s80 10 130 0 70 6 100-2V170H0Z" fill="#46C1D1"/>
-          <path d="M0 154c46-6 78 6 130 0s84 6 136 0 70 2 94-2" stroke="#FAFAFA" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <p class="kicker" id="day-kicker">City Day</p>
-        <h1 id="welcome"></h1>
-        <p class="meta" id="when-line"></p>
-        <p class="note hidden" id="weather-line">Daytime forecast</p>
-        <p class="note" id="custom-line"></p>
-        <p class="note" id="drink-line"></p>
-        <p class="note" id="plan-line"></p>
-        <p class="note hidden" id="music-line"></p>
-        <p class="note hidden" id="gap-line"></p>
-        <p class="note hidden" id="mystery-line"></p>
-        <div class="moods hidden" id="moods"></div>
-        <button type="button" class="btn btn-primary hidden" id="show-all" style="margin-bottom:1rem">Show the day</button>
-        <div id="stops"></div>
-        <section class="recap hidden" id="recap"></section>
-      </div>
-
+    <section id="screen-desk" class="hidden">
+      <div id="desk-top"></div>
       <div class="actions" id="creator-desk">
-        <p class="desk-tip" id="desk-tip"><strong>Send this link</strong> — they get the mystery walk, not your form.</p>
-        <label class="field">
+        <p class="desk-tip"><strong>Send this link.</strong> They get the mystery walk, not your form.</p>
+        <label class="field" style="margin:0">
           <span>Share link</span>
           <input class="share-url" id="share-url" type="text" readonly />
         </label>
         <button type="button" class="btn btn-primary" id="copy">Copy link</button>
-        <button type="button" class="btn btn-ghost" id="open-guest">Open as guest</button>
-        <p class="meta" id="save-note">Saved on this phone. The link is the same day for anyone you send it to.</p>
-        <label class="field">
+        <button type="button" class="btn btn-ghost" id="open-guest">Play it here</button>
+        <p class="meta" id="save-note">Saved on this phone. The link carries this exact day.</p>
+        <label class="field" style="margin-top:0.8rem">
           <span>What do you two like?</span>
-          <textarea id="note-edit" rows="6" placeholder="easy walking, people watching, coffee in the morning, tacos or pasta, no long waits…"></textarea>
-          <p class="meta" style="margin-top:0.45rem">Food, pace, and avoid-list. Edit and rebuild for a new pocket.</p>
+          <textarea id="note-edit" rows="6" maxlength="400" placeholder="easy walking, people watching, coffee in the morning, tacos or pasta, no seafood…"></textarea>
+          <p class="meta" style="margin-top:0.45rem">Edit and rebuild before you send. After you send, the link stays the same day.</p>
         </label>
         <button type="button" class="btn btn-ink" id="rebuild">Rebuild the day</button>
-        <button type="button" class="quiet" id="edit">Change the day</button>
-        <button type="button" class="quiet" id="fresh">New day</button>
+        <div class="escapes">
+          <button type="button" class="quiet" id="edit">Change the day</button>
+          <button type="button" class="quiet" id="fresh">New day</button>
+        </div>
       </div>
-
-      <p class="meta hidden" id="play-quiet" style="margin-top:1.5rem; text-align:center">Skips stay on this phone only. This link cannot edit the day.</p>
+      <section class="recap" id="recap"></section>
     </section>
+
+    <section id="screen-play" class="hidden">
+      <div id="play"></div>
     </section>
   </div>
 
   <script>
     var STORE = "cityday-test-v1";
-    var PLAY_SKIP_PREFIX = "cityday-play-skip-";
+    var PLAY_PREFIX = "cityday-play-state-";
+    var OLD_SKIP_PREFIX = "cityday-play-skip-";
     var plan = null;
-    var revealed = false;
-    var moodFocus = null;
     var mode = "create";
-    var playStarted = false;
+    var clockOverride = null;
+    var previewing = false;
+    var storageOK = (function () {
+      try { localStorage.setItem("cityday-probe", "1"); localStorage.removeItem("cityday-probe"); return true; } catch (e) { return false; }
+    })();
+    var view = { panel: "curtain", feel: null, pending: null, found: null };
+
+    // ---------- dates and time ----------
 
     function isoDate(d) {
       var m = d.getMonth() + 1;
@@ -499,12 +522,46 @@
     }
 
     function formatWhen(d) {
-      return d.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        year: "numeric"
-      });
+      return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    }
+
+    function nyParts(date) {
+      var o = {};
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hour12: false
+      }).formatToParts(date).forEach(function (part) { o[part.type] = part.value; });
+      return { iso: o.year + "-" + o.month + "-" + o.day, hour: (Number(o.hour) % 24) + Number(o.minute) / 60 };
+    }
+
+    function nowNY() {
+      return nyParts(clockOverride || new Date());
+    }
+
+    function isPlanDay() {
+      return !!plan && nowNY().iso === plan.date;
+    }
+
+    function fmtHour(h) {
+      var hh = Math.floor(h);
+      var mm = Math.round((h - hh) * 60);
+      if (mm === 60) { hh += 1; mm = 0; }
+      var suffix = hh >= 12 && hh < 24 ? "pm" : "am";
+      var h12 = hh % 12 === 0 ? 12 : hh % 12;
+      return h12 + (mm ? ":" + (mm < 10 ? "0" : "") + mm : "") + suffix;
+    }
+
+    // Sunset over downtown St. Pete (NOAA approximation), as a local hour.
+    function sunsetHour(d) {
+      var rad = Math.PI / 180, lat = 27.7706, lng = -82.6403;
+      var n = Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000);
+      var g = 2 * Math.PI / 365 * (n - 1);
+      var eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+      var decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+      var ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl)) / rad;
+      var utcMin = 720 - 4 * (lng - ha) - eq;
+      var at = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) + utcMin * 60000);
+      return nyParts(at).hour;
     }
 
     function esc(s) {
@@ -521,6 +578,8 @@
       return list.indexOf(iso) !== -1;
     }
 
+    // ---------- the catalog ----------
+
     var CLOSED_DALI = ["2026-11-26", "2026-12-25"];
     var CLOSED_MFA = ["2026-11-26", "2026-12-25"];
     var CLOSED_MOREAN = ["2026-01-01", "2026-09-07", "2026-11-26", "2026-11-27", "2026-12-24", "2026-12-25", "2026-12-31", "2027-01-01"];
@@ -535,12 +594,22 @@
       return "10am–6pm";
     }
 
+    function daliEnd(iso, day) {
+      if (iso === "2026-10-22") return 19;
+      if (iso === "2026-10-24") return 15;
+      if (iso === "2026-12-24") return 16;
+      if (day === 4) return 20;
+      return 18;
+    }
+
     function benchHours(day) {
       if (day === 0) return "12pm–9pm";
       if (day === 5 || day === 6) return "12pm–12am";
       return "12pm–10pm";
     }
 
+    // feel: which "What's calling?" pool a place belongs to.
+    // start/end: local hours, used to offer only what is open when you are out.
     var STOPS = [
       {
         id: "parking",
@@ -550,78 +619,74 @@
         costBand: "cheap",
         address: "101 1st Ave S, St. Petersburg",
         query: "SouthCore Parking Garage, 101 1st Ave S, St. Petersburg, FL",
-        gem: false,
-        bar: false,
-        dated: false,
-        order: 0,
-        covers: null,
+        gem: false, bar: false, dated: false, order: 0, covers: null,
         source: "https://www.stpete.org/residents/parking___transportation/where_to_park.php",
+        hint: "About $2 an hour with a $16 day max. Recheck the sign when you pull in.",
         isOpen: function () { return true; },
         hours: function () { return "Open 24 hours · about $2/hr, $16 day max"; },
-        start: function () { return 8; },
-        why: function (ctx) {
-          return "You mentioned driving or parking. The city lists SouthCore at 101 1st Ave S, open around the clock, about $2 an hour with a $16 day max. Leave the car and walk for " + ctx.occ + ".";
+        start: function () { return 0; },
+        end: function () { return 24; },
+        why: function () {
+          return "You mentioned driving. The city lists SouthCore at 101 1st Ave S, open around the clock. Leave the car here and walk.";
         }
       },
       {
         id: "kahwa",
         name: "Kahwa Coffee (Downtown South)",
+        feel: "taste",
         meal: "coffee",
         tags: ["coffee", "cafe", "café", "breakfast", "pastry"],
         costBand: "cheap",
         address: "204 2nd Ave S, St. Petersburg",
         query: "Kahwa Coffee, 204 2nd Ave S, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: false,
-        order: 1.4,
-        covers: null,
+        gem: true, bar: false, dated: false, order: 1.4, covers: null,
         source: "https://kahwacoffee.com/pages/cafe-st-petersburg-downtown-south",
+        hint: "Local roast, a short walk from the waterfront.",
         isOpen: function () { return true; },
         hours: function (d) { return d.getDay() === 0 ? "8am–6pm" : "7am–6:30pm"; },
         start: function (d) { return d.getDay() === 0 ? 8 : 7; },
+        end: function (d) { return d.getDay() === 0 ? 18 : 18.5; },
         why: function (ctx) {
-          return "Your note pointed at coffee. Kahwa lists " + ctx.hours + " today at 204 2nd Ave S — local roast and an easy start for " + ctx.occ + ".";
+          return "Kahwa lists " + ctx.hours + " today at 204 2nd Ave S. Local roast and an easy start for " + ctx.occ + ".";
         }
       },
       {
         id: "bodega",
         name: "Bodega",
+        feel: "taste",
         meal: "lunch",
+        dinner: true,
         tags: ["taco", "tacos", "cuban", "mexican", "latin", "sandwich", "casual", "cheap lunch"],
         costBand: "cheap",
         address: "1180 Central Ave, St. Petersburg",
         query: "Bodega, 1180 Central Ave, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: false,
-        order: 8.4,
-        covers: null,
+        gem: true, bar: false, dated: false, order: 8.4, covers: null,
         source: "https://eatatbodega.com/",
+        hint: "Casual Latin food on Central Ave.",
         isOpen: function () { return true; },
         hours: function (d) {
           var day = d.getDay();
           return (day === 4 || day === 5 || day === 6) ? "11am–11pm" : "11am–9pm";
         },
-        start: function () { return 12; },
+        start: function () { return 11; },
+        end: function (d) { var day = d.getDay(); return (day === 4 || day === 5 || day === 6) ? 23 : 21; },
         why: function (ctx) {
-          return "Your note leaned casual / Latin. Bodega’s site lists " + ctx.hours + " today at 1180 Central — a lunch that still respects the budget for " + ctx.occ + ".";
+          return "Bodega's site lists " + ctx.hours + " today at 1180 Central. Casual, and it still respects the budget for " + ctx.occ + ".";
         }
       },
       {
         id: "stillwaters",
         name: "Stillwaters Tavern",
+        feel: "taste",
         meal: "lunch",
+        dinner: true,
         tags: ["seafood", "american", "waterfront", "sit-down", "sit down", "lunch", "dinner"],
         costBand: "mid",
         address: "224 Beach Dr NE, St. Petersburg",
         query: "Stillwaters Tavern, 224 Beach Dr NE, St. Petersburg, FL",
-        gem: false,
-        bar: false,
-        dated: false,
-        order: 8.5,
-        covers: null,
+        gem: false, bar: false, dated: false, order: 8.5, covers: null,
         source: "https://stillwaterstavern.com/faq",
+        hint: "Scratch kitchen on Beach Drive, across from the water.",
         isOpen: function () { return true; },
         hours: function (d) {
           var day = d.getDay();
@@ -631,24 +696,23 @@
           return "11:30am–10pm";
         },
         start: function (d) { return d.getDay() === 0 || d.getDay() === 6 ? 11 : 11.5; },
+        end: function (d) { var day = d.getDay(); if (day === 0) return 21; if (day === 5 || day === 6) return 23; return 22; },
         why: function (ctx) {
-          return "Your note asked for a sit-down meal. Stillwaters lists " + ctx.hours + " on Beach Drive today — scratch kitchen by the water for " + ctx.occ + ", without making the day a bar crawl.";
+          return "Stillwaters lists " + ctx.hours + " on Beach Drive today. A sit-down meal by the water for " + ctx.occ + ".";
         }
       },
       {
         id: "bellabrava",
         name: "BellaBrava",
         meal: "dinner",
+        dinner: true,
         tags: ["italian", "pasta", "pizza", "nice dinner", "nicer dinner", "fancy", "dinner"],
         costBand: "nice",
         address: "204 Beach Dr NE, St. Petersburg",
         query: "BellaBrava, 204 Beach Dr NE, St. Petersburg, FL",
-        gem: false,
-        bar: false,
-        dated: false,
-        order: 12.4,
-        covers: null,
+        gem: false, bar: false, dated: false, order: 12.4, covers: null,
         source: "https://bellabrava.com/faq",
+        hint: "Sit-down Italian on Beach Drive.",
         isOpen: function () { return true; },
         hours: function (d) {
           var day = d.getDay();
@@ -658,24 +722,23 @@
           return "11:30am–10pm";
         },
         start: function () { return 17.5; },
+        end: function (d) { var day = d.getDay(); return (day === 5 || day === 6) ? 23 : 22; },
         why: function (ctx) {
-          return "Your note asked for Italian or a nicer dinner. BellaBrava lists " + ctx.hours + " on Beach Drive today — a sit-down evening for " + ctx.occ + " if the budget has room.";
+          return "BellaBrava lists " + ctx.hours + " on Beach Drive today. A sit-down evening for " + ctx.occ + ".";
         }
       },
       {
         id: "paciugo",
         name: "Paciugo Gelato & Caffè",
+        feel: "taste",
         meal: "dessert",
         tags: ["gelato", "dessert", "ice cream", "sweet", "treat"],
         costBand: "cheap",
         address: "300 Beach Dr NE, St. Petersburg",
         query: "Paciugo Gelato, 300 Beach Dr NE, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: false,
-        order: 14,
-        covers: null,
+        gem: true, bar: false, dated: false, order: 14, covers: null,
         source: "https://paciugostpete.com/",
+        hint: "Gelato on Beach Drive. Good to carry on a walk.",
         isOpen: function () { return true; },
         hours: function (d) {
           var day = d.getDay();
@@ -684,48 +747,44 @@
           if (day === 0) return "11am–10pm";
           return "12–10pm";
         },
-        start: function (d) {
-          var day = d.getDay();
-          return (day === 0 || day === 6) ? 11 : 12;
-        },
+        start: function (d) { var day = d.getDay(); return (day === 0 || day === 6) ? 11 : 12; },
+        end: function (d) { var day = d.getDay(); return (day === 5 || day === 6) ? 23 : 22; },
         why: function (ctx) {
-          return "Your note asked for something sweet. Paciugo lists " + ctx.hours + " on Beach Drive today — gelato after the walk for " + ctx.occ + ".";
+          return "Paciugo lists " + ctx.hours + " on Beach Drive today. Something sweet for " + ctx.occ + ".";
         }
       },
       {
         id: "boyd",
         name: "Native grass planting at Boyd Hill",
+        feel: "drift",
+        booking: true,
+        tags: ["nature", "volunteer", "volunteering", "planting", "gardening", "nature preserve"],
         outdoor: true,
         address: "1101 Country Club Way South, St. Petersburg",
         query: "Boyd Hill Nature Preserve, 1101 Country Club Way South, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: true,
-        order: 1,
-        covers: null,
+        gem: true, bar: false, dated: true, order: 1, covers: null,
         source: "https://stpetecatalyst.com/?spc-impact-cboard=native-grass-planting-at-boyd-hill-nature-preserve",
+        hint: "18 and up, reservation needed. Wear something that can get muddy. South of downtown, so plan a short drive.",
         isOpen: function (d, iso) { return iso === "2026-10-17"; },
         hours: function () { return "7:30am–12pm"; },
         start: function () { return 7.5; },
-        why: function (ctx) {
-          return "October 17 is a real volunteer morning here, 7:30am to noon, run with Friends of Boyd Hill and the St. Pete Eco Club. It is 18 and up and needs a reservation. A hands-in-the-dirt start if " + ctx.occ + " can get muddy.";
+        end: function () { return 12; },
+        why: function () {
+          return "October 17 is a real volunteer morning here, 7:30am to noon, run with Friends of Boyd Hill and the St. Pete Eco Club. A hands-in-the-dirt start.";
         }
       },
       {
         id: "market",
-        tags: ["market", "food", "walking", "people watching", "music"],
         name: "Saturday Morning Market",
-        pin: function () { return true; },
+        feel: "taste",
+        tags: ["market", "food", "walking", "people watching", "music"],
         outdoor: true,
         music: true,
         address: "100 1st Ave SE, St. Petersburg",
         query: "Saturday Morning Market, 100 1st Ave SE, St. Petersburg, FL",
-        gem: false,
-        bar: false,
-        dated: false,
-        order: 2,
-        covers: null,
+        gem: false, bar: false, dated: false, order: 2, covers: null,
         source: "https://saturdaymorningmarket.com/about/",
+        hint: "Food stalls and music in the Al Lang lot. Graze instead of sitting down.",
         isOpen: function (d) {
           if (d.getDay() !== 6) return false;
           var month = d.getMonth() + 1;
@@ -733,24 +792,22 @@
         },
         hours: function () { return "Sat 9am–2pm"; },
         start: function () { return 9; },
+        end: function () { return 14; },
         why: function (ctx) {
-          return "This date lands on a Saturday in the October–May season, so the downtown market is on, 9am to 2pm, in the Al Lang lot. Food, music, and a slow start for " + ctx.occ + ".";
+          return "A Saturday in the October–May season, so the downtown market is on, 9am to 2pm. Food, music, and a slow start for " + ctx.occ + ".";
         }
       },
       {
         id: "mfa",
+        name: "Museum of Fine Arts",
+        feel: "soft",
         tags: ["art", "museum"],
         cost: "ticket",
-        name: "Museum of Fine Arts",
-        pin: function (d, iso) { return iso === "2026-10-10"; },
         address: "255 Beach Drive NE, St. Petersburg",
         query: "Museum of Fine Arts, 255 Beach Drive NE, St. Petersburg, FL",
-        gem: false,
-        bar: false,
-        dated: false,
-        order: 3,
-        covers: null,
+        gem: false, bar: false, dated: false, order: 3, covers: null,
         source: "https://mfastpete.org/visit/hours-and-admission/",
+        hint: "Closed Mondays. Docent tours at 2pm on weekends.",
         isOpen: function (d, iso) {
           if (d.getDay() === 1) return false;
           return !inList(CLOSED_MFA, iso);
@@ -760,224 +817,251 @@
           return "10am–5pm";
         },
         start: function (d, iso) { return iso === "2026-10-10" ? 9 : 10; },
+        end: function () { return 17; },
         why: function (ctx) {
           if (ctx.iso === "2026-10-10") {
-            return "October 10 is Studio Saturdays: a free mosaic studio from 9am to 11am in the conservatory. Galleries stay open until 5. The studio is free; gallery admission is separate. A made-by-hand hour for " + ctx.occ + ".";
+            return "October 10 is Studio Saturdays: a free mosaic studio from 9am to 11am in the conservatory. Galleries stay open until 5; gallery admission is separate.";
           }
-          var extra = (ctx.day === 0 || ctx.day === 6) ? " Docent tours go out at 2pm on weekends." : "";
-          return "The MFA is open " + ctx.hours + " on this date, and it is closed Mondays, so this day works. A quiet must-see for " + ctx.occ + "." + extra;
+          return "The MFA is open " + ctx.hours + " on this date. A quiet, long look indoors for " + ctx.occ + ".";
         }
       },
       {
         id: "morean",
-        tags: ["art", "gallery"],
         name: "Morean Arts Center",
+        feel: "soft",
+        tags: ["art", "gallery"],
         address: "719 Central Ave, St. Petersburg",
         query: "Morean Arts Center, 719 Central Ave, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: false,
-        order: 4,
-        covers: null,
+        gem: true, bar: false, dated: false, order: 4, covers: null,
         source: "https://moreanartscenter.org/morean-arts-center-location/",
+        hint: "Free gallery on Central Ave. Closed Sundays.",
         isOpen: function (d, iso) {
           if (d.getDay() === 0) return false;
           return !inList(CLOSED_MOREAN, iso);
         },
         hours: function () { return "10am–5pm"; },
         start: function () { return 10; },
+        end: function () { return 17; },
         why: function (ctx) {
-          return "The Morean gallery is free and open " + ctx.hours + " this day (closed Sundays). A lighter art stop for " + ctx.occ + ", without a museum ticket.";
+          return "The Morean gallery is free and open " + ctx.hours + " this day. A lighter art stop, no museum ticket.";
         }
       },
       {
         id: "dali",
+        name: "The Dalí Museum",
+        feel: "soft",
         tags: ["art", "museum", "must-see"],
         cost: "ticket",
-        name: "The Dalí Museum",
         address: "One Dali Blvd, St. Petersburg",
         query: "The Dalí Museum, One Dali Blvd, St. Petersburg, FL",
-        gem: false,
-        bar: false,
-        dated: false,
-        order: 5,
-        covers: null,
+        gem: false, bar: false, dated: false, order: 5, covers: null,
         source: "https://thedali.org/the-dali-museum-hours/",
+        hint: "Timed tickets are recommended. Give it a couple of hours.",
         isOpen: function (d, iso) { return !inList(CLOSED_DALI, iso); },
         hours: function (d, iso) { return daliHours(iso, d.getDay()); },
         start: function () { return 10; },
+        end: function (d, iso) { return daliEnd(iso, d.getDay()); },
         why: function (ctx) {
-          return "The Dalí is open " + ctx.hours + " on this date. Timed tickets are recommended. The one big must-see if " + ctx.occ + " wants a long look indoors.";
+          return "The Dalí is open " + ctx.hours + " on this date. The one big must-see, if " + ctx.occ + " wants a long look indoors.";
         }
       },
       {
         id: "festival",
-        tags: ["music", "food", "festival", "outdoor"],
         name: "St. Pete Fall Festival",
+        feel: "drift",
+        tags: ["music", "food", "festival", "outdoor"],
         outdoor: true,
         music: true,
         address: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg",
         query: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg, FL",
-        gem: false,
-        bar: false,
-        dated: true,
-        order: 6,
-        covers: "pier",
+        gem: false, bar: false, dated: true, order: 6, covers: "pier", only: "this weekend only",
         source: "https://stpetepier.org/signature-event/st-pete-fall-festival/",
+        hint: "Free to walk in. Music, food, and a pumpkin patch on the water. Only this weekend.",
         isOpen: function (d, iso) { return iso === "2026-10-10" || iso === "2026-10-11"; },
         hours: function () { return "11am–7pm"; },
         start: function () { return 11; },
+        end: function () { return 19; },
         why: function (ctx) {
-          return "The Pier’s own page lists the Fall Festival on " + ctx.when + ", 11am to 7pm. Free to walk in: music, food, and a pumpkin patch on the water. It is the afternoon for " + ctx.occ + ".";
+          return "The Pier's own page lists the Fall Festival on " + ctx.when + ", 11am to 7pm. The afternoon for " + ctx.occ + ".";
         }
       },
       {
         id: "pier",
-        tags: ["walking", "people watching", "water", "stroll"],
         name: "The St. Pete Pier",
+        feel: "drift",
+        tags: ["walking", "people watching", "water", "stroll"],
         outdoor: true,
         address: "800 2nd Ave NE, St. Petersburg",
         query: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg, FL",
-        gem: false,
-        bar: false,
-        dated: false,
-        order: 7,
-        covers: null,
+        gem: false, bar: false, dated: false, order: 7, covers: null,
         source: "https://stpetepier.org/faq/",
+        hint: "Free to walk. Take it all the way out to the end.",
         isOpen: function () { return true; },
         hours: function () { return "Opens 30 min before sunrise, closes 11pm"; },
-        start: function () { return 11; },
+        start: function () { return 7; },
+        end: function () { return 23; },
         why: function (ctx) {
-          return "The Pier is open this day, sunrise-side through 11pm, and it does not charge to walk in. Water and a long stroll for " + ctx.occ + ", with the restaurants left off the list.";
+          return "The Pier is open this day, from before sunrise to 11pm, and free to walk in. Water and a long stroll for " + ctx.occ + ".";
         }
       },
       {
         id: "pumpkin",
         name: "Great Glass & Clay Pumpkin Patch",
+        feel: "dig",
+        tags: ["art", "glass", "shopping", "dig"],
         address: "Morean Glass Studio, 714 1st Ave N, St. Petersburg",
         query: "Morean Glass Studio, 714 1st Ave N, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: true,
-        order: 8,
-        covers: "glass",
+        gem: true, bar: false, dated: true, order: 8, covers: "glass",
         source: "https://moreanartscenter.org/calendar/",
+        hint: "Free, no signup. Only October 10.",
         isOpen: function (d, iso) { return iso === "2026-10-10"; },
         hours: function () { return "12–4pm"; },
         start: function () { return 12; },
-        why: function (ctx) {
-          return "Only October 10: the Morean calendar has the Glass and Clay Pumpkin Patch at the glass studio, noon to 4, free, no signup. A strange little harvest for " + ctx.occ + ", not a field of ordinary pumpkins.";
+        end: function () { return 16; },
+        why: function () {
+          return "Only October 10: the Morean calendar has the Glass and Clay Pumpkin Patch at the glass studio, noon to 4. A strange little harvest, not a field of ordinary pumpkins.";
         }
       },
       {
         id: "artpool",
-        tags: ["vintage", "records", "shopping", "dig", "art"],
         name: "ARTpool",
-        pin: function () { return true; },
+        feel: "dig",
+        tags: ["vintage", "records", "shopping", "dig", "art"],
         address: "2030 Central Ave, St. Petersburg",
         query: "ARTpool, 2030 Central Ave, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: false,
-        order: 9,
-        covers: null,
+        gem: true, bar: false, dated: false, order: 9, covers: null,
         source: "https://www.artpoolrules.com/",
+        hint: "Vintage clothes at 2030 Central, records next door at 2000.",
         isOpen: function (d) {
           var day = d.getDay();
           return day >= 2 && day <= 6;
         },
         hours: function () { return "12–5pm"; },
         start: function () { return 12; },
-        why: function (ctx) {
-          return "ARTpool is open noon to 5 on this date (Tuesday through Saturday; closed Sunday and Monday). Vintage clothes and records at 2030 Central, with records next door at 2000. A dig-around stop for " + ctx.occ + ".";
+        end: function () { return 17; },
+        why: function () {
+          return "ARTpool is open noon to 5 on this date (Tuesday through Saturday). Vintage clothes and records in Grand Central.";
         }
       },
       {
         id: "glass",
+        name: "Morean Glass Studio",
+        feel: "dig",
         tags: ["art", "glass"],
         cost: "small",
-        name: "Morean Glass Studio",
         address: "714 1st Ave N, St. Petersburg",
         query: "Morean Glass Studio, 714 1st Ave N, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: false,
-        order: 10,
-        covers: null,
+        gem: true, bar: false, dated: false, order: 10, covers: null,
         source: "https://moreanartscenter.org/morean-glass-studio-location/",
+        hint: "Live demos are $12 unless you have a Chihuly ticket.",
         isOpen: function (d, iso) {
           var day = d.getDay();
           if (day === 1 || day === 2) return false;
           return !inList(CLOSED_GLASS, iso);
         },
-        hours: function (d, iso) {
-          if (inList(GLASS_EARLY, iso)) return "12–3pm";
-          return "12–5pm";
-        },
+        hours: function (d, iso) { return inList(GLASS_EARLY, iso) ? "12–3pm" : "12–5pm"; },
         start: function () { return 12; },
+        end: function (d, iso) { return inList(GLASS_EARLY, iso) ? 15 : 17; },
         why: function (ctx) {
-          return "The glass studio is open " + ctx.hours + " this day (Wednesday through Sunday). Live demos are $12 unless you are a member or have a Chihuly ticket. A hot-shop hour for " + ctx.occ + ".";
+          return "The glass studio is open " + ctx.hours + " this day. A hot-shop hour, watching glass get made.";
         }
       },
       {
         id: "bench",
         name: "Green Bench Brewing",
+        feel: "taste",
+        tags: ["beer", "brewery", "drinks"],
         address: "1133 Baum Ave N, St. Petersburg",
         query: "Green Bench Brewing Company, 1133 Baum Ave N, St. Petersburg, FL",
-        gem: true,
-        bar: true,
-        dated: false,
-        order: 11,
-        covers: null,
+        gem: true, bar: true, dated: false, order: 11, covers: null,
         source: "https://www.greenbenchbrewing.com/brewery-hours-and-location",
+        hint: "One beer stop, not a crawl. There is a yard out back.",
         isOpen: function () { return true; },
         hours: function (d) { return benchHours(d.getDay()); },
-        start: function () { return 15; },
+        start: function () { return 12; },
+        end: function (d) { var day = d.getDay(); if (day === 0) return 21; if (day === 5 || day === 6) return 24; return 22; },
         why: function (ctx) {
-          return "You said yes to drinks. The tasting room lists " + ctx.hours + " for this day, at 1133 Baum Ave N. One beer stop for " + ctx.occ + ", not a crawl.";
+          return "You said yes to drinks. The tasting room lists " + ctx.hours + " for this day, at 1133 Baum Ave N.";
         }
       },
       {
         id: "palehorse",
         name: "Palehorse opening at the Morean",
+        feel: "soft",
+        tags: ["art", "gallery", "evening"],
         address: "719 Central Ave, St. Petersburg",
         query: "Morean Arts Center, 719 Central Ave, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: true,
-        order: 12,
-        covers: "morean",
+        gem: true, bar: false, dated: true, order: 12, covers: "morean",
         source: "https://moreanartscenter.org/calendar/",
+        hint: "Opening night, 5 to 8pm. Only October 10.",
         isOpen: function (d, iso) { return iso === "2026-10-10"; },
         hours: function () { return "5–8pm"; },
         start: function () { return 17; },
-        why: function (ctx) {
-          return "The Morean calendar puts the Palehorse opening on October 10, 5pm to 8pm, at 719 Central. An evening indoors for " + ctx.occ + " after the daytime stops.";
+        end: function () { return 20; },
+        why: function () {
+          return "The Morean calendar puts the Palehorse opening on October 10, 5pm to 8pm, at 719 Central. An evening indoors after the daytime stops.";
         }
       },
       {
         id: "folk",
+        name: "Good Folk Fest",
+        feel: "drift",
         tags: ["music", "live music", "evening"],
         cost: "ticket",
-        name: "Good Folk Fest",
         outdoor: true,
         music: true,
         address: "St. Petersburg Shuffleboard Club, 559 Mirror Lake Dr N, St. Petersburg",
         query: "St. Petersburg Shuffleboard Club, 559 Mirror Lake Drive North, St. Petersburg, FL",
-        gem: true,
-        bar: false,
-        dated: true,
-        order: 13,
-        covers: null,
+        gem: true, bar: false, dated: true, order: 13, covers: null,
         source: "https://www.creativeclay.org/upcoming-events/2026/10/17/good-folk-fest",
+        hint: "Ticketed. Betty Fox Band, an art auction, and food trucks. Only October 17.",
         isOpen: function (d, iso) { return iso === "2026-10-17"; },
         hours: function () { return "6–9pm"; },
         start: function () { return 18; },
-        why: function (ctx) {
-          return "Creative Clay lists Good Folk Fest on October 17, 6pm to 9pm, at the Shuffleboard Club: Betty Fox Band, an art auction, and food trucks. It is ticketed. A night out for " + ctx.occ + " that is about the music and the cause, not a bar.";
+        end: function () { return 21; },
+        why: function () {
+          return "Creative Clay lists Good Folk Fest on October 17, 6pm to 9pm, at the Shuffleboard Club. A night that is about the music and the cause, not a bar.";
         }
       }
     ];
+
+    var STOP_BY_ID = {};
+    STOPS.forEach(function (s) { STOP_BY_ID[s.id] = s; });
+
+    // The original anniversary page's feelings, kept as they were.
+    var FEELS = {
+      taste: { label: "Something tasty", sub: "A nibble, a sip, a sweet pause", kicker: "Tasty track", title: "Something delicious is waiting.", lede: "Still secret. Reveal when you're both ready to go." },
+      drift: { label: "Drift around", sub: "Water, wheels, wandering", kicker: "Wander track", title: "The city's about to open up.", lede: "Water, wheels, or a festival pulse. Still hidden." },
+      dig: { label: "Something to dig through", sub: "Unhurried browsing, no agenda", kicker: "Browse track", title: "Somewhere to poke around.", lede: "Still secret until you open it." },
+      soft: { label: "Slow & soft", sub: "Somewhere to sit and linger", kicker: "Soft track", title: "A quieter chapter.", lede: "Somewhere to exhale. The name stays veiled until you tap." },
+      anchor: { label: "Real dinner", sub: "When hunger means business", kicker: "Dinner track", title: "Hunger gets a destination.", lede: "Still under wraps." }
+    };
+    var FEEL_ORDER = ["taste", "drift", "dig", "soft"];
+
+    // ---------- reading the brief ----------
+
+    var KINDS = {
+      Anniversary: [
+        { value: "away", label: "Away from the kids", hint: "Longer and quieter. Nothing built around a stroller." },
+        { value: "celebrate", label: "A celebration", hint: "The fancier dinner. A night that feels dressed up." },
+        { value: "easy", label: "An easy one", hint: "Walking, people watching, no schedule." }
+      ],
+      Date: [
+        { value: "away", label: "Just the two of you", hint: "Places that fall apart if kids come along." },
+        { value: "celebrate", label: "A little fancy", hint: "One nicer stop, not a whole production." },
+        { value: "easy", label: "Low key", hint: "Wander, then head home when you feel like it." }
+      ],
+      Birthday: [
+        { value: "celebrate", label: "Celebrate them", hint: "The bigger dinner, and a ticket if something is on." },
+        { value: "easy", label: "Their pace", hint: "What they already like. Nothing forced." },
+        { value: "away", label: "A grown-up birthday", hint: "Not a kids' party. Art, an evening, a long look indoors." }
+      ],
+      "Just because": [
+        { value: "easy", label: "No reason needed", hint: "A walk and whatever is actually open." },
+        { value: "away", label: "A stolen day", hint: "The stuff you skip when the kids are with you." },
+        { value: "celebrate", label: "A small splurge", hint: "One nicer stop, even with no occasion." }
+      ]
+    };
 
     function occasionPhrase(p) {
       if (p.occasion === "Just because") return "a just-because day";
@@ -997,50 +1081,9 @@
       return "A day in St. Pete" + tail;
     }
 
-    var KINDS = {
-      Anniversary: [
-        { value: "away", label: "Away from the kids", hint: "Longer and quieter. Nothing built around a stroller." },
-        { value: "celebrate", label: "A celebration", hint: "The fancier stop. A ticket, a night that feels dressed up." },
-        { value: "easy", label: "An easy one", hint: "Walking, people watching, no schedule." }
-      ],
-      Date: [
-        { value: "away", label: "Just the two of you", hint: "Places that fall apart if kids come along." },
-        { value: "celebrate", label: "A little fancy", hint: "One paid stop, not a whole production." },
-        { value: "easy", label: "Low key", hint: "Wander, then head home when you feel like it." }
-      ],
-      Birthday: [
-        { value: "celebrate", label: "Celebrate them", hint: "The bigger stop, and a ticket if something is on." },
-        { value: "easy", label: "Their pace", hint: "What they already like. Nothing forced." },
-        { value: "away", label: "A grown-up birthday", hint: "Not a kids' party. Art, an evening, a long look indoors." }
-      ],
-      "Just because": [
-        { value: "easy", label: "No reason needed", hint: "A walk and whatever is actually open." },
-        { value: "away", label: "A stolen day", hint: "The stuff you skip when the kids are with you." },
-        { value: "celebrate", label: "A small splurge", hint: "One nicer stop, even with no occasion." }
-      ]
-    };
-
-    function renderKinds(occasion, selected) {
-      var box = document.getElementById("kinds");
-      var hint = document.getElementById("kind-hint");
-      var list = KINDS[occasion] || [];
-      if (!list.length) {
-        box.innerHTML = "";
-        hint.textContent = "Pick the occasion first. These say what kind of day it is.";
-        return;
-      }
-      box.innerHTML = list.map(function (k) {
-        var on = k.value === selected ? "true" : "false";
-        return '<button type="button" data-value="' + k.value + '" aria-pressed="' + on + '">' +
-          esc(k.label) + "<small>" + esc(k.hint) + "</small></button>";
-      }).join("");
-      hint.textContent = "This is the lean. The note at the bottom can still pull a stop forward.";
-    }
-
     function kindLabel(p) {
-      var list = KINDS[p.occasion] || [];
       var found = "";
-      list.forEach(function (k) { if (k.value === p.kind) found = k.label; });
+      (KINDS[p.occasion] || []).forEach(function (k) { if (k.value === p.kind) found = k.label; });
       return found;
     }
 
@@ -1062,78 +1105,97 @@
       return null;
     }
 
-    function pricey(s, iso) {
-      if (s.id === "glass") return false;
-      if (s.id === "mfa" && iso === "2026-10-10") return false;
-      return s.cost === "ticket";
-    }
-
-    function planLine(p) {
-      var bits = [];
-      if (kindLabel(p)) bits.push(kindLabel(p));
-      if (p.budgetAmount || p.budget) bits.push(budgetLabel(p) + " for parking, food, and paid stops");
-      var wants = noteWants(p);
-      var extra = "";
-      if (wants.empty) {
-        extra = " Add food likes, pace, and anything to avoid in the note, then rebuild — that is what makes each day different.";
-      } else if (wants.food || wants.coffee || wants.dessert || wants.parking) {
-        extra = " Built from your note for this date, with weather checked when the forecast is out.";
-      } else if (p.kind === "easy") {
-        extra = " Easy day. A fancy add-on stays off unless the note asks for it.";
-      } else if (spendCap(p) !== null && spendCap(p) < 150) {
-        extra = " Tight budget, so museum tickets stay off unless the note asks for art or music.";
-      } else {
-        extra = " Built for this date from what you wrote.";
-      }
-      if (!bits.length && !extra) return "";
-      return ((bits.length ? bits.join(". ") + "." : "") + extra).trim();
-    }
-
     function noteText(p) {
       return String((p && p.must) || "").toLowerCase();
     }
 
-    function noteAvoids(p) {
+    // "no seafood", "she hates museums", "allergic to shellfish" -> the phrases to avoid.
+    // "never been to the Dalí" and "doesn't want to miss the festival" are wishes, not vetoes.
+    var NEGATION_CUES = [
+      "no", "skip", "avoid", "not into", "not(?!\\s+to\\s+miss)",
+      "never(?!\\s+(?:been|tried|had|seen|done|get|got|gotten|went|gone|visited|miss(?:ed|es)?|say|do|did|thought|knew|stop))",
+      "without", "hates?", "hating", "nothing",
+      "can['’]?t stand", "cannot stand", "can['’]?t do", "allergic to", "sick of", "tired of",
+      "(?:doesn['’]?t|don['’]?t|won['’]?t|isn['’]?t|aren['’]?t|didn['’]?t)(?:\\s+(?:really|even))?\\s+(?:want(?!\\s+to\\s+miss)|like|love|eat|drink|do|need|care for|enjoy|have to(?:\\s+deal with)?|into)"
+    ];
+    // "museums are not our thing", "seafood isn't really his thing"
+    var NOT_OUR_THING_RE = /(?:^|[,;.!?]\s*|\b(?:and|but)\s+)([a-z'’ -]{3,40}?)\s+(?:isn['’]?t|aren['’]?t|is\s+not|are\s+not)\s+(?:really\s+)?(?:our|my|his|her|their)\s+thing/g;
+    // A veto ends where the next idea starts: "doesn't eat seafood so let's do tacos".
+    var CLAUSE_END_RE = /\s+(?:and|or|but|please|so|then|instead|maybe|because|since|which|though|although|unless|let['’]?s|we|we['’]re|he|she|i|i['’]m|they|you)\b/;
+    var NEGATION_RE = new RegExp("(?:^|[\\s,;.(])(?:" + NEGATION_CUES.join("|") + ")\\s+([^,;.!?\\n]+)", "g");
+
+    function negatedPhrases(text) {
+      var out = [];
+      var re = new RegExp(NEGATION_RE.source, "g");
+      var m;
+      while ((m = re.exec(text))) {
+        var phrase = (" " + m[1]).split(CLAUSE_END_RE)[0].trim();
+        if (phrase && !/^but\b/.test(phrase)) out.push(phrase);
+      }
+      var thing = new RegExp(NOT_OUR_THING_RE.source, "g");
+      while ((m = thing.exec(text))) {
+        var subject = m[1].trim().split(/\s+/).slice(-3).join(" ");
+        if (subject) out.push(subject);
+      }
+      return out;
+    }
+
+    function positiveText(p) {
       var text = noteText(p);
-      return {
-        museums: /no museums?\b|skip museums?\b|avoid museums?\b|without museums?\b|don'?t want museums?\b|no dali\b|skip dali\b|no mfa\b|skip mfa\b/.test(text)
-      };
+      negatedPhrases(text).forEach(function (ph) { text = text.split(ph).join(" "); });
+      return text;
+    }
+
+    // Turning down one museum is not turning down both.
+    function noteAvoids(p) {
+      var phrases = negatedPhrases(noteText(p));
+      var dali = phrases.some(function (ph) { return /museum|\bdal[ií](?![a-z])/.test(ph); });
+      var mfa = phrases.some(function (ph) { return /museum|\bmfa\b|fine arts/.test(ph); });
+      return { dali: dali, mfa: mfa, museums: dali && mfa };
+    }
+
+    function hasWord(text, word) {
+      var w = String(word).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp("(?:^|[^a-z])" + w + "(?:s|es)?(?![a-z])").test(text);
+    }
+
+    function avoidsStop(p, s) {
+      var phrases = negatedPhrases(noteText(p));
+      if (!phrases.length) return false;
+      return (s.tags || []).some(function (tag) {
+        return phrases.some(function (ph) { return hasWord(ph, tag); });
+      });
     }
 
     function noteWants(p) {
-      var text = noteText(p);
+      var text = positiveText(p);
       var avoids = noteAvoids(p);
       if (!text.trim()) {
-        return {
-          art: false, music: false, walk: false, parking: false,
-          coffee: false, food: false, dessert: false, empty: true
-        };
+        return { art: false, music: false, walk: false, parking: false, coffee: false, food: false, dessert: false, empty: true };
       }
       return {
         empty: false,
-        art: (/\bart\b|museum|gallery|dali/.test(text) && !avoids.museums),
+        art: (/\bart\b|museum|gallery|dal[ií]/.test(text) && !avoids.museums),
         music: /music|live band|concert/.test(text),
         walk: /walking|people watching|stroll|wander/.test(text),
         parking: /parking|garage|\bcar\b|driving|drove|drive downtown/.test(text),
         coffee: /coffee|cafe|café|espresso|breakfast/.test(text),
-        food: /taco|cuban|mexican|latin|italian|pasta|pizza|seafood|lunch|dinner|eat|food|hungry|vegetarian|vegan|sandwich|sit-down|sit down|nice dinner|nicer dinner|fancy/.test(text),
+        food: /taco|cuban|mexican|latin|italian|pasta|pizza|seafood|lunch|dinner|\beat\b|food|hungry|vegetarian|vegan|sandwich|sit-down|sit down|nice dinner|nicer dinner|fancy/.test(text),
         dessert: /gelato|dessert|ice cream|sweet|treat/.test(text)
       };
     }
 
-    function stablePick(seed, list) {
-      if (!list.length) return null;
+    function hashOf(s) {
       var h = 0;
-      var s = String(seed || "");
+      s = String(s || "");
       for (var i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-      return list[Math.abs(h) % list.length];
+      return Math.abs(h);
     }
 
     function tagScore(s, text) {
-      var tags = s.tags || [];
       var score = 0;
-      tags.forEach(function (tag) {
-        if (text.indexOf(String(tag).toLowerCase()) !== -1) score += 2;
+      (s.tags || []).forEach(function (tag) {
+        if (hasWord(text, tag)) score += 2;
       });
       return score;
     }
@@ -1145,178 +1207,155 @@
       return true;
     }
 
-    function pickStops(p) {
+    function pricey(s, iso) {
+      if (s.id === "glass") return false;
+      if (s.id === "mfa" && iso === "2026-10-10") return false;
+      return s.cost === "ticket";
+    }
+
+    function stopAllowed(p, s, d, iso, cap, wants, avoids) {
+      if ((p.skip || []).indexOf(s.id) !== -1) return false;
+      if (avoids.dali && s.id === "dali") return false;
+      if (avoids.mfa && s.id === "mfa") return false;
+      // Places that need a reservation only come in when the note asks for that kind of thing.
+      if (s.booking && !tagScore(s, positiveText(p))) return false;
+      if (avoidsStop(p, s)) return false;
+      if (p.kind === "away" && s.id === "pumpkin") return false;
+      if (s.bar && p.drink !== "yes") return false;
+      if (s.meal && !fitsBudget(s, cap)) return false;
+      if (cap !== null && cap < 150 && pricey(s, iso) && !wants.art && !(wants.music && s.id === "folk")) return false;
+      return s.isOpen(d, iso);
+    }
+
+    function parseClock(t) {
+      var m = /^(\d{1,2}):(\d{2})$/.exec(String(t || ""));
+      if (!m) return null;
+      var h = Number(m[1]), mm = Number(m[2]);
+      if (h > 23 || mm > 59) return null;
+      return h + mm / 60;
+    }
+
+    function pickAnchor(p, d, iso, cap, wants, avoids, text) {
+      if (p.anchor && p.anchor.name && parseClock(p.anchor.time) !== null) {
+        var t = parseClock(p.anchor.time);
+        return { type: "custom", time: t, leave: Math.max(0, t - 0.5) };
+      }
+      var wantsDinner = p.kind === "celebrate" || /dinner|supper|evening|night/.test(text) ||
+        (wants.food && !/\b(?:lunch|brunch|breakfast|noon)\b/.test(text));
+      if (!wantsDinner) return { type: "none", reason: "not_asked" };
+      // The note wins first, then the dinner that fits the budget and the kind of day.
+      var tier = cap === null || cap >= 150 ? "nice" : cap >= 80 ? "mid" : "cheap";
+      if (p.kind === "easy" && tier === "nice") tier = "mid";
+      var pool = STOPS.filter(function (s) {
+        return s.dinner && stopAllowed(p, s, d, iso, cap, wants, avoids) && s.end(d, iso) >= 20;
+      }).sort(function (a, b) {
+        var sa = tagScore(b, text) - tagScore(a, text);
+        if (sa) return sa;
+        var ta = (a.costBand === tier ? 0 : 1), tb = (b.costBand === tier ? 0 : 1);
+        return (ta - tb) || (a.order - b.order);
+      });
+      if (!pool.length) return { type: "none", reason: "none_fit" };
+      return { type: "stop", id: pool[0].id, time: 18, leave: 17.5 };
+    }
+
+    // The deck: one fixed point, up to three places per feeling, and parking if needed.
+    function buildDeck(p) {
       var d = parseDate(p.date);
       var iso = isoDate(d);
       var wants = noteWants(p);
       var avoids = noteAvoids(p);
-      var text = noteText(p);
+      var text = positiveText(p);
       var cap = spendCap(p);
       var seed = (p.must || "") + "|" + iso + "|" + (p.kind || "") + "|" + (p.lean || "") + "|" + (p.budgetAmount || "") + "|" + (p.rebuild || 0);
-      var open = STOPS.filter(function (s) {
-        if (avoids.museums && (s.id === "dali" || s.id === "mfa")) return false;
-        if (p.kind === "away" && s.id === "pumpkin") return false;
-        if (s.bar && p.drink !== "yes") return false;
-        if ((s.meal || s.parking) && !fitsBudget(s, cap)) return false;
-        return s.isOpen(d, iso);
+      var anchor = pickAnchor(p, d, iso, cap, wants, avoids, text);
+      var allowed = STOPS.filter(function (s) {
+        return s.feel && stopAllowed(p, s, d, iso, cap, wants, avoids);
       });
       var covered = {};
-      open.forEach(function (s) { if (s.covers) covered[s.covers] = true; });
-      open = open.filter(function (s) { return !covered[s.id]; });
-
-      function leanRank(s) {
-        return p.lean === "gems" ? (s.gem ? 0 : 1) : (s.gem ? 1 : 0);
-      }
-
-      // Dated events and drink stop stay when they apply.
-      var chosen = open.filter(function (s) {
-        return s.dated || s.bar || (s.pin && s.pin(d, iso) && !s.parking && !s.meal);
+      allowed.forEach(function (s) { if (s.covers) covered[s.covers] = true; });
+      allowed = allowed.filter(function (s) { return !covered[s.id] && s.id !== anchor.id; });
+      function leanRank(s) { return p.lean === "gems" ? (s.gem ? 0 : 1) : (s.gem ? 1 : 0); }
+      function leads(s) { return s.dated && (s.cost !== "ticket" || tagScore(s, text) > 0) ? 1 : 0; }
+      var pools = {};
+      FEEL_ORDER.forEach(function (f) {
+        pools[f] = allowed.filter(function (s) { return s.feel === f; }).sort(function (a, b) {
+          return (leads(b) - leads(a)) ||
+            (tagScore(b, text) - tagScore(a, text)) ||
+            (leanRank(a) - leanRank(b)) ||
+            (hashOf(seed + a.id) % 97) - (hashOf(seed + b.id) % 97);
+        }).slice(0, 3).map(function (s) { return s.id; });
       });
+      return { v: 1, anchor: anchor, pools: pools, park: !!wants.parking };
+    }
 
-      function addUnique(s) {
-        if (!s) return;
-        if (chosen.some(function (c) { return c.id === s.id; })) return;
-        chosen.push(s);
-      }
+    function ensureDeck(p) {
+      if (!p.deck) p.deck = buildDeck(p);
+      return p.deck;
+    }
 
-      // Preference-matched catalog picks (parking / food / tagged places).
-      function candidates(pred) {
-        return open.filter(function (s) {
-          if (!pred(s)) return false;
-          if (chosen.some(function (c) { return c.id === s.id; })) return false;
-          return true;
-        }).sort(function (a, b) {
-          var sa = tagScore(a, text) - tagScore(b, text);
-          if (sa) return -sa;
-          return leanRank(a) - leanRank(b) || a.order - b.order;
-        });
-      }
+    function stopView(id) {
+      var s = STOP_BY_ID[id];
+      var d = parseDate(plan.date);
+      var iso = isoDate(d);
+      var hours = s.hours(d, iso);
+      return {
+        id: s.id,
+        name: s.name,
+        address: s.address,
+        query: s.query,
+        hours: hours,
+        hint: s.hint || "",
+        start: s.start(d, iso),
+        end: s.end(d, iso),
+        why: s.why({ iso: iso, day: d.getDay(), when: formatWhen(d), hours: hours, occ: occasionPhrase(plan) }),
+        source: s.source,
+        dated: s.dated,
+        outdoor: !!s.outdoor,
+        feel: s.feel || ""
+      };
+    }
 
-      if (wants.parking) {
-        addUnique(stablePick(seed + "|park", candidates(function (s) { return s.parking; })));
-      }
-
-      if (wants.coffee) {
-        addUnique(stablePick(seed + "|coffee", candidates(function (s) { return s.meal === "coffee"; })));
-      }
-
-      if (wants.food) {
-        var meals = candidates(function (s) { return s.meal === "lunch" || s.meal === "dinner"; });
-        // Prefer stronger tag matches; pick one lunch-ish and maybe one dinner if note asks for both or celebrate.
-        var lunchPool = meals.filter(function (s) { return s.meal === "lunch" || s.id === "bodega" || s.id === "stillwaters"; });
-        var dinnerPool = meals.filter(function (s) { return s.meal === "dinner" || s.id === "bellabrava" || s.id === "stillwaters"; });
-        addUnique(stablePick(seed + "|meal1", lunchPool.length ? lunchPool : meals));
-        if (p.kind === "celebrate" || /dinner|evening|night|nice dinner|nicer dinner/.test(text)) {
-          var second = stablePick(seed + "|meal2", dinnerPool);
-          if (second) addUnique(second);
-        }
-      }
-
-      if (wants.dessert) {
-        addUnique(stablePick(seed + "|sweet", candidates(function (s) { return s.meal === "dessert"; })));
-      }
-
-      // Mood matches from the note.
-      if (wants.art) {
-        candidates(function (s) { return !s.meal && !s.parking && tagScore(s, text) > 0 && (s.id === "dali" || s.id === "mfa" || s.id === "artpool" || s.id === "morean" || s.id === "glass"); })
-          .slice(0, 2).forEach(addUnique);
-      }
-      if (wants.walk) {
-        candidates(function (s) { return s.id === "pier" || s.id === "market"; }).slice(0, 2).forEach(addUnique);
-      }
-      if (wants.music) {
-        candidates(function (s) { return !!s.music; }).slice(0, 2).forEach(addUnique);
-      }
-
-      // Fill the pocket with open places scored by the note, not a fixed loop.
-      var fillers = open.filter(function (s) {
-        if (s.parking || s.meal) return false;
-        if (chosen.some(function (c) { return c.id === s.id; })) return false;
-        if (p.kind === "easy" && (s.id === "dali" || s.id === "mfa") && !wants.art) return false;
-        if (cap !== null && cap < 150 && pricey(s, iso) && !wants.art && !(wants.music && s.id === "folk")) return false;
-        return true;
-      }).sort(function (a, b) {
-        var sa = tagScore(a, text) - tagScore(b, text);
-        if (sa) return -sa;
-        return leanRank(a) - leanRank(b) || a.order - b.order;
-      });
-      var limit = p.drink === "yes" ? 7 : 6;
-      while (chosen.length < limit && fillers.length) {
-        var next = fillers.shift();
-        // Prefer higher-scoring fillers first; among equals, stablePick once for variety.
-        if (tagScore(next, text) === 0 && fillers.length) {
-          var zero = [next].concat(fillers.filter(function (s) { return tagScore(s, text) === 0; }));
-          fillers = fillers.filter(function (s) { return tagScore(s, text) > 0; });
-          next = stablePick(seed + "|fill" + chosen.length, zero);
-        }
-        addUnique(next);
-      }
-
-      if (forecastWet(iso) && !avoids.museums) {
-        ["dali", "mfa"].forEach(function (id) {
-          open.forEach(function (s) { if (s.id === id) addUnique(s); });
-        });
-      }
-
-      if (cap !== null && cap < 300) {
-        if (avoids.museums) {
-          chosen = chosen.filter(function (s) {
-            return s.id !== "dali" && s.id !== "mfa";
-          });
-        } else {
-          var museums = 0;
-          chosen = chosen.filter(function (s) {
-            if (s.id !== "dali" && s.id !== "mfa") return true;
-            museums += 1;
-            return museums === 1 || wants.art;
-          });
-        }
-      }
-
-      // If they asked for food but nothing matched, say so later via planLine; do not invent.
-      chosen.sort(function (a, b) {
-        var as = a.start(d, iso), bs = b.start(d, iso);
-        if (as !== bs) return as - bs;
-        return a.order - b.order;
-      });
-      return chosen.map(function (s) {
-        var hours = s.hours(d, iso);
-        var ctx = {
-          iso: iso,
-          day: d.getDay(),
-          when: formatWhen(d),
-          hours: hours,
-          occ: occasionPhrase(p)
-        };
+    function anchorView() {
+      var a = ensureDeck(plan).anchor;
+      if (!a || a.type === "none") return null;
+      if (a.type === "custom") {
+        var where = plan.anchor.where || "";
         return {
-          id: s.id,
-          name: s.name,
-          address: s.address,
-          query: s.query,
-          hours: hours,
-          start: s.start(d, iso),
-          why: s.why(ctx),
-          source: s.source,
-          dated: s.dated,
-          outdoor: !!s.outdoor,
-          music: !!s.music,
-          meal: s.meal || "",
-          parking: !!s.parking
+          id: "anchor", custom: true, name: plan.anchor.name, time: a.time, leave: a.leave,
+          address: where, query: where ? where + (/fl\b|florida/i.test(where) ? "" : ", FL") : plan.anchor.name + ", St. Petersburg, FL",
+          hint: "Already set for " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ".",
+          why: "The one fixed point of the day."
         };
-      });
+      }
+      var v = stopView(a.id);
+      v.time = a.time;
+      v.leave = a.leave;
+      v.hint = "Dinner around " + fmtHour(a.time) + ". Not booked. Call ahead if you want a sure table.";
+      return v;
     }
 
-    function moodFor(start) {
-      if (start < 12) return "morning";
-      if (start < 17) return "afternoon";
-      return "evening";
+    function anchorLine() {
+      var a = anchorView();
+      var sun = "Sunset is about " + fmtHour(sunsetHour(parseDate(plan.date))) + ".";
+      if (!a) return sun;
+      if (mode === "play" && !anchorOffered()) return (a.custom ? a.name : "Dinner") + ": done. " + sun;
+      if (a.custom) return a.name + " at " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ". " + sun;
+      return "Dinner around " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ". " + sun;
     }
 
-    var MOODS = {
-      morning: { title: "While it’s still easy", hint: "The first part of the day" },
-      afternoon: { title: "The middle of the day", hint: "Somewhere to linger" },
-      evening: { title: "After the light drops", hint: "The last stop" }
-    };
+    function deckIds() {
+      var deck = ensureDeck(plan);
+      var ids = [];
+      FEEL_ORDER.forEach(function (f) { (deck.pools[f] || []).forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); }); });
+      return ids;
+    }
+
+    function liveIds() {
+      var skip = (plan.skip || []).concat(mode === "play" ? (playState().skip || []) : []);
+      return deckIds().filter(function (id) { return skip.indexOf(id) === -1; });
+    }
+
+    // ---------- weather ----------
 
     var weatherByDate = {};
 
@@ -1325,7 +1364,7 @@
     }
 
     function forecastMentionsWet(text) {
-      return /\b(rain|storms?|thunder)/i.test(text || "");
+      return /\b(rain|storms?|thunder|showers?)/i.test(text || "");
     }
 
     function forecastWet(iso) {
@@ -1333,21 +1372,15 @@
       return !!(w && w.status === "ready" && w.wet);
     }
 
-    function nwsFetch(url, withUa) {
-      var headers = { Accept: "application/geo+json" };
-      if (withUa) {
-        headers["User-Agent"] = "CityDay friends-and-family (https://jakeand3rson.github.io/city-day-test/)";
-      }
-      return fetch(url, { headers: headers }).then(function (res) {
+    function nwsGet(url) {
+      return fetch(url, { headers: { Accept: "application/geo+json" } }).then(function (res) {
         if (!res.ok) throw new Error(String(res.status));
         return res.json();
       });
     }
 
-    function nwsGet(url) {
-      return nwsFetch(url, true).catch(function () {
-        return nwsFetch(url, false);
-      });
+    function indoorCount() {
+      return liveIds().filter(function (id) { return !STOP_BY_ID[id].outdoor; }).length;
     }
 
     function weatherLine(iso) {
@@ -1355,13 +1388,12 @@
       if (!w || w.status === "loading") return "Checking the daytime forecast…";
       if (w.status === "later") return "The forecast isn't out yet for this date.";
       if (w.status === "error") return "The forecast didn't load. No weather was invented.";
+      if (w.status === "past") return "This day has passed.";
       var line = w.name + ", " + w.temp + ", wind " + w.wind + ". " + w.short + ".";
       if (w.wet) {
-        if (plan && plan.style === "mystery" && !revealed) {
-          line += " Lean indoors. Outdoor stops are only if it clears.";
-        } else {
-          line += " Lean indoors. The Dalí and the MFA stay on the day. Outdoor stops are only if it clears.";
-        }
+        line += mode === "play"
+          ? " If the sky looks iffy, there's a plan B."
+          : " Lean indoors. " + indoorCount() + " indoor picks are on the day.";
       }
       return line;
     }
@@ -1372,8 +1404,12 @@
       periods.forEach(function (per) {
         if (!day && per && per.isDaytime && periodDate(per.startTime) === iso) day = per;
       });
+      // After about 6pm the day's first period is "Tonight".
+      periods.forEach(function (per) {
+        if (!day && per && periodDate(per.startTime) === iso) day = per;
+      });
       if (!day) {
-        weatherByDate[iso] = { status: "later" };
+        weatherByDate[iso] = { status: "later", fetchedAt: Date.now() };
         return;
       }
       var blob = (day.name || "") + " " + (day.shortForecast || "") + " " + (day.detailedForecast || "");
@@ -1384,35 +1420,69 @@
         temp: (day.temperature != null ? day.temperature : "—") + "°" + (day.temperatureUnit || "F"),
         wind: wind || "—",
         short: day.shortForecast || "No short forecast",
-        wet: forecastMentionsWet(blob)
+        wet: forecastMentionsWet(blob),
+        fetchedAt: Date.now()
       };
     }
 
-    function loadWeather(iso, force) {
+    // A failed load is retried after 2 minutes; a forecast older than 45 minutes is refreshed.
+    function weatherStale(w) {
+      if (!w.fetchedAt) return false;
+      var age = Date.now() - w.fetchedAt;
+      if (w.status === "error") return age > 2 * 60000;
+      if (w.status === "ready" || w.status === "later") return age > 45 * 60000;
+      return false;
+    }
+
+    function loadWeather(iso) {
       var existing = weatherByDate[iso];
-      if (!force && existing && (existing.status === "ready" || existing.status === "loading" || existing.status === "later" || existing.status === "error")) return;
-      weatherByDate[iso] = { status: "loading" };
+      if (existing && !weatherStale(existing)) return;
+      if (iso < nowNY().iso) {
+        weatherByDate[iso] = { status: "past" };
+        return;
+      }
+      // Keep showing the forecast we have while a fresh one loads.
+      var keep = existing && existing.status === "ready" ? existing : null;
+      weatherByDate[iso] = keep ? Object.assign({}, keep, { fetchedAt: Date.now() }) : { status: "loading", fetchedAt: Date.now() };
       nwsGet("https://api.weather.gov/points/27.770,-82.640").then(function (point) {
         var forecastUrl = point && point.properties && point.properties.forecast;
         if (!forecastUrl) throw new Error("no forecast url");
         return nwsGet(forecastUrl);
       }).then(function (forecast) {
         applyForecast(iso, forecast);
-        if (plan && plan.date === iso) renderDay();
+        if (plan && plan.date === iso && !typingPanel()) render();
       }).catch(function () {
-        weatherByDate[iso] = { status: "error" };
-        if (plan && plan.date === iso) renderDay();
+        weatherByDate[iso] = keep ? Object.assign({}, keep, { fetchedAt: Date.now() }) : { status: "error", fetchedAt: Date.now() };
+        if (plan && plan.date === iso && !typingPanel()) render();
       });
     }
 
-    function visibleStops() {
-      var skip = plan.skip || [];
-      return pickStops(plan).filter(function (s) { return skip.indexOf(s.id) === -1; });
-    }
+    // ---------- links and storage ----------
 
     function encodePlan(obj) {
       var json = JSON.stringify(obj);
       return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    function cleanDeck(raw) {
+      if (!raw || typeof raw !== "object" || !raw.pools || typeof raw.pools !== "object") return null;
+      var pools = {};
+      FEEL_ORDER.forEach(function (f) {
+        var list = Array.isArray(raw.pools[f]) ? raw.pools[f] : [];
+        pools[f] = list.map(String).filter(function (id) {
+          return STOP_BY_ID[id] && STOP_BY_ID[id].feel === f;
+        }).slice(0, 4);
+      });
+      var a = raw.anchor && typeof raw.anchor === "object" ? raw.anchor : { type: "none" };
+      var anchor = { type: "none" };
+      if (a.reason === "not_asked" || a.reason === "none_fit") anchor.reason = a.reason;
+      var t = Number(a.time), leave = Number(a.leave);
+      if (a.type === "stop" && STOP_BY_ID[a.id] && STOP_BY_ID[a.id].dinner && t >= 0 && t < 24) {
+        anchor = { type: "stop", id: a.id, time: t, leave: isFinite(leave) ? leave : t - 0.5 };
+      } else if (a.type === "custom" && t >= 0 && t < 24) {
+        anchor = { type: "custom", time: t, leave: isFinite(leave) ? leave : t - 0.5 };
+      }
+      return { v: 1, anchor: anchor, pools: pools, park: !!raw.park };
     }
 
     function decodePlan(raw) {
@@ -1425,12 +1495,12 @@
       if (!obj.date || !parseDate(obj.date)) return null;
       if (["Anniversary", "Date", "Birthday", "Just because"].indexOf(obj.occasion) === -1) return null;
       if (["yes", "no", "either"].indexOf(obj.drink) === -1) return null;
-      if (["mystery", "plan"].indexOf(obj.style) === -1) return null;
       if (["must", "gems"].indexOf(obj.lean) === -1) return null;
+      obj.style = "mystery";
       obj.you = String(obj.you || "").slice(0, 60);
       obj.them = String(obj.them || "").slice(0, 60);
-      obj.custom = String(obj.custom || "").slice(0, 80);
-      obj.must = String(obj.must || "");
+      obj.custom = "";
+      obj.must = String(obj.must || "").slice(0, 2000);
       obj.rebuild = Number(obj.rebuild) || 0;
       obj.kind = ["away", "celebrate", "easy"].indexOf(obj.kind) === -1 ? "" : obj.kind;
       obj.budget = ["100", "250", "none"].indexOf(String(obj.budget || "")) === -1 ? "" : String(obj.budget);
@@ -1439,9 +1509,22 @@
         var budgetNum = Number(obj.budgetAmount);
         obj.budgetAmount = isFinite(budgetNum) && budgetNum >= 0 ? String(Math.round(budgetNum)) : "";
       }
-      obj.skip = Array.isArray(obj.skip) ? obj.skip.map(String) : [];
+      obj.skip = Array.isArray(obj.skip) ? obj.skip.map(String).filter(function (id) { return STOP_BY_ID[id]; }) : [];
+      if (obj.anchor && typeof obj.anchor === "object" && obj.anchor.name && parseClock(obj.anchor.time) !== null) {
+        obj.anchor = {
+          name: String(obj.anchor.name).slice(0, 80),
+          time: String(obj.anchor.time),
+          where: String(obj.anchor.where || "").slice(0, 120)
+        };
+      } else {
+        obj.anchor = null;
+      }
+      obj.deck = cleanDeck(obj.deck);
+      if (obj.deck && obj.deck.anchor.type === "custom" && !obj.anchor) obj.deck.anchor = { type: "none" };
+      obj.surprise = !!obj.surprise;
       obj.city = "St. Petersburg";
       if (!obj.id) obj.id = uid();
+      obj.id = String(obj.id).slice(0, 24);
       return obj;
     }
 
@@ -1453,17 +1536,26 @@
       return "#play/" + encoded;
     }
 
+    // What the link carries: the frozen day, not the creator's note, budget or vetoes.
+    function linkPlan(p) {
+      if (!p.deck) return p;
+      var o = {};
+      ["id", "you", "them", "occasion", "kind", "date", "drink", "lean", "anchor", "deck"].forEach(function (k) {
+        if (p[k] != null) o[k] = p[k];
+      });
+      return o;
+    }
+
     function shareUrl() {
-      return location.origin + location.pathname + playHash(encodePlan(plan));
+      return location.origin + location.pathname + playHash(encodePlan(linkPlan(plan)));
     }
 
     function parseIncomingHash() {
       var raw = location.hash ? location.hash.slice(1) : "";
       if (!raw) return { mode: "create", encoded: "" };
-      if (raw.indexOf("play/") === 0) {
-        return { mode: "play", encoded: raw.slice(5) };
-      }
-      // Bare hash = consumer play (backward compatible share links).
+      if (raw.indexOf("play/") === 0) return { mode: "play", encoded: raw.slice(5) };
+      if (raw.indexOf("preview/") === 0) return { mode: "play", encoded: raw.slice(8), preview: true };
+      // Bare hash = an older share link.
       return { mode: "play", encoded: raw };
     }
 
@@ -1473,48 +1565,75 @@
       document.body.classList.toggle("mode-create", mode === "create");
     }
 
-    function readPlaySkips(id) {
+    function readJSON(key, fallback) {
       try {
-        var raw = JSON.parse(localStorage.getItem(PLAY_SKIP_PREFIX + id) || "[]");
-        return Array.isArray(raw) ? raw.map(String) : [];
+        var raw = JSON.parse(localStorage.getItem(key) || "null");
+        return raw == null ? fallback : raw;
       } catch (e) {
-        return [];
+        return fallback;
       }
     }
 
-    function writePlaySkips() {
-      if (!plan || !plan.id) return;
-      try {
-        localStorage.setItem(PLAY_SKIP_PREFIX + plan.id, JSON.stringify(plan.skip || []));
-      } catch (e) {}
+    function writeJSON(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
     }
 
-    function creatorPath() {
-      var q = location.search || "";
-      return location.pathname + q;
+    var playCache = null;
+
+    // The creator's "Play it here" preview never touches the real day's state on this phone.
+    function playKey() {
+      return PLAY_PREFIX + plan.id + (previewing ? "-preview" : "");
+    }
+
+    function playState() {
+      if (!plan) return { skip: [], trail: [] };
+      if (playCache && playCache.key === playKey()) return playCache.state;
+      var st = readJSON(playKey(), {});
+      if (!st || typeof st !== "object") st = {};
+      st.skip = Array.isArray(st.skip) ? st.skip.map(String) : [];
+      st.trail = Array.isArray(st.trail) ? st.trail : [];
+      var old = previewing ? [] : readJSON(OLD_SKIP_PREFIX + plan.id, []);
+      if (Array.isArray(old)) old.forEach(function (id) { if (st.skip.indexOf(String(id)) === -1) st.skip.push(String(id)); });
+      st.started = !!st.started;
+      st.parked = !!st.parked;
+      st.pending = typeof st.pending === "string" ? st.pending : "";
+      st.feel = typeof st.feel === "string" ? st.feel : "";
+      st.panel = st.panel === "commit" || st.panel === "reveal" ? st.panel : "";
+      st.heldOn = typeof st.heldOn === "string" ? st.heldOn : "";
+      playCache = { key: playKey(), state: st };
+      return st;
+    }
+
+    function savePlay() {
+      if (plan) writeJSON(playKey(), playState());
+    }
+
+    function ownsPlan(id) {
+      var store = readStore();
+      return !!(store.plans && typeof store.plans === "object" && Object.prototype.hasOwnProperty.call(store.plans, id));
     }
 
     function readStore() {
-      try {
-        var raw = JSON.parse(localStorage.getItem(STORE) || "{}");
-        return raw && typeof raw === "object" ? raw : {};
-      } catch (e) {
-        return {};
-      }
+      var raw = readJSON(STORE, {});
+      return raw && typeof raw === "object" ? raw : {};
     }
 
-    function writeStore(extra) {
+    function writeStore() {
       var store = readStore();
       if (!store.plans || typeof store.plans !== "object") store.plans = {};
       store.plans[plan.id] = plan;
       store.last = plan.id;
-      if (extra) Object.keys(extra).forEach(function (k) { store[k] = extra[k]; });
-      localStorage.setItem(STORE, JSON.stringify(store));
+      writeJSON(STORE, store);
+    }
+
+    // The creator's own address: no hash, and no ?create once we are on the desk.
+    function creatorPath() {
+      return location.pathname;
     }
 
     function persist() {
       if (mode === "play") {
-        writePlaySkips();
+        savePlay();
         return;
       }
       writeStore();
@@ -1523,220 +1642,664 @@
       if (box) box.value = shareUrl();
     }
 
-    function setText(id, text) {
-      var el = document.getElementById(id);
-      if (!text) {
-        el.textContent = "";
-        el.classList.add("hidden");
+    // ---------- the play loop ----------
+
+    function visitedIds() {
+      return playState().trail.filter(function (t) { return t.id; }).map(function (t) { return t.id; });
+    }
+
+    // The clock filters; the couple chooses. Off the plan's date, everything stays on offer.
+    function openNow(v) {
+      if (!isPlanDay()) return true;
+      var h = nowNY().hour;
+      return v.start <= h + 1 && h < v.end - 0.5;
+    }
+
+    function offered(feel) {
+      var deck = ensureDeck(plan);
+      var visited = visitedIds();
+      var skip = (plan.skip || []).concat(playState().skip);
+      return (deck.pools[feel] || []).filter(function (id) {
+        return visited.indexOf(id) === -1 && skip.indexOf(id) === -1 && openNow(stopView(id));
+      });
+    }
+
+    function anchorOffered() {
+      var a = anchorView();
+      if (!a) return false;
+      return visitedIds().indexOf(a.id) === -1;
+    }
+
+    function listPromoted() {
+      if (playState().trail.length >= 3) return true;
+      return isPlanDay() && nowNY().hour >= 15;
+    }
+
+    function pickRandom(list) {
+      return list.length ? list[Math.floor(Math.random() * list.length)] : null;
+    }
+
+    function chooseFeel(feel) {
+      if (feel === "surprise") {
+        var feels = FEEL_ORDER.filter(function (f) { return offered(f).length; });
+        feel = pickRandom(feels);
+        if (!feel) return go("feel");
+      }
+      view.feel = feel;
+      if (feel === "anchor") {
+        if (!anchorOffered()) return go("feel");
+        view.pending = "anchor";
       } else {
-        el.textContent = text;
-        el.classList.remove("hidden");
+        var options = offered(feel);
+        if (!options.length) return go("feel");
+        var others = options.filter(function (id) { return id !== view.pending; });
+        view.pending = pickRandom(others.length ? others : options);
+      }
+      holdCard("commit");
+      go("commit");
+    }
+
+    function holdCard(panel) {
+      var st = playState();
+      st.pending = view.pending || "";
+      st.feel = view.feel || "";
+      st.panel = view.pending ? panel : "";
+      st.heldOn = view.pending ? nowNY().iso : "";
+      savePlay();
+    }
+
+    function cardStillGood(pending, feel) {
+      if (!pending) return false;
+      if (pending === "anchor") return anchorOffered();
+      return offered(feel).indexOf(pending) !== -1;
+    }
+
+    // The clock may have moved since the commit screen was drawn.
+    function revealNow() {
+      if (!cardStillGood(view.pending, view.feel)) {
+        var options = view.feel && view.feel !== "anchor" ? offered(view.feel) : [];
+        if (!options.length) { holdCard(""); view.pending = null; return go("feel"); }
+        view.pending = pickRandom(options);
+      }
+      holdCard("reveal");
+      go("reveal");
+    }
+
+    function markHere(id) {
+      var st = playState();
+      var a = anchorView();
+      var name = a && a.id === id ? a.name : (STOP_BY_ID[id] ? STOP_BY_ID[id].name : "");
+      if (!name) return go("feel");
+      if (!st.trail.some(function (t) { return t.id === id; })) {
+        st.trail.push({ id: id, name: name, at: (clockOverride || new Date()).toISOString(), rating: "", found: false });
+      }
+      view.pending = null;
+      holdCard("");
+      go("feel");
+    }
+
+    function skipHere(id) {
+      var st = playState();
+      if (st.skip.indexOf(id) === -1) st.skip.push(id);
+      savePlay();
+      var options = view.feel && view.feel !== "anchor" ? offered(view.feel) : [];
+      if (options.length && view.panel === "reveal") {
+        view.pending = pickRandom(options);
+        holdCard("commit");
+        go("commit");
+      } else {
+        if (view.panel !== "list") { view.pending = null; holdCard(""); }
+        go(view.panel === "list" ? "list" : "feel");
       }
     }
 
-    function stopHtml(s) {
+    function rateLast(value) {
+      var last = lastUnrated();
+      if (last) last.rating = value;
+      savePlay();
+      render();
+    }
+
+    function lastUnrated() {
+      var trail = playState().trail;
+      for (var i = trail.length - 1; i >= 0; i--) {
+        if (!trail[i].found) return trail[i].rating ? null : trail[i];
+      }
+      return null;
+    }
+
+    // Panels where a redraw would throw away what someone is typing or copying.
+    function typingPanel() {
+      return mode === "play" && (view.panel === "found" || view.panel === "trail");
+    }
+
+    function go(panel) {
+      view.panel = panel;
+      render();
+      window.scrollTo(0, 0);
+      focusTop(document.getElementById("play"));
+    }
+
+    // After the screen is redrawn, move focus to its heading so screen readers hear the new step.
+    function focusTop(box) {
+      var h = box && box.querySelector(".place, h1");
+      if (!h || !h.focus) return;
+      h.setAttribute("tabindex", "-1");
+      h.focus({ preventScroll: true });
+    }
+
+    function act(name, arg) {
+      // Another tab may have played this day since this one last looked.
+      // With storage blocked, the in-memory copy is the only copy, so keep it.
+      if (storageOK) playCache = null;
+      var st = playState();
+      if (name === "begin") { st.started = true; savePlay(); return go(ensureDeck(plan).park && !st.parked ? "start" : "feel"); }
+      if (name === "parked") { st.parked = true; savePlay(); return go("feel"); }
+      if (name === "feel") return chooseFeel(arg);
+      if (name === "reveal") return revealNow();
+      if (name === "shuffle") return chooseFeel(view.feel);
+      if (name === "back") {
+        if (view.panel === "commit" || view.panel === "reveal") { view.pending = null; holdCard(""); }
+        return go("feel");
+      }
+      if (name === "here") return markHere(arg);
+      if (name === "skip") return skipHere(arg);
+      if (name === "rate") return rateLast(arg);
+      if (name === "list") return go("list");
+      if (name === "iffy") return go("iffy");
+      if (name === "cool") return go("cool");
+      if (name === "found") { view.found = { name: "", rating: "", note: "", lat: null, lng: null }; return go("found"); }
+      if (name === "trail") return go("trail");
+      if (name === "copy-trail") return copyTrail();
+    }
+
+    function saveFound() {
+      if (storageOK) playCache = null;
+      var nameEl = document.getElementById("found-name");
+      var noteEl = document.getElementById("found-note");
+      var name = nameEl ? nameEl.value.trim() : "";
+      if (!name) {
+        var err = document.getElementById("found-err");
+        if (err) err.classList.remove("hidden");
+        return;
+      }
+      playState().trail.push({
+        id: "", name: name.slice(0, 80), at: (clockOverride || new Date()).toISOString(),
+        rating: view.found.rating || "", note: noteEl ? noteEl.value.trim().slice(0, 200) : "",
+        found: true, lat: view.found.lat, lng: view.found.lng
+      });
+      savePlay();
+      view.found = null;
+      go("feel");
+    }
+
+    function trailText() {
+      var lines = [welcomeLine(plan), formatWhen(parseDate(plan.date)), ""];
+      playState().trail.forEach(function (t) {
+        var when = new Date(t.at);
+        var at = isNaN(when) ? "" : fmtHour(nyParts(when).hour) + "  ";
+        var mark = t.rating === "love" ? " (loved it)" : t.rating === "no" ? " (not for us)" : t.rating === "fine" ? " (fine)" : "";
+        lines.push(at + t.name + mark + (t.found ? " — found it ourselves" : "") + (t.note ? ": " + t.note : ""));
+      });
+      return lines.join("\n");
+    }
+
+    // The Clipboard API, or null where a browser or in-app webview doesn't offer it.
+    var clipboardApi = function () {
+      return typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard : null;
+    };
+
+    function copyTrail() {
+      var text = trailText();
+      var done = document.getElementById("trail-copied");
+      function byHand() {
+        var box = document.getElementById("trail-text");
+        if (!box) {
+          box = document.createElement("textarea");
+          box.id = "trail-text";
+          box.setAttribute("readonly", "");
+          box.setAttribute("aria-label", "Our day, as text");
+          if (done && done.parentNode) done.parentNode.insertBefore(box, done);
+        }
+        box.value = text;
+        if (box.focus) box.focus();
+        if (box.select) box.select();
+        if (done) { done.textContent = "Select this and copy it by hand."; done.classList.remove("hidden"); }
+      }
+      var clip = clipboardApi();
+      if (clip) {
+        clip.writeText(text).then(function () {
+          if (done) { done.textContent = "Copied. Paste it into your notes."; done.classList.remove("hidden"); }
+        }).catch(byHand);
+      } else {
+        byHand();
+      }
+    }
+
+    // ---------- rendering: play ----------
+
+    function pipsHtml() {
+      var n = playState().trail.length;
+      var html = '<div class="pips" aria-label="' + n + ' stops so far">';
+      for (var i = 0; i < 6; i++) html += '<span class="pip' + (i < n ? " done" : i === n ? " on" : "") + '"></span>';
+      return html + "</div>";
+    }
+
+    function dirBtn(v, label) {
+      return '<a class="btn btn-ink" href="' + esc(mapsUrl(v.query)) + '" target="_blank" rel="noopener">' + esc(label || "Get directions") + "</a>";
+    }
+
+    function cardHtml(v, opts) {
+      opts = opts || {};
+      var wet = v.outdoor && forecastWet(plan.date);
       return (
         '<article class="stop">' +
-          "<h2>" + esc(s.name) + "</h2>" +
-          '<p class="why">' + esc(s.why) + "</p>" +
-          '<p class="meta">' + esc(s.hours) + "</p>" +
-          (s.outdoor && forecastWet(plan.date) ? '<p class="meta">Only if it clears.</p>' : "") +
-          '<p class="meta">' + esc(s.address) + "</p>" +
-          '<p class="meta"><a href="' + esc(s.source) + '" target="_blank" rel="noopener">Source</a></p>' +
-          '<a class="btn btn-ink" href="' + esc(mapsUrl(s.query)) + '" target="_blank" rel="noopener">Get directions</a>' +
-          '<button type="button" class="skip" data-skip="' + esc(s.id) + '">Not for us</button>' +
+          "<h2>" + esc(v.name) + "</h2>" +
+          '<p class="why">' + esc(v.why) + "</p>" +
+          (v.hint ? '<p class="hint">' + esc(v.hint) + "</p>" : "") +
+          (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
+          (wet ? '<p class="meta">Only if it clears.</p>' : "") +
+          (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
+          (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
+          dirBtn(v) +
+          (opts.here ? '<button type="button" class="btn btn-cyan" data-act="here" data-arg="' + esc(v.id) + '">We\'re here</button>' : "") +
+          (opts.skip ? '<button type="button" class="skip" data-act="' + esc(opts.skipAct || "skip") + '" data-arg="' + esc(v.id) + '">Not for us</button>' : "") +
         "</article>"
       );
     }
 
-    function renderRecap(stops) {
+    function curtainHtml() {
+      var who = [plan.you, plan.them].filter(Boolean).join(" and ");
+      return (
+        '<div class="hero">' +
+          '<p class="kicker">A little something</p>' +
+          "<h1>For " + esc(who || "you") + ".</h1>" +
+          '<p class="lede">' + esc(welcomeLine(Object.assign({}, plan, { you: "", them: "" }))) + ". One day. You choose what comes next.</p>" +
+          '<p class="meta">' + esc(formatWhen(parseDate(plan.date))) + " · St. Petersburg</p>" +
+          '<p class="meta">' + esc(weatherLine(plan.date)) + "</p>" +
+        "</div>" +
+        '<p class="note">Pick what\'s calling, reveal one place, go. When you get there, pick again. Want options instead? Show the list any time.</p>' +
+        '<button type="button" class="btn btn-primary" data-act="begin">Begin</button>' +
+        deskLinkHtml()
+      );
+    }
+
+    function deskLinkHtml() {
+      if (!ownsPlan(plan.id)) return "";
+      return '<p style="text-align:center;margin-top:1.2rem"><a class="quiet" href="' + esc(location.pathname + "?create=" + encodeURIComponent(plan.id)) + '">Back to your desk</a></p>';
+    }
+
+    function startHtml() {
+      var v = stopView("parking");
+      return (
+        pipsHtml() +
+        '<div class="hero">' +
+          '<p class="kicker">Chapter 0 · Get there</p>' +
+          "<h1>First stop: park the car.</h1>" +
+          '<p class="lede">' + esc(v.name) + ", " + esc(v.address) + ". Walk from there. The day unfolds as you go.</p>" +
+        "</div>" +
+        '<p class="hint">' + esc(v.hint) + "</p>" +
+        dirBtn(v) +
+        '<button type="button" class="btn btn-cyan" data-act="parked">We\'re parked. What\'s next?</button>'
+      );
+    }
+
+    function feelHtml() {
+      var html = pipsHtml();
+      html += '<p class="kicker">Your move</p><h1>What\'s calling?</h1>';
+      html += '<p class="strip">' + esc(anchorLine()) + "</p>";
+      var last = lastUnrated();
+      if (last) {
+        html += '<div class="ask"><p>How was ' + esc(last.name) + '?</p><div class="rate">' +
+          '<button type="button" data-act="rate" data-arg="love">Loved it</button>' +
+          '<button type="button" data-act="rate" data-arg="fine">Fine</button>' +
+          '<button type="button" data-act="rate" data-arg="no">Not for us</button></div></div>';
+      }
+      var promoted = listPromoted();
+      if (promoted) {
+        html += '<button type="button" class="btn btn-ghost" data-act="list" style="margin:0 0 1rem">Mystery getting stale? Show me the list</button>';
+      }
+      var buttons = "";
+      FEEL_ORDER.forEach(function (f) {
+        if (!offered(f).length) return;
+        buttons += '<button type="button" data-act="feel" data-arg="' + f + '">' + esc(FEELS[f].label) + "<small>" + esc(FEELS[f].sub) + "</small></button>";
+      });
+      var a = anchorView();
+      if (a && anchorOffered()) {
+        var label = a.custom ? "The main event" : FEELS.anchor.label;
+        var sub = a.custom ? "The one thing that's set" : FEELS.anchor.sub;
+        buttons += '<button type="button" data-act="feel" data-arg="anchor">' + esc(label) + "<small>" + esc(sub) + "</small></button>";
+      }
+      if (FEEL_ORDER.some(function (f) { return offered(f).length; })) {
+        buttons += '<button type="button" class="surprise" data-act="feel" data-arg="surprise">Surprise me completely<small>We\'ll take whatever the day deals</small></button>';
+      }
+      html += buttons
+        ? '<div class="moods">' + buttons + "</div>"
+        : '<p class="note">That\'s everything we found open right now. Show the list, or wander. You might find something better.</p>';
+      html += '<div class="escapes">' +
+        (promoted ? "" : '<button type="button" class="quiet" data-act="list">Show me the list</button>') +
+        '<button type="button" class="quiet" data-act="iffy">Sky looks iffy</button>' +
+        '<button type="button" class="quiet" data-act="cool">Vibes are cooling</button>' +
+        '<button type="button" class="quiet" data-act="found">We found something</button>' +
+        '<button type="button" class="quiet" data-act="trail">Our day so far</button>' +
+        "</div>";
+      html += '<p class="meta" style="margin-top:1.2rem">' + esc(weatherLine(plan.date)) + "</p>";
+      return html;
+    }
+
+    function commitHtml() {
+      var c = FEELS[view.feel] || FEELS.taste;
+      var a = view.feel === "anchor" ? anchorView() : null;
+      var title = a && a.custom ? "The fixed point of the day." : c.title;
+      var canShuffle = view.feel !== "anchor" && offered(view.feel).length > 1;
+      return (
+        pipsHtml() +
+        '<div class="card">' +
+          '<p class="kicker">' + esc(a && a.custom ? "Main event" : c.kicker) + "</p>" +
+          "<h1>" + esc(title) + "</h1>" +
+          '<p class="lede">' + esc(c.lede) + "</p>" +
+          '<button type="button" class="btn btn-primary" data-act="reveal">Reveal the stop</button>' +
+          (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">Shuffle another for this feeling</button>' : "") +
+          '<button type="button" class="btn btn-ghost" data-act="back">Different feeling</button>' +
+        "</div>"
+      );
+    }
+
+    function revealHtml() {
+      var isAnchor = view.pending === "anchor";
+      var v = isAnchor ? anchorView() : stopView(view.pending);
+      var wet = !isAnchor && v.outdoor && forecastWet(plan.date);
+      var kicker = isAnchor ? (v.custom ? "Main event" : "Dinner") : (FEELS[v.feel] ? FEELS[v.feel].label : "Next stop");
+      return (
+        pipsHtml() +
+        '<div class="card reveal">' +
+          '<div class="stamp">Go</div>' +
+          '<p class="kicker">' + esc(kicker) + "</p>" +
+          '<p class="place">' + esc(v.name) + "</p>" +
+          '<p class="why">' + esc(v.why) + "</p>" +
+          (v.hint ? '<p class="hint">' + esc(v.hint) + "</p>" : "") +
+          (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
+          (wet ? '<p class="meta">Outdoors. Only if it clears.</p>' : "") +
+          (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
+          (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
+          dirBtn(v) +
+          '<button type="button" class="btn btn-cyan" data-act="here" data-arg="' + esc(v.id) + '">We\'re here / on our way</button>' +
+          (isAnchor ? "" : '<button type="button" class="btn btn-ghost" data-act="skip" data-arg="' + esc(v.id) + '">Not this. Try again</button>') +
+          '<button type="button" class="skip" data-act="back">Back to choosing</button>' +
+        "</div>"
+      );
+    }
+
+    function listHtml() {
+      var visited = visitedIds();
+      var ids = liveIds().filter(function (id) { return visited.indexOf(id) === -1; });
+      var views = ids.map(stopView);
+      var now = views.filter(openNow), later = views.filter(function (v) { return !openNow(v); });
+      var html = '<p class="kicker">Just show me</p><h1>' + (isPlanDay() ? "Open around now" : "The whole day") + "</h1>";
+      html += '<p class="strip">' + esc(anchorLine()) + "</p>";
+      if (!views.length) html += '<p class="note">You have been everywhere on the list. Wander. Or log what you found.</p>';
+      html += now.map(function (v) { return cardHtml(v, { here: true, skip: true }); }).join("");
+      if (later.length) {
+        html += "<h3>Later or closed right now</h3>" + later.map(function (v) { return cardHtml(v, { here: false, skip: false }); }).join("");
+      }
+      var a = anchorView();
+      if (a && anchorOffered()) html += "<h3>Where the day lands</h3>" + cardHtml(a, { here: true });
+      html += '<button type="button" class="btn btn-ghost" data-act="back">Back to the mystery</button>';
+      return html;
+    }
+
+    function iffyHtml() {
+      var visited = visitedIds();
+      var h = nowNY().hour;
+      var inside = liveIds().filter(function (id) { return visited.indexOf(id) === -1 && !STOP_BY_ID[id].outdoor; }).map(stopView)
+        .filter(function (v) { return !isPlanDay() || (v.start <= h && h < v.end - 0.25); });
+      var html = '<div class="card reveal"><div class="stamp peach">Plan B</div><p class="place">Soft landing</p>' +
+        '<p class="why">' + esc(weatherLine(plan.date)) + " Florida storms usually pass. Duck inside, then pick up where you left off.</p></div>";
+      html += inside.length
+        ? "<h3>" + (isPlanDay() ? "Indoors, open now" : "Indoors on the day") + "</h3>" + inside.map(function (v) { return cardHtml(v, { here: true }); }).join("")
+        : '<p class="note">Nothing indoors on the list is open right now. A café or a shop doorway works. Wait it out and check back.</p>';
+      var a = anchorView();
+      if (a && anchorOffered()) html += '<p class="strip">' + esc(anchorLine()) + "</p>";
+      html += '<button type="button" class="btn btn-ghost" data-act="back">Back to choosing</button>';
+      return html;
+    }
+
+    function coolHtml() {
+      var a = anchorView();
+      var html = '<div class="card reveal"><div class="stamp peach">Wind down</div><p class="place">Call it early</p>';
+      if (a && anchorOffered()) {
+        html += '<p class="why">Head toward ' + esc(a.name) + " early. " + (a.custom ? "It's set for " + esc(fmtHour(a.time)) + "." : "Dinner around " + esc(fmtHour(a.time)) + ", earlier if they'll seat you.") + "</p>" + dirBtn(a, "Directions to " + a.name);
+      } else if (a) {
+        html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : "Dinner's done.") + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
+      } else {
+        html += '<p class="why">No fixed point today, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
+      }
+      if (ensureDeck(plan).park) html += dirBtn(stopView("parking"), "Back to the car");
+      html += '<button type="button" class="btn btn-ghost" data-act="trail">See our day so far</button>' +
+        '<button type="button" class="skip" data-act="back">Not yet. Back to choosing</button></div>';
+      return html;
+    }
+
+    function foundHtml() {
+      var f = view.found || {};
+      var pressed = function (v) { return f.rating === v ? "true" : "false"; };
+      return (
+        '<p class="kicker">Off the list</p><h1>We found something.</h1>' +
+        '<p class="lede">Log it so you remember it. It goes on your day.</p>' +
+        '<p class="err hidden" id="found-err" role="alert">Give it a name, even a rough one.</p>' +
+        '<label class="field"><span>What was it?</span><input type="text" id="found-name" maxlength="80" value="' + esc(f.name || "") + '" placeholder="The mural on 10th St, a taco truck…" /></label>' +
+        '<div class="group"><p>How was it?</p><div class="rate">' +
+          '<button type="button" data-found-rate="love" aria-pressed="' + pressed("love") + '">Loved it</button>' +
+          '<button type="button" data-found-rate="fine" aria-pressed="' + pressed("fine") + '">Fine</button>' +
+          '<button type="button" data-found-rate="no" aria-pressed="' + pressed("no") + '">Not for us</button>' +
+        "</div></div>" +
+        '<label class="field"><span>A note (optional)</span><input type="text" id="found-note" maxlength="200" value="' + esc(f.note || "") + '" /></label>' +
+        '<button type="button" class="quiet" id="found-where">' + (f.lat != null ? "Location saved" : "Save where we are") + "</button>" +
+        '<button type="button" class="btn btn-primary" id="found-save">Add to our day</button>' +
+        '<button type="button" class="skip" data-act="back">Never mind</button>'
+      );
+    }
+
+    function trailHtml() {
+      var trail = playState().trail;
+      var html = '<p class="kicker">Your day</p><h1>Our day so far.</h1>';
+      html += '<p class="lede">' + esc(formatWhen(parseDate(plan.date))) + ". Every stop you tapped, and everything you found.</p>";
+      if (!trail.length) {
+        html += '<p class="note">Nothing yet. Tap "We\'re here" when you get somewhere, or log something you found.</p>';
+      } else {
+        html += '<ol class="trail">' + trail.map(function (t) {
+          var when = new Date(t.at);
+          var at = isNaN(when) ? "" : fmtHour(nyParts(when).hour);
+          var mark = t.rating === "love" ? "Loved it" : t.rating === "no" ? "Not for us" : t.rating === "fine" ? "Fine" : "";
+          var map = t.lat != null ? ' · <a href="' + esc(mapsUrl(t.lat + "," + t.lng)) + '" target="_blank" rel="noopener">map</a>' : "";
+          return "<li><strong>" + esc(t.name) + "</strong>" +
+            '<p class="meta">' + esc([at, t.found ? "Found it ourselves" : "On the list", mark].filter(Boolean).join(" · ")) + map + "</p>" +
+            (t.note ? '<p class="meta">' + esc(t.note) + "</p>" : "") + "</li>";
+        }).join("") + "</ol>";
+        html += '<button type="button" class="btn btn-ink" data-act="copy-trail">Copy our day</button>' +
+          '<p class="meta hidden" id="trail-copied" style="margin-top:0.5rem">Copied. Paste it into your notes.</p>';
+      }
+      html += '<button type="button" class="btn btn-ghost" data-act="back">Back to choosing</button>';
+      html += '<p class="meta" style="margin-top:1.4rem;text-align:center">Skips and your day stay on this phone. <a href="' + esc(location.pathname) + '">Make a day for someone</a></p>';
+      html += deskLinkHtml();
+      return html;
+    }
+
+    function renderPlay() {
+      var st = playState();
+      if (!st.started) view.panel = "curtain";
+      else if (view.panel === "curtain") {
+        if (st.panel && st.heldOn === nowNY().iso && cardStillGood(st.pending, st.feel)) {
+          view.pending = st.pending;
+          view.feel = st.feel;
+          view.panel = st.panel;
+        } else {
+          view.panel = ensureDeck(plan).park && !st.parked ? "start" : "feel";
+        }
+      }
+      if (view.panel === "reveal" && !view.pending) view.panel = "feel";
+      var html = "";
+      if (view.panel === "curtain") html = curtainHtml();
+      else if (view.panel === "start") html = startHtml();
+      else if (view.panel === "commit") html = commitHtml();
+      else if (view.panel === "reveal") html = revealHtml();
+      else if (view.panel === "list") html = listHtml();
+      else if (view.panel === "iffy") html = iffyHtml();
+      else if (view.panel === "cool") html = coolHtml();
+      else if (view.panel === "found") html = foundHtml();
+      else if (view.panel === "trail") html = trailHtml();
+      else html = feelHtml();
+      if (previewing) {
+        html = '<p class="strip">Preview. Nothing you tap here carries into the real day.</p>' + html +
+          (view.panel === "curtain" || view.panel === "trail" ? "" : deskLinkHtml());
+      }
+      document.getElementById("play").innerHTML = html;
+    }
+
+    // ---------- rendering: creator desk ----------
+
+    function planLine(p) {
+      var bits = [];
+      if (kindLabel(p)) bits.push(kindLabel(p));
+      if (budgetLabel(p)) bits.push(budgetLabel(p) + " for the day");
+      var wants = noteWants(p);
+      var extra = wants.empty
+        ? " Add food likes, pace, and anything to avoid in the note, then rebuild. That is what makes each day different."
+        : " Built from your note for this date.";
+      return ((bits.length ? bits.join(". ") + "." : "") + extra).trim();
+    }
+
+    function datedCount() {
+      return liveIds().filter(function (id) { return STOP_BY_ID[id].dated; }).length;
+    }
+
+    function renderDesk() {
+      ensureDeck(plan);
+      var d = parseDate(plan.date);
+      var ids = liveIds();
+      var a = anchorView();
+      var html = '<svg class="city" viewBox="0 0 360 170" role="img" aria-label="Sun over a low skyline and the water"><use href="#skyline"/></svg>';
+      html += '<p class="kicker">Creator desk</p><h1>' + esc(welcomeLine(plan)) + "</h1>";
+      html += '<p class="meta">' + esc(formatWhen(d)) + " · St. Petersburg</p>";
+      html += '<p class="note">' + esc(weatherLine(plan.date)) + "</p>";
+      html += '<p class="note">' + esc(planLine(plan)) + "</p>";
+      if (!datedCount()) html += '<p class="note">No dated event is verified for this day. The day uses places with standing hours that are open that date.</p>';
+      html += "<h3>Where the day lands</h3>";
+      var noneFit = ensureDeck(plan).anchor.reason === "none_fit";
+      var hideDinner = plan.surprise && a && !a.custom;
+      html += a
+        ? '<div class="mini"><p><strong>' + esc(hideDinner ? "Dinner, hidden" : a.name) + "</strong></p><p class=\"meta\">" + esc(anchorLine()) + "</p>" +
+          (a.custom ? "" : hideDinner
+            ? '<p class="meta">Not booked. Untick Surprise us too to see where, if you want to call ahead.</p>'
+            : '<p class="meta">Not booked. If you want a sure table, call ' + esc(a.name) + ".</p>") + "</div>"
+        : '<p class="meta">No fixed point. ' + (noneFit ? "No dinner here fit your note and budget." : "Your note did not ask for dinner.") + " " + esc(anchorLine()) +
+          " Add a reservation under \"Anything already set?\" to anchor the day.</p>";
+      html += '<label class="check"><input type="checkbox" id="surprise"' + (plan.surprise ? " checked" : "") + ' /><span><strong>Surprise us too.</strong> Hide the places from me, so I can play the day without spoilers.</span></label>';
+      if (plan.surprise) {
+        var feelsWith = FEEL_ORDER.filter(function (f) { return (ensureDeck(plan).pools[f] || []).some(function (id) { return ids.indexOf(id) !== -1; }); }).length;
+        var dated = datedCount();
+        html += '<p class="note">What we checked: ' + ids.length + " places verified open on " + esc(formatWhen(d)) + ", across " + feelsWith + " feelings. " +
+          (dated ? dated + (dated === 1 ? " is a dated event. " : " are dated events. ") : "") + "The forecast is checked when it is out.</p>";
+      } else {
+        FEEL_ORDER.forEach(function (f) {
+          var list = (ensureDeck(plan).pools[f] || []).filter(function (id) { return ids.indexOf(id) !== -1; });
+          if (!list.length) return;
+          html += "<h3>" + esc(FEELS[f].label) + "</h3>";
+          html += list.map(function (id) {
+            var v = stopView(id);
+            return '<div class="mini"><p>' + esc(v.name) + (v.dated ? " · " + (STOP_BY_ID[id].only || "only this day") : "") + '</p><p class="meta">' + esc(v.hours) +
+              ' · <button type="button" class="skip" style="display:inline;margin:0" data-desk-skip="' + esc(id) + '">Not for us</button></p></div>';
+          }).join("");
+        });
+        if (!ids.length) html += '<p class="note">Nothing verified is open for this date. Edit the note or the date and rebuild.</p>';
+      }
+      document.getElementById("desk-top").innerHTML = html;
+      document.getElementById("share-url").value = shareUrl();
+
+      renderRecap(ids);
+    }
+
+    function renderRecap(ids) {
       var when = formatWhen(parseDate(plan.date));
-      var occ = plan.occasion + (plan.custom ? " · " + plan.custom : "");
       var names = [plan.you, plan.them].filter(Boolean).join(" and ");
-      var items = stops.length
-        ? "<ul>" + stops.map(function (s) {
-            var extra = s.outdoor && forecastWet(plan.date) ? " (only if it clears)" : "";
-            return "<li>" + esc(s.name + extra) + "</li>";
-          }).join("") + "</ul>"
-        : "<p class=\"why\">You passed on every stop.</p>";
-      var must = plan.must ? "<p class=\"recap-k\">What you two like</p><p class=\"why\">" + esc(plan.must) + "</p>" : "";
+      var a = anchorView();
+      var items = plan.surprise
+        ? '<p class="why">' + ids.length + " places, hidden until you play.</p>"
+        : (ids.length ? "<ul>" + ids.map(function (id) { return "<li>" + esc(STOP_BY_ID[id].name) + "</li>"; }).join("") + "</ul>" : '<p class="why">You passed on every stop.</p>');
       document.getElementById("recap").innerHTML =
         "<h2>The day</h2>" +
-        "<p class=\"recap-k\">Names</p><p class=\"why\">" + esc(names || "—") + "</p>" +
-        "<p class=\"recap-k\">Occasion</p><p class=\"why\">" + esc(occ) + "</p>" +
-        (kindLabel(plan) ? "<p class=\"recap-k\">Kind</p><p class=\"why\">" + esc(kindLabel(plan)) + "</p>" : "") +
-        (budgetLabel(plan) ? "<p class=\"recap-k\">Budget</p><p class=\"why\">" + esc(budgetLabel(plan)) + "</p>" : "") +
-        "<p class=\"recap-k\">Date</p><p class=\"why\">" + esc(when) + "</p>" +
-        "<p class=\"recap-k\">City</p><p class=\"why\">St. Petersburg</p>" +
-        "<p class=\"recap-k\">Stops</p>" + items + must;
+        '<p class="recap-k">Names</p><p class="why">' + esc(names || "—") + "</p>" +
+        '<p class="recap-k">Occasion</p><p class="why">' + esc(plan.occasion) + "</p>" +
+        (kindLabel(plan) ? '<p class="recap-k">Kind</p><p class="why">' + esc(kindLabel(plan)) + "</p>" : "") +
+        (budgetLabel(plan) ? '<p class="recap-k">Budget</p><p class="why">' + esc(budgetLabel(plan)) + "</p>" : "") +
+        '<p class="recap-k">Date</p><p class="why">' + esc(when) + "</p>" +
+        (a ? '<p class="recap-k">Fixed point</p><p class="why">' + esc((plan.surprise && !a.custom ? "Dinner (hidden)" : a.name) + ", " + fmtHour(a.time)) + "</p>" : "") +
+        '<p class="recap-k">Places on the day</p>' + items +
+        (plan.must ? '<p class="recap-k">What you two like</p><p class="why">' + esc(plan.must) + "</p>" : "");
     }
 
-    function renderMoods(stops) {
-      var box = document.getElementById("moods");
-      var groups = { morning: [], afternoon: [], evening: [] };
-      stops.forEach(function (s) { groups[moodFor(s.start)].push(s); });
-      var html = "";
-      ["morning", "afternoon", "evening"].forEach(function (key) {
-        if (!groups[key].length) return;
-        var mood = MOODS[key];
-        var pressed = moodFocus === key ? "true" : "false";
-        html += '<button type="button" data-mood="' + key + '" aria-pressed="' + pressed + '">' + esc(mood.title) +
-          "<small>" + esc(mood.hint) + "</small></button>";
-      });
-      box.innerHTML = html;
-    }
-
-    function musicNote(p, stops) {
-      if (!noteWants(p).music) return "";
-      var folk = stops.some(function (s) { return s.id === "folk"; });
-      if (folk) return "";
-      var other = stops.some(function (s) { return s.music; });
-      return other ? "We'll look for music that day." : "";
-    }
-
-    function playFrameCopy(p) {
-      if (p.style === "mystery") {
-        return "The stops stay hidden until you pick a mood — or open the whole day when you are ready. No spoilers yet.";
-      }
-      return "A quiet walk through the day. Tap through the stops when you like.";
-    }
-
-    function syncPlayChrome() {
-      var landing = document.getElementById("play-landing");
-      var flow = document.getElementById("day-flow");
-      var quiet = document.getElementById("play-quiet");
-      var showLanding = mode === "play" && !playStarted;
-      landing.classList.toggle("hidden", !showLanding);
-      flow.classList.toggle("hidden", showLanding);
-      quiet.classList.toggle("hidden", mode !== "play" || showLanding);
-      document.getElementById("day-kicker").textContent = mode === "play" ? "Your day" : "Creator desk";
-      // Consumer: hide budget/kind plan chrome that spoils the desk feel.
-      var hidePlanBits = mode === "play";
-      if (hidePlanBits) {
-        document.getElementById("plan-line").classList.add("hidden");
-        document.getElementById("plan-line").textContent = "";
-      }
-    }
-
-    function fillLanding() {
-      var d = parseDate(plan.date);
-      document.getElementById("land-welcome").textContent = welcomeLine(plan);
-      var who = [plan.you, plan.them].filter(Boolean).join(" and ");
-      var vibe = plan.occasion === "Just because"
-        ? "Just because."
-        : (plan.occasion + (who ? " for " + who : "") + ".");
-      document.getElementById("land-lede").textContent = vibe + " St. Petersburg. The city opens as you go.";
-      document.getElementById("land-when").textContent = formatWhen(d) + " · St. Petersburg";
-      document.getElementById("land-weather").textContent = weatherLine(plan.date);
-      document.getElementById("land-frame").textContent = playFrameCopy(plan);
-    }
-
-    function renderDay() {
-      var d = parseDate(plan.date);
-      var stops = visibleStops();
-      syncPlayChrome();
-      if (mode === "play" && !playStarted) {
-        fillLanding();
-        loadWeather(plan.date);
-        return;
-      }
-      document.getElementById("welcome").textContent = welcomeLine(plan);
-      setText("when-line", formatWhen(d) + " · St. Petersburg");
-      setText("weather-line", weatherLine(plan.date));
-      setText("custom-line", plan.custom ? plan.custom : "");
-      setText("drink-line", plan.drink === "no" ? "No bars on this one." : (plan.drink === "yes" ? "Drinks are in." : ""));
-      if (mode === "create") {
-        setText("plan-line", planLine(plan));
-      } else {
-        setText("plan-line", "");
-      }
-      setText("music-line", musicNote(plan, stops));
-      var noteEdit = document.getElementById("note-edit");
-      if (noteEdit && document.activeElement !== noteEdit) noteEdit.value = plan.must || "";
-      var known = plan.date === "2026-10-10" || plan.date === "2026-10-11" || plan.date === "2026-10-17";
-      var gapCreate = "No dated event is verified for this day yet. The pocket is still built from your note, places with standing hours that are open, and the forecast when it is out.";
-      var gapPlay = "No dated event is verified for this day yet. The pocket still uses places with standing hours that are open, and the forecast when it is out.";
-      setText("gap-line", known ? "" : (mode === "play" ? gapPlay : gapCreate));
-      var mystery = plan.style === "mystery" && !revealed;
-      setText("mystery-line", mystery
-        ? (mode === "play"
-          ? "Pick a feeling. The places stay hidden until you do — or show the day when you are ready."
-          : "Mystery day. The stops stay hidden. Pick a mood, or show the day when you are ready.")
-        : (plan.style === "mystery" ? "Mystery is on, and the day is open." : ""));
-      document.getElementById("moods").classList.toggle("hidden", !mystery);
-      document.getElementById("show-all").classList.toggle("hidden", plan.style !== "mystery" || revealed);
-      document.getElementById("stops").classList.toggle("hidden", mystery && !moodFocus);
-      document.getElementById("recap").classList.toggle("hidden", mystery || mode === "play");
-      if (mystery) {
-        renderMoods(stops);
-        document.getElementById("recap").innerHTML = "";
-        if (moodFocus) {
-          var moodStops = stops.filter(function (s) { return moodFor(s.start) === moodFocus; });
-          document.getElementById("stops").innerHTML = moodStops.map(stopHtml).join("");
-        } else {
-          document.getElementById("stops").innerHTML = "";
-        }
-        if (!document.getElementById("moods").innerHTML.trim()) {
-          document.getElementById("moods").innerHTML = mode === "play"
-            ? '<p class="why">Nothing verified is open for this date yet.</p>'
-            : '<p class="why">Nothing verified is open for this date yet. Edit the note or the date and rebuild.</p>';
-        }
-      } else {
-        document.getElementById("stops").innerHTML = stops.length
-          ? stops.map(stopHtml).join("")
-          : '<p class="why">Nothing verified is open for this date.</p>';
-        if (mode === "create") renderRecap(stops);
-        else document.getElementById("recap").innerHTML = "";
-      }
-      if (mode === "create") {
-        document.getElementById("share-url").value = shareUrl();
-        document.getElementById("desk-tip").innerHTML =
-          plan.style === "mystery"
-            ? "<strong>Send this link</strong> — they get the mystery walk, not your form."
-            : "<strong>Send this link</strong> — they get the day walk, not your form.";
-      }
+    function render() {
+      if (!plan) return;
       loadWeather(plan.date);
+      if (mode === "play") renderPlay();
+      else renderDesk();
     }
 
     function show(which) {
-      if (mode === "play") {
-        document.getElementById("screen-about").classList.add("hidden");
-        document.getElementById("screen-form").classList.add("hidden");
-        document.getElementById("screen-day").classList.toggle("hidden", which !== "day");
-      } else {
-        document.getElementById("screen-about").classList.toggle("hidden", which !== "about");
-        document.getElementById("screen-form").classList.toggle("hidden", which !== "form");
-        document.getElementById("screen-day").classList.toggle("hidden", which !== "day");
-      }
+      ["about", "form", "desk", "play"].forEach(function (s) {
+        var hide = s !== which || (mode === "play" && (s === "about" || s === "form" || s === "desk"));
+        document.getElementById("screen-" + s).classList.toggle("hidden", hide);
+      });
       window.scrollTo(0, 0);
     }
 
     function openDay(next, opts) {
       opts = opts || {};
       plan = next;
-      revealed = !!opts.revealed;
-      moodFocus = opts.moodFocus || null;
+      playCache = null;
+      view = { panel: "curtain", feel: null, pending: null, found: null };
       if (opts.mode) setMode(opts.mode);
+      ensureDeck(plan);
       if (mode === "play") {
-        playStarted = !!opts.playStarted;
-        var savedSkips = readPlaySkips(plan.id);
-        if (savedSkips.length) {
-          var merged = (plan.skip || []).slice();
-          savedSkips.forEach(function (id) {
-            if (merged.indexOf(id) === -1) merged.push(id);
-          });
-          plan.skip = merged;
-        }
-        // Keep the play hash stable for recipients; migrate bare hash to #play/.
-        var encoded = encodePlan(plan);
-        var want = playHash(encoded);
+        var want = (previewing ? "#preview/" : "#play/") + encodePlan(linkPlan(plan));
         if (location.hash !== want) history.replaceState(null, "", want);
+        render();
+        show("play");
       } else {
-        playStarted = true;
         persist();
+        render();
+        show("desk");
+        var noteEdit = document.getElementById("note-edit");
+        if (noteEdit) noteEdit.value = plan.must || "";
       }
-      renderDay();
-      show("day");
+    }
+
+    // Another desk tab may have sent places away since this one loaded.
+    function syncFromStore() {
+      if (!plan || !ownsPlan(plan.id)) return;
+      var saved = readStore().plans[plan.id];
+      (saved && Array.isArray(saved.skip) ? saved.skip : []).forEach(function (id) {
+        if (STOP_BY_ID[id] && plan.skip.indexOf(id) === -1) plan.skip.push(id);
+      });
+    }
+
+    // ---------- the form ----------
+
+    function renderKinds(occasion, selected) {
+      var box = document.getElementById("kinds");
+      var hint = document.getElementById("kind-hint");
+      var list = KINDS[occasion] || [];
+      if (!list.length) {
+        box.innerHTML = "";
+        hint.textContent = "Pick the occasion first. These say what kind of day it is.";
+        return;
+      }
+      box.innerHTML = list.map(function (k) {
+        var on = k.value === selected ? "true" : "false";
+        return '<button type="button" data-value="' + k.value + '" aria-pressed="' + on + '">' +
+          esc(k.label) + "<small>" + esc(k.hint) + "</small></button>";
+      }).join("");
+      hint.textContent = "This sets the tone. The note at the bottom can still pull a stop forward.";
     }
 
     function readPills() {
@@ -1761,21 +2324,91 @@
       document.getElementById("you").value = p && p.you || "";
       document.getElementById("them").value = p && p.them || "";
       document.getElementById("date").value = p && p.date || "";
+      document.getElementById("date").setAttribute("min", nowNY().iso);
       document.getElementById("must").value = p && p.must || "";
       document.getElementById("budget-amount").value = p && p.budgetAmount || "";
+      var an = p && p.anchor;
+      document.getElementById("anchor-name").value = an ? an.name : "";
+      document.getElementById("anchor-time").value = an ? an.time : "";
+      document.getElementById("anchor-where").value = an ? an.where : "";
+      if (an) document.getElementById("set-box").setAttribute("open", "");
       applyPills(p || {});
       renderKinds(p && p.occasion, p && p.kind);
       document.getElementById("form-err").classList.add("hidden");
     }
 
+    function submitForm() {
+      var pills = readPills();
+      var you = document.getElementById("you").value.trim();
+      var them = document.getElementById("them").value.trim();
+      var date = document.getElementById("date").value;
+      var err = document.getElementById("form-err");
+      var amount = document.getElementById("budget-amount").value.trim();
+      var anName = document.getElementById("anchor-name").value.trim();
+      var anTime = document.getElementById("anchor-time").value;
+      var anWhere = document.getElementById("anchor-where").value.trim();
+      var problem = "";
+      var missing = [];
+      if (!you || !them) missing.push("both names");
+      if (!pills.occasion) missing.push("the occasion");
+      if (!pills.kind) missing.push("the kind of day");
+      if (!date || !parseDate(date)) missing.push("the date");
+      if (!pills.drink) missing.push("drinking");
+      if (!pills.lean) missing.push("must-sees or hidden gems");
+      if (!/^\d+(?:\.\d+)?$/.test(amount)) missing.push(amount ? "a budget in dollars, like 150" : "a budget");
+      if (missing.length) {
+        problem = "Still needed: " + (missing.length > 1 ? missing.slice(0, -1).join(", ") + (missing.length > 2 ? "," : "") + " and " + missing[missing.length - 1] : missing[0]) + ".";
+      } else if (date < nowNY().iso) {
+        problem = "Pick today or a date ahead. The day checks what is open on that date.";
+      } else if ((anName || anTime || anWhere) && (!anName || parseClock(anTime) === null)) {
+        problem = "For something already set, add what it is and the time. Or clear those fields.";
+      }
+      if (problem) {
+        err.textContent = problem;
+        err.classList.remove("hidden");
+        err.setAttribute("tabindex", "-1");
+        if (err.scrollIntoView) err.scrollIntoView({ block: "center" });
+        if (err.focus) err.focus({ preventScroll: true });
+        return false;
+      }
+      err.classList.add("hidden");
+      var next = {
+        id: plan && plan.id && plan.date === date ? plan.id : uid(),
+        you: you,
+        them: them,
+        occasion: pills.occasion,
+        kind: pills.kind,
+        custom: "",
+        date: date,
+        city: "St. Petersburg",
+        drink: pills.drink,
+        style: "mystery",
+        lean: pills.lean,
+        budget: "",
+        budgetAmount: String(Math.round(Number(amount))),
+        must: document.getElementById("must").value.trim().slice(0, 400),
+        anchor: anName ? { name: anName.slice(0, 80), time: anTime, where: anWhere.slice(0, 120) } : null,
+        skip: plan && plan.date === date ? (plan.skip || []) : [],
+        rebuild: plan ? (Number(plan.rebuild) || 0) : 0,
+        surprise: plan ? !!plan.surprise : false,
+        deck: null
+      };
+      openDay(next, { mode: "create" });
+      return true;
+    }
+
     document.querySelectorAll("#day-form .pills button").forEach(function (btn) {
       btn.addEventListener("click", function () {
+        var wasOn = btn.getAttribute("aria-pressed") === "true";
         btn.parentNode.querySelectorAll("[data-value]").forEach(function (b) {
           b.setAttribute("aria-pressed", b === btn ? "true" : "false");
         });
         var group = btn.closest("[data-group]");
-        var name = group ? group.getAttribute("data-group") : "";
-        if (name === "occasion") renderKinds(btn.getAttribute("data-value"), "");
+        if (group && group.getAttribute("data-group") === "occasion" && !wasOn) {
+          // Every occasion offers the same three kinds, so a change keeps the one picked.
+          var kindOn = document.querySelector('#kinds [aria-pressed="true"]');
+          renderKinds(btn.getAttribute("data-value"), kindOn ? kindOn.getAttribute("data-value") : "");
+        }
       });
     });
 
@@ -1789,105 +2422,114 @@
 
     document.getElementById("day-form").addEventListener("submit", function (e) {
       e.preventDefault();
-      var pills = readPills();
-      var you = document.getElementById("you").value.trim();
-      var them = document.getElementById("them").value.trim();
-      var date = document.getElementById("date").value;
-      var err = document.getElementById("form-err");
-      var amount = document.getElementById("budget-amount").value.trim();
-      if (!you || !them || !pills.occasion || !pills.kind || !date || !parseDate(date) || !pills.drink || !pills.style || !pills.lean || !/^\d+$/.test(amount)) {
-        err.textContent = "Add both names, an occasion, the kind of day, a date, a budget, and the other choices.";
-        err.classList.remove("hidden");
-        return;
-      }
-      err.classList.add("hidden");
-      var next = {
-        id: plan && plan.id ? plan.id : uid(),
-        you: you,
-        them: them,
-        occasion: pills.occasion,
-        kind: pills.kind,
-        custom: "",
-        date: date,
-        city: "St. Petersburg",
-        drink: pills.drink,
-        style: pills.style,
-        lean: pills.lean,
-        budget: "",
-        budgetAmount: amount,
-        must: document.getElementById("must").value.trim(),
-        skip: plan && plan.date === date ? (plan.skip || []) : []
-      };
-      openDay(next, { mode: "create" });
+      submitForm();
     });
 
-    document.getElementById("screen-day").addEventListener("click", function (e) {
-      var moodBtn = e.target.closest("[data-mood]");
-      if (moodBtn) {
-        moodFocus = moodBtn.getAttribute("data-mood");
-        renderDay();
-        document.getElementById("stops").scrollIntoView({ behavior: "smooth", block: "start" });
-        return;
-      }
-      var skipBtn = e.target.closest("[data-skip]");
-      if (!skipBtn) return;
-      var id = skipBtn.getAttribute("data-skip");
-      if (plan.skip.indexOf(id) === -1) plan.skip.push(id);
-      persist();
-      renderDay();
+    // ---------- events ----------
+
+    document.getElementById("play").addEventListener("input", function (e) {
+      if (!view.found || !e.target) return;
+      if (e.target.id === "found-name") view.found.name = e.target.value;
+      if (e.target.id === "found-note") view.found.note = e.target.value;
     });
 
-    document.getElementById("show-all").addEventListener("click", function () {
-      revealed = true;
-      moodFocus = null;
-      renderDay();
+    document.getElementById("play").addEventListener("click", function (e) {
+      var rateBtn = e.target.closest("[data-found-rate]");
+      if (rateBtn && view.found) {
+        view.found.rating = rateBtn.getAttribute("data-found-rate");
+        rateBtn.parentNode.querySelectorAll("[data-found-rate]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b === rateBtn ? "true" : "false");
+        });
+        return;
+      }
+      if (e.target.closest("#found-save")) return saveFound();
+      if (e.target.closest("#found-where")) {
+        if (!navigator.geolocation || !view.found) return;
+        var btn = document.getElementById("found-where");
+        btn.textContent = "Finding you…";
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          if (!view.found) return;
+          view.found.lat = Math.round(pos.coords.latitude * 1e5) / 1e5;
+          view.found.lng = Math.round(pos.coords.longitude * 1e5) / 1e5;
+          btn.textContent = "Location saved";
+        }, function () {
+          btn.textContent = "Couldn't get a location. That's fine.";
+        }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+        return;
+      }
+      var el = e.target.closest("[data-act]");
+      if (!el) return;
+      act(el.getAttribute("data-act"), el.getAttribute("data-arg"));
+    });
+
+    document.getElementById("desk-top").addEventListener("click", function (e) {
+      var skipBtn = e.target.closest("[data-desk-skip]");
+      if (skipBtn) {
+        var id = skipBtn.getAttribute("data-desk-skip");
+        var idx = Array.prototype.indexOf.call(document.querySelectorAll("[data-desk-skip]"), skipBtn);
+        syncFromStore();
+        if (plan.skip.indexOf(id) === -1) plan.skip.push(id);
+        // Same order as before, with the next place stepping in.
+        plan.deck = buildDeck(plan);
+        persist();
+        render();
+        document.getElementById("save-note").textContent = "Place removed. Copy the link again; a link you already copied still has it.";
+        var after = document.querySelectorAll("[data-desk-skip]");
+        var next = after[Math.min(idx, after.length - 1)] || document.getElementById("surprise");
+        if (next && next.focus) next.focus({ preventScroll: true });
+      }
+    });
+
+    document.getElementById("desk-top").addEventListener("change", function (e) {
+      if (e.target && e.target.id === "surprise") {
+        syncFromStore();
+        plan.surprise = !!e.target.checked;
+        persist();
+        render();
+        var box = document.getElementById("surprise");
+        if (box && box.focus) box.focus({ preventScroll: true });
+      }
     });
 
     document.getElementById("copy").addEventListener("click", function () {
       var url = shareUrl();
-      document.getElementById("share-url").value = url;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function () {
-          document.getElementById("save-note").textContent = "Link copied. They get the walk — not your form. Saved on this phone, too.";
-        }).catch(function () {
-          document.getElementById("share-url").focus();
-          document.getElementById("share-url").select();
-        });
+      var box = document.getElementById("share-url");
+      box.value = url;
+      var clip = clipboardApi();
+      if (clip) {
+        clip.writeText(url).then(function () {
+          document.getElementById("save-note").textContent = "Link copied. They get the walk, not your form.";
+        }).catch(function () { box.focus(); box.select(); });
       } else {
-        document.getElementById("share-url").focus();
-        document.getElementById("share-url").select();
+        box.focus();
+        box.select();
       }
     });
 
     document.getElementById("open-guest").addEventListener("click", function () {
       if (!plan) return;
-      var url = shareUrl();
-      window.location.assign(url);
-    });
-
-    document.getElementById("land-begin").addEventListener("click", function () {
-      playStarted = true;
-      renderDay();
-      window.scrollTo(0, 0);
+      // A fresh preview each time, kept apart from the real day on this phone.
+      try { localStorage.removeItem(PLAY_PREFIX + plan.id + "-preview"); } catch (e) {}
+      // Same page, new hash: the hashchange handler switches to play.
+      location.hash = "preview/" + encodePlan(linkPlan(plan));
     });
 
     document.getElementById("rebuild").addEventListener("click", function () {
       if (!plan || mode !== "create") return;
-      plan.must = document.getElementById("note-edit").value.trim();
+      syncFromStore();
+      plan.must = document.getElementById("note-edit").value.trim().slice(0, 400);
       document.getElementById("must").value = plan.must;
       plan.rebuild = (Number(plan.rebuild) || 0) + 1;
-      revealed = false;
-      moodFocus = null;
+      plan.deck = buildDeck(plan);
       persist();
-      renderDay();
-      document.getElementById("save-note").textContent = "Day rebuilt from your note. Mystery hides the stops again if that style is on.";
+      render();
+      document.getElementById("save-note").textContent = "Day rebuilt from your note. Send the new link; older links keep the older day.";
       window.scrollTo(0, 0);
     });
 
     document.getElementById("edit").addEventListener("click", function () {
       if (mode !== "create") return;
       if (plan) plan.must = document.getElementById("note-edit").value.trim();
-      setMode("create");
       fillForm(plan);
       show("form");
     });
@@ -1895,20 +2537,17 @@
     document.getElementById("fresh").addEventListener("click", function () {
       if (mode !== "create") return;
       plan = null;
-      revealed = false;
-      moodFocus = null;
-      playStarted = false;
-      document.getElementById("save-note").textContent = "";
+      document.getElementById("save-note").textContent = "Saved on this phone. The link carries this exact day.";
       var store = readStore();
       store.last = null;
-      localStorage.setItem(STORE, JSON.stringify(store));
-      history.replaceState(null, "", creatorPath());
+      writeJSON(STORE, store);
+      history.replaceState(null, "", location.pathname);
       fillForm(null);
-      setMode("create");
       show("about");
     });
 
     document.getElementById("begin").addEventListener("click", function () {
+      fillForm(plan);
       show("form");
     });
 
@@ -1919,40 +2558,80 @@
       document.getElementById("context-help").close();
     });
 
-    function wantCreate() {
+    function createParam() {
       try {
         var q = new URLSearchParams(location.search || "");
-        return q.has("create") || q.get("mode") === "create";
+        if (q.has("create")) return q.get("create") || "";
+        return q.get("mode") === "create" ? "" : null;
       } catch (e) {
-        return /(?:\?|&)create(?:&|=|$)/.test(location.search || "");
+        return /(?:\?|&)create(?:&|=|$)/.test(location.search || "") ? "" : null;
       }
+    }
+
+    function wantCreate() {
+      return createParam() !== null;
+    }
+
+    function brokenLink() {
+      setMode("play");
+      plan = null;
+      document.getElementById("play").innerHTML =
+        '<p class="kicker">Hmm</p><h1>This link didn\'t come through whole.</h1>' +
+        '<p class="lede">Part of it got cut off on the way. Ask whoever sent it to send it again.</p>' +
+        '<p class="meta"><a href="' + esc(location.pathname) + '">Or make a day of your own</a></p>';
+      show("play");
+    }
+
+    function openSaved(id) {
+      var store = readStore();
+      if (!id || !ownsPlan(id)) return false;
+      try {
+        var saved = decodePlan(encodePlan(store.plans[id]));
+        if (saved) {
+          openDay(saved, { mode: "create" });
+          return true;
+        }
+      } catch (e) {}
+      return false;
     }
 
     function boot() {
       var incoming = parseIncomingHash();
+      previewing = !!incoming.preview;
       if (incoming.encoded && !wantCreate()) {
-        try {
-          var decoded = decodePlan(incoming.encoded);
-          if (decoded) {
-            openDay(decoded, { mode: "play", playStarted: false });
-            return;
-          }
-        } catch (e) {}
+        var decoded = null;
+        try { decoded = decodePlan(incoming.encoded); } catch (e) {}
+        if (decoded) {
+          previewing = !!incoming.preview && ownsPlan(decoded.id);
+          openDay(decoded, { mode: "play" });
+          return;
+        }
+        // Never fall through to someone's desk and wipe the link they were sent.
+        brokenLink();
+        return;
       }
+      previewing = false;
       setMode("create");
-      playStarted = false;
       var store = readStore();
-      if (store.last && store.plans && store.plans[store.last]) {
-        try {
-          var saved = decodePlan(encodePlan(store.plans[store.last]));
-          if (saved) {
-            openDay(saved, { mode: "create" });
-            return;
-          }
-        } catch (e2) {}
-      }
+      if (openSaved(createParam())) return;
+      if (openSaved(store.last)) return;
+      plan = null;
+      playCache = null;
+      view = { panel: "curtain", feel: null, pending: null, found: null };
       fillForm(null);
       show("about");
+    }
+
+    if (window.addEventListener) {
+      window.addEventListener("hashchange", boot);
+      window.addEventListener("storage", function (e) {
+        if (plan && mode === "play" && e.key === playKey()) { playCache = null; if (!typingPanel()) render(); }
+      });
+    }
+    if (document.addEventListener) {
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden && plan && mode === "play") { if (storageOK) playCache = null; if (!typingPanel()) render(); }
+      });
     }
 
     setMode("create");
