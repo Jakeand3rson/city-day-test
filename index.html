@@ -4,8 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#FAFAFA" />
-  <meta name="description" content="Free for friends and family. Make a day in St. Petersburg and share it by link. No payment." />
+  <meta name="description" content="A nudge for a day out in St. Pete, not a rigid plan. Pick what's calling, reveal one place, go." />
   <title>City Day</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="City Day" />
+  <meta property="og:title" content="City Day" />
+  <meta property="og:description" content="A nudge for a day out in St. Pete, not a rigid plan. Pick what's calling, reveal one place, go." />
+  <meta property="og:url" content="https://jakeand3rson.github.io/city-day-test/" />
+  <meta property="og:image" content="https://jakeand3rson.github.io/city-day-test/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="City Day: a sun over a low skyline and the water" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="City Day" />
+  <meta name="twitter:description" content="A nudge for a day out in St. Pete, not a rigid plan." />
+  <meta name="twitter:image" content="https://jakeand3rson.github.io/city-day-test/og-image.png" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <style>
     :root {
       --bg: #FAFAFA;
@@ -58,7 +74,7 @@
     .lede { margin: 0 0 1.15rem; max-width: 20rem; }
     .why { margin: 0 0 0.45rem; }
     .meta {
-      opacity: 0.62;
+      opacity: 0.7;
       font-size: 0.92rem;
       margin: 0 0 0.2rem;
     }
@@ -169,19 +185,62 @@
     .skip {
       display: block;
       margin: 0.75rem auto 0;
-      opacity: 0.55;
+      opacity: 0.72;
       font-size: 0.92rem;
     }
     .quiet {
       display: inline-block;
-      opacity: 0.62;
+      opacity: 0.75;
       font-size: 0.95rem;
     }
     .escapes {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.6rem 1.1rem;
+      gap: 0.55rem;
       margin: 1.2rem 0 0;
+    }
+    /* The ways out of the mystery: big enough to tap, quieter than the main buttons. */
+    .escape {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 1rem;
+      border: 1.5px solid rgba(42, 42, 42, 0.55);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    #feedback-text, #trail-text {
+      display: block;
+      width: 100%;
+      min-height: 15rem;
+      margin: 0.7rem 0 0;
+      border: 1.5px solid var(--ink);
+      border-radius: 0.9rem;
+      padding: 0.75rem 0.9rem;
+      font: inherit;
+      font-size: 0.95rem;
+      background: transparent;
+      color: var(--ink);
+    }
+    .test-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 650;
+      border: 1px solid rgba(42, 42, 42, 0.55);
+      border-radius: 999px;
+      padding: 0.15rem 0.6rem;
+      margin: 0 0 0.9rem;
+    }
+    .test-note {
+      margin: 0 0 1.1rem;
+      padding: 0.7rem 0.85rem;
+      border-left: 3px solid var(--cyan);
     }
     .kinds, .moods { display: grid; gap: 0.6rem; }
     .moods { margin: 0 0 0.6rem; }
@@ -360,6 +419,7 @@
       <p class="lede">Tell it a little about the two of you, the day, and what you like. It finds a few things that are actually open that day, including something you might have missed, and checks the weather.</p>
       <p class="why">Then the day is a game. Pick what's calling, reveal one place, go. When you get there, pick again. Want options instead? Show the list.</p>
       <p class="meta">Use it when it helps. Put it away when you stumble onto something better.</p>
+      <p class="test-note">This is an early test with friends, so some of it will be rough. Jake wants to hear what worked and what didn't. There's a button for that at the end of the day.</p>
       <button type="button" class="btn btn-primary" id="begin">Start a day</button>
     </section>
 
@@ -405,7 +465,7 @@
           <p class="meta" style="margin-bottom:0.8rem">A reservation or a show. The day is built around it, with a leave-by time.</p>
           <label class="field">
             <span>What</span>
-            <input type="text" id="anchor-name" maxlength="80" placeholder="Dinner at Beso" />
+            <input type="text" id="anchor-name" maxlength="80" placeholder="Dinner reservation, a show…" />
           </label>
           <label class="field">
             <span>Time</span>
@@ -542,6 +602,25 @@
       return !!plan && nowNY().iso === plan.date;
     }
 
+    function addDays(iso, n) {
+      var d = parseDate(iso);
+      d.setDate(d.getDate() + n);
+      return isoDate(d);
+    }
+
+    // "today", "on Saturday" this week, or "on Saturday, October 24" further out.
+    function dayPhrase(iso) {
+      var today = nowNY().iso;
+      if (iso === today) return "today";
+      var d = parseDate(iso);
+      var weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+      if (iso > today && iso <= addDays(today, 6)) return "on " + weekday;
+      return "on " + d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    }
+
+    // The friends test plans today through this many days out (direction doc, Oct 7).
+    var PLAN_AHEAD_DAYS = 3;
+
     function fmtHour(h) {
       var hh = Math.floor(h);
       var mm = Math.round((h - hh) * 60);
@@ -647,7 +726,7 @@
         start: function (d) { return d.getDay() === 0 ? 8 : 7; },
         end: function (d) { return d.getDay() === 0 ? 18 : 18.5; },
         why: function (ctx) {
-          return "Kahwa lists " + ctx.hours + " today at 204 2nd Ave S. Local roast and an easy start for " + ctx.occ + ".";
+          return "Kahwa lists " + ctx.hours + " " + ctx.on + " at 204 2nd Ave S. Local roast and an easy start for " + ctx.occ + ".";
         }
       },
       {
@@ -671,7 +750,7 @@
         start: function () { return 11; },
         end: function (d) { var day = d.getDay(); return (day === 4 || day === 5 || day === 6) ? 23 : 21; },
         why: function (ctx) {
-          return "Bodega's site lists " + ctx.hours + " today at 1180 Central. Casual, and it still respects the budget for " + ctx.occ + ".";
+          return "Bodega's site lists " + ctx.hours + " " + ctx.on + " at 1180 Central. Casual, and it still respects the budget for " + ctx.occ + ".";
         }
       },
       {
@@ -698,7 +777,7 @@
         start: function (d) { return d.getDay() === 0 || d.getDay() === 6 ? 11 : 11.5; },
         end: function (d) { var day = d.getDay(); if (day === 0) return 21; if (day === 5 || day === 6) return 23; return 22; },
         why: function (ctx) {
-          return "Stillwaters lists " + ctx.hours + " on Beach Drive today. A sit-down meal by the water for " + ctx.occ + ".";
+          return "Stillwaters lists " + ctx.hours + " on Beach Drive " + ctx.on + ". A sit-down meal by the water for " + ctx.occ + ".";
         }
       },
       {
@@ -724,7 +803,7 @@
         start: function () { return 17.5; },
         end: function (d) { var day = d.getDay(); return (day === 5 || day === 6) ? 23 : 22; },
         why: function (ctx) {
-          return "BellaBrava lists " + ctx.hours + " on Beach Drive today. A sit-down evening for " + ctx.occ + ".";
+          return "BellaBrava lists " + ctx.hours + " on Beach Drive " + ctx.on + ". A sit-down evening for " + ctx.occ + ".";
         }
       },
       {
@@ -750,7 +829,7 @@
         start: function (d) { var day = d.getDay(); return (day === 0 || day === 6) ? 11 : 12; },
         end: function (d) { var day = d.getDay(); return (day === 5 || day === 6) ? 23 : 22; },
         why: function (ctx) {
-          return "Paciugo lists " + ctx.hours + " on Beach Drive today. Something sweet for " + ctx.occ + ".";
+          return "Paciugo lists " + ctx.hours + " on Beach Drive " + ctx.on + ". Something sweet for " + ctx.occ + ".";
         }
       },
       {
@@ -1042,12 +1121,12 @@
 
     var KINDS = {
       Anniversary: [
-        { value: "away", label: "Away from the kids", hint: "Longer and quieter. Nothing built around a stroller." },
+        { value: "away", label: "Just the two of us", hint: "Longer and quieter. A grown-up pace." },
         { value: "celebrate", label: "A celebration", hint: "The fancier dinner. A night that feels dressed up." },
         { value: "easy", label: "An easy one", hint: "Walking, people watching, no schedule." }
       ],
       Date: [
-        { value: "away", label: "Just the two of you", hint: "Places that fall apart if kids come along." },
+        { value: "away", label: "Just the two of you", hint: "Places made for two." },
         { value: "celebrate", label: "A little fancy", hint: "One nicer stop, not a whole production." },
         { value: "easy", label: "Low key", hint: "Wander, then head home when you feel like it." }
       ],
@@ -1058,7 +1137,7 @@
       ],
       "Just because": [
         { value: "easy", label: "No reason needed", hint: "A walk and whatever is actually open." },
-        { value: "away", label: "A stolen day", hint: "The stuff you skip when the kids are with you." },
+        { value: "away", label: "A stolen day", hint: "The stuff you never get around to." },
         { value: "celebrate", label: "A small splurge", hint: "One nicer stop, even with no occasion." }
       ]
     };
@@ -1115,13 +1194,14 @@
       "no", "skip", "avoid", "not into", "not(?!\\s+to\\s+miss)",
       "never(?!\\s+(?:been|tried|had|seen|done|get|got|gotten|went|gone|visited|miss(?:ed|es)?|say|do|did|thought|knew|stop))",
       "without", "hates?", "hating", "nothing",
-      "can['’]?t stand", "cannot stand", "can['’]?t do", "allergic to", "sick of", "tired of",
+      "(?:can['’]?t|cannot)\\s+(?:stand|do|eat|have|drink)", "allergic to", "sick of", "tired of",
       "(?:doesn['’]?t|don['’]?t|won['’]?t|isn['’]?t|aren['’]?t|didn['’]?t)(?:\\s+(?:really|even))?\\s+(?:want(?!\\s+to\\s+miss)|like|love|eat|drink|do|need|care for|enjoy|have to(?:\\s+deal with)?|into)"
     ];
     // "museums are not our thing", "seafood isn't really his thing"
     var NOT_OUR_THING_RE = /(?:^|[,;.!?]\s*|\b(?:and|but)\s+)([a-z'’ -]{3,40}?)\s+(?:isn['’]?t|aren['’]?t|is\s+not|are\s+not)\s+(?:really\s+)?(?:our|my|his|her|their)\s+thing/g;
     // A veto ends where the next idea starts: "doesn't eat seafood so let's do tacos".
-    var CLAUSE_END_RE = /\s+(?:and|or|but|please|so|then|instead|maybe|because|since|which|though|although|unless|let['’]?s|we|we['’]re|he|she|i|i['’]m|they|you)\b/;
+    // "or" keeps going: "no crab or lobster" means neither.
+    var CLAUSE_END_RE = /\s+(?:and|but|please|so|then|instead|maybe|because|since|which|though|although|unless|let['’]?s|we|we['’]re|he|she|i|i['’]m|they|you)\b/;
     var NEGATION_RE = new RegExp("(?:^|[\\s,;.(])(?:" + NEGATION_CUES.join("|") + ")\\s+([^,;.!?\\n]+)", "g");
 
     function negatedPhrases(text) {
@@ -1159,12 +1239,57 @@
       return new RegExp("(?:^|[^a-z])" + w + "(?:s|es)?(?![a-z])").test(text);
     }
 
-    function avoidsStop(p, s) {
+    // Words that mean the same thing to a kitchen. Avoiding any of them avoids the whole group,
+    // so "allergic to shellfish" or "no fish" keeps a seafood place off. Groups the catalog
+    // doesn't tag yet (nuts, dairy, gluten...) still come back from avoidTerms() for later use.
+    var AVOID_GROUPS = {
+      seafood: ["seafood", "fish", "shellfish", "shrimp", "prawn", "crab", "lobster", "oyster", "clam", "scallop", "mussel", "sushi", "calamari", "squid", "octopus", "grouper", "snapper", "salmon", "tuna", "raw bar", "poke"],
+      nuts: ["nut", "nuts", "peanut", "tree nut", "almond", "cashew", "pecan", "walnut", "pistachio", "hazelnut"],
+      dairy: ["dairy", "milk", "lactose", "cheese", "cream"],
+      gluten: ["gluten", "wheat", "celiac", "coeliac"],
+      egg: ["egg"],
+      soy: ["soy"],
+      sesame: ["sesame"]
+    };
+
+    // "shellfish allergy", "nut allergies", "gluten-free"
+    var ALLERGY_RE = /([a-z][a-z'’ -]{1,30}?)[\s-]+allerg(?:y|ies)\b|\b(gluten|dairy|nut|peanut|lactose|egg|soy|sesame)[\s-]free\b|\b(celiac|coeliac)\b/g;
+
+    function avoidTerms(p) {
       var phrases = negatedPhrases(noteText(p));
-      if (!phrases.length) return false;
-      return (s.tags || []).some(function (tag) {
-        return phrases.some(function (ph) { return hasWord(ph, tag); });
+      var text = noteText(p);
+      var m, re = new RegExp(ALLERGY_RE.source, "g");
+      while ((m = re.exec(text))) {
+        var term = m[1] ? m[1].trim().split(/\s+/).slice(-2).join(" ") : (m[2] || m[3]);
+        if (term) phrases.push(term);
+      }
+      var terms = phrases.slice();
+      Object.keys(AVOID_GROUPS).forEach(function (group) {
+        var words = AVOID_GROUPS[group];
+        var hit = phrases.some(function (ph) { return words.some(function (w) { return hasWord(ph, w); }); });
+        if (hit) terms.push(group);
       });
+      return terms;
+    }
+
+    function avoidsStop(p, s) {
+      var terms = avoidTerms(p);
+      if (!terms.length) return false;
+      return (s.tags || []).some(function (tag) {
+        return terms.some(function (ph) { return ph === tag || hasWord(ph, tag); });
+      });
+    }
+
+    // Notes win over the drinking pill: "we don't drink", "no bars", "skip the breweries".
+    var NO_DRINK_RE = /\b(?:don['’]?t|doesn['’]?t|do not|does not|won['’]?t|never|can['’]?t|not)\s+(?:really\s+)?drink(?:s|ing)?\b|\bsober\b|\bteetotal|\bno (?:alcohol|booze|drinks?|drinking|bars?|breweries|brewery|beer|wine|cocktails?)\b|\balcohol[- ]free\b|\bdry (?:day|date|night)\b/;
+
+    function effectiveDrink(p) {
+      var text = noteText(p);
+      if (NO_DRINK_RE.test(text)) return "no";
+      var vetoed = negatedPhrases(text).some(function (ph) {
+        return /\b(?:bars?|brewer(?:y|ies)|beers?|wines?|alcohol|cocktails?|drinks?|drinking|booze)\b/.test(ph);
+      });
+      return vetoed ? "no" : p.drink;
     }
 
     function noteWants(p) {
@@ -1221,7 +1346,7 @@
       if (s.booking && !tagScore(s, positiveText(p))) return false;
       if (avoidsStop(p, s)) return false;
       if (p.kind === "away" && s.id === "pumpkin") return false;
-      if (s.bar && p.drink !== "yes") return false;
+      if (s.bar && effectiveDrink(p) !== "yes") return false;
       if (s.meal && !fitsBudget(s, cap)) return false;
       if (cap !== null && cap < 150 && pricey(s, iso) && !wants.art && !(wants.music && s.id === "folk")) return false;
       return s.isOpen(d, iso);
@@ -1307,7 +1432,7 @@
         hint: s.hint || "",
         start: s.start(d, iso),
         end: s.end(d, iso),
-        why: s.why({ iso: iso, day: d.getDay(), when: formatWhen(d), hours: hours, occ: occasionPhrase(plan) }),
+        why: s.why({ iso: iso, day: d.getDay(), when: formatWhen(d), hours: hours, occ: occasionPhrase(plan), on: dayPhrase(iso) }),
         source: s.source,
         dated: s.dated,
         outdoor: !!s.outdoor,
@@ -1770,7 +1895,7 @@
 
     // Panels where a redraw would throw away what someone is typing or copying.
     function typingPanel() {
-      return mode === "play" && (view.panel === "found" || view.panel === "trail");
+      return mode === "play" && (view.panel === "found" || view.panel === "trail" || view.panel === "cool");
     }
 
     function go(panel) {
@@ -1811,6 +1936,7 @@
       if (name === "found") { view.found = { name: "", rating: "", note: "", lat: null, lng: null }; return go("found"); }
       if (name === "trail") return go("trail");
       if (name === "copy-trail") return copyTrail();
+      if (name === "feedback") return sendFeedback();
     }
 
     function saveFound() {
@@ -1842,6 +1968,81 @@
         lines.push(at + t.name + mark + (t.found ? " — found it ourselves" : "") + (t.note ? ": " + t.note : ""));
       });
       return lines.join("\n");
+    }
+
+    // Who the friends test reports back to. No number or email here: the repo is public,
+    // so the share sheet lets each friend pick Jake from their own contacts.
+    var FEEDBACK_TO = "Jake";
+
+    // The Web Share API, or null where it isn't offered (most desktops, some webviews).
+    var shareApi = function () {
+      return typeof navigator !== "undefined" && typeof navigator.share === "function" ? navigator.share.bind(navigator) : null;
+    };
+
+    function feedbackText() {
+      var lines = ["City Day test: how it went", welcomeLine(plan), formatWhen(parseDate(plan.date)), "", "Our day:"];
+      var trail = playState().trail;
+      if (!trail.length) lines.push("- We didn't log any stops.");
+      trail.forEach(function (t) {
+        var when = new Date(t.at);
+        var at = isNaN(when) ? "" : fmtHour(nyParts(when).hour) + " ";
+        var mark = t.rating === "love" ? " (loved it)" : t.rating === "no" ? " (not for us)" : t.rating === "fine" ? " (fine)" : "";
+        lines.push("- " + at + t.name + mark + (t.found ? ", found it ourselves" : "") + (t.note ? ": " + t.note : ""));
+      });
+      var skipped = playState().skip.filter(function (id) { return STOP_BY_ID[id]; }).map(function (id) { return STOP_BY_ID[id].name; });
+      if (skipped.length) lines.push("Passed on: " + skipped.join(", "));
+      lines.push("", "Best moment:", "", "What felt off or broken:", "", "Would you use it again?", "");
+      return lines.join("\n");
+    }
+
+    function feedbackStatus(text) {
+      var done = document.getElementById("feedback-done");
+      if (done) { done.textContent = text; done.classList.remove("hidden"); }
+    }
+
+    function sendFeedback() {
+      var text = feedbackText();
+      var share = shareApi();
+      function copyIt() {
+        var clip = clipboardApi();
+        function byHand() {
+          var box = document.getElementById("feedback-text");
+          if (!box) {
+            box = document.createElement("textarea");
+            box.id = "feedback-text";
+            box.setAttribute("readonly", "");
+            box.setAttribute("aria-label", "Message for " + FEEDBACK_TO);
+            var done = document.getElementById("feedback-done");
+            if (done && done.parentNode) done.parentNode.insertBefore(box, done);
+          }
+          box.value = text;
+          if (box.focus) box.focus();
+          if (box.select) box.select();
+          feedbackStatus("Select this, copy it, and text it to " + FEEDBACK_TO + ".");
+        }
+        if (clip) {
+          clip.writeText(text).then(function () { feedbackStatus("Copied. Text it to " + FEEDBACK_TO + "."); }).catch(byHand);
+        } else {
+          byHand();
+        }
+      }
+      if (share) {
+        share({ title: "City Day: how it went", text: text }).then(function () {
+          feedbackStatus("Thanks. " + FEEDBACK_TO + " will see it.");
+        }).catch(function (err) {
+          // Closing the share sheet isn't an error; anything else falls back to copying.
+          if (!err || err.name !== "AbortError") copyIt();
+        });
+      } else {
+        copyIt();
+      }
+    }
+
+    function feedbackHtml() {
+      return '<div class="test-note" style="margin-top:1.4rem">' +
+        "<p><strong>Tell " + esc(FEEDBACK_TO) + " how it went.</strong> It's an early test. A quick note on what worked and what didn't helps most.</p>" +
+        '<button type="button" class="btn btn-primary" data-act="feedback">Tell ' + esc(FEEDBACK_TO) + " how it went</button>" +
+        '<p class="meta hidden" id="feedback-done" role="status" style="margin-top:0.5rem"></p></div>';
     }
 
     // The Clipboard API, or null where a browser or in-app webview doesn't offer it.
@@ -1977,11 +2178,11 @@
         ? '<div class="moods">' + buttons + "</div>"
         : '<p class="note">That\'s everything we found open right now. Show the list, or wander. You might find something better.</p>';
       html += '<div class="escapes">' +
-        (promoted ? "" : '<button type="button" class="quiet" data-act="list">Show me the list</button>') +
-        '<button type="button" class="quiet" data-act="iffy">Sky looks iffy</button>' +
-        '<button type="button" class="quiet" data-act="cool">Vibes are cooling</button>' +
-        '<button type="button" class="quiet" data-act="found">We found something</button>' +
-        '<button type="button" class="quiet" data-act="trail">Our day so far</button>' +
+        (promoted ? "" : '<button type="button" class="escape" data-act="list">Show me the list</button>') +
+        '<button type="button" class="escape" data-act="iffy">Sky looks iffy</button>' +
+        '<button type="button" class="escape" data-act="cool">Vibes are cooling</button>' +
+        '<button type="button" class="escape" data-act="found">We found something</button>' +
+        '<button type="button" class="escape" data-act="trail">Our day so far</button>' +
         "</div>";
       html += '<p class="meta" style="margin-top:1.2rem">' + esc(weatherLine(plan.date)) + "</p>";
       return html;
@@ -2072,11 +2273,12 @@
       } else if (a) {
         html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : "Dinner's done.") + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       } else {
-        html += '<p class="why">No fixed point today, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
+        html += '<p class="why">No fixed point on this one, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       }
       if (ensureDeck(plan).park) html += dirBtn(stopView("parking"), "Back to the car");
       html += '<button type="button" class="btn btn-ghost" data-act="trail">See our day so far</button>' +
         '<button type="button" class="skip" data-act="back">Not yet. Back to choosing</button></div>';
+      html += feedbackHtml();
       return html;
     }
 
@@ -2119,6 +2321,7 @@
         html += '<button type="button" class="btn btn-ink" data-act="copy-trail">Copy our day</button>' +
           '<p class="meta hidden" id="trail-copied" style="margin-top:0.5rem">Copied. Paste it into your notes.</p>';
       }
+      html += feedbackHtml();
       html += '<button type="button" class="btn btn-ghost" data-act="back">Back to choosing</button>';
       html += '<p class="meta" style="margin-top:1.4rem;text-align:center">Skips and your day stay on this phone. <a href="' + esc(location.pathname) + '">Make a day for someone</a></p>';
       html += deskLinkHtml();
@@ -2149,6 +2352,7 @@
       else if (view.panel === "found") html = foundHtml();
       else if (view.panel === "trail") html = trailHtml();
       else html = feelHtml();
+      html = '<p class="test-tag">Early test</p>' + html;
       if (previewing) {
         html = '<p class="strip">Preview. Nothing you tap here carries into the real day.</p>' + html +
           (view.panel === "curtain" || view.panel === "trail" ? "" : deskLinkHtml());
@@ -2325,6 +2529,7 @@
       document.getElementById("them").value = p && p.them || "";
       document.getElementById("date").value = p && p.date || "";
       document.getElementById("date").setAttribute("min", nowNY().iso);
+      document.getElementById("date").setAttribute("max", addDays(nowNY().iso, PLAN_AHEAD_DAYS));
       document.getElementById("must").value = p && p.must || "";
       document.getElementById("budget-amount").value = p && p.budgetAmount || "";
       var an = p && p.anchor;
@@ -2360,6 +2565,8 @@
         problem = "Still needed: " + (missing.length > 1 ? missing.slice(0, -1).join(", ") + (missing.length > 2 ? "," : "") + " and " + missing[missing.length - 1] : missing[0]) + ".";
       } else if (date < nowNY().iso) {
         problem = "Pick today or a date ahead. The day checks what is open on that date.";
+      } else if (date > addDays(nowNY().iso, PLAN_AHEAD_DAYS)) {
+        problem = "For this test, pick today or one of the next " + PLAN_AHEAD_DAYS + " days. That's as far ahead as we can check hours and the forecast for now.";
       } else if ((anName || anTime || anWhere) && (!anName || parseClock(anTime) === null)) {
         problem = "For something already set, add what it is and the time. Or clear those fields.";
       }

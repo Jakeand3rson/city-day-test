@@ -217,12 +217,12 @@ check("anchor: no food in the note and an easy day means no fixed point", () => 
 });
 
 check("anchor: something already set becomes the fixed point with a leave-by", () => {
-  const p = makePlan({ anchor: { name: "Dinner at Beso", time: "17:45", where: "30 S Lemon Ave, Sarasota" } });
+  const p = makePlan({ anchor: { name: "Dinner reservation", time: "17:45", where: "800 2nd Ave NE" } });
   const deck = g.buildDeck(p);
   assert(deck.anchor.type === "custom" && deck.anchor.time === 17.75 && deck.anchor.leave === 17.25, JSON.stringify(deck.anchor));
   g.plan = p; p.deck = deck;
   const line = g.anchorLine();
-  assert(/Dinner at Beso at 5:45pm\. Leave by about 5:15pm/.test(line), line);
+  assert(/Dinner reservation at 5:45pm\. Leave by about 5:15pm/.test(line), line);
 });
 
 check("sunset: about 7:10pm on October 10", () => {
@@ -273,8 +273,8 @@ check("link: junk in the deck is dropped", () => {
 // --- the play loop ---
 
 check("play: curtain, then feelings, then one hidden pick, then one reveal", () => {
-  startPlay({ must: "coffee, walking, vintage records", you: "Jake", them: "Sam" });
-  assert(/For Jake and Sam\./.test(playText()), "curtain names");
+  startPlay({ must: "coffee, walking, vintage records", you: "Alex", them: "Riley" });
+  assert(/For Alex and Riley\./.test(playText()), "curtain names");
   assert(!/Kahwa|ARTpool|Pier/.test(playText()), "curtain spoils a place");
   g.act("begin");
   assert(/What's calling\?/.test(playText()), "feel screen");
@@ -493,7 +493,7 @@ check("form: a past date and a half-filled fixed point are refused", () => {
   $("budget-amount").value = "120";
   $("date").value = "2020-01-01";
   assert(g.submitForm() === false && /today or a date ahead/.test($("form-err").textContent), "past date");
-  $("date").value = "2030-01-05";
+  $("date").value = "2026-10-09";
   $("anchor-name").value = "Dinner";
   assert(g.submitForm() === false && /already set/.test($("form-err").textContent), "anchor without time");
   $("anchor-time").value = "18:30";
@@ -563,7 +563,7 @@ check("review: an older link without a deck keeps its whole note", () => {
 });
 
 check("review: Back to your desk opens that day, not the newest one", () => {
-  const a = creatorDesk({ you: "Jake", them: "Sam" });
+  const a = creatorDesk({ you: "Alex", them: "Riley" });
   const aEnc = g.encodePlan(g.linkPlan(a));
   g.plan = null;
   const b = makePlan({ id: "planB", you: "Ana", them: "Bo" });
@@ -577,7 +577,7 @@ check("review: Back to your desk opens that day, not the newest one", () => {
   assert(href.endsWith("?create=" + encodeURIComponent(a.id)), href);
   applyUrl(href);
   g.boot();
-  assert(g.plan.id === a.id && /Jake and Sam/.test($("desk-top").textContent), "opened " + g.plan.id);
+  assert(g.plan.id === a.id && /Alex and Riley/.test($("desk-top").textContent), "opened " + g.plan.id);
 });
 
 check("review: a cut-off link says so and keeps the address", () => {
@@ -590,7 +590,7 @@ check("review: a cut-off link says so and keeps the address", () => {
 
 check("review: leaving a received link does not leak it into the form", () => {
   resetPhone();
-  const p = makePlan({ you: "Jake", them: "Sam", must: "secret proposal" });
+  const p = makePlan({ you: "Alex", them: "Riley", must: "secret proposal" });
   p.deck = g.buildDeck(p);
   openLink("#play/" + g.encodePlan(p));
   openLink("");
@@ -602,7 +602,7 @@ check("review: a new date is a new day with its own id", () => {
   const p = creatorDesk();
   const oldId = p.id;
   g.fillForm(p);
-  $("date").value = "2030-02-02";
+  $("date").value = "2026-10-09";
   assert(g.submitForm() === true, "submitted");
   assert(g.plan.id !== oldId, "same id kept");
 });
@@ -734,10 +734,10 @@ check("review: Surprise us too hides a dinner the engine picked, but not one you
   g.render();
   assert(!/BellaBrava/.test($("desk-top").textContent + $("recap").textContent), "dinner named");
   assert(/Dinner, hidden/.test($("desk-top").textContent), "hidden label");
-  creatorDesk({ anchor: { name: "Dinner at Beso", time: "17:45", where: "Sarasota" } });
+  creatorDesk({ anchor: { name: "Dinner reservation", time: "17:45", where: "800 2nd Ave NE" } });
   g.plan.surprise = true;
   g.render();
-  assert(/Dinner at Beso/.test($("desk-top").textContent), "your own booking stays visible");
+  assert(/Dinner reservation/.test($("desk-top").textContent), "your own booking stays visible");
 });
 
 check("review: the desk says why there is no dinner, even after a reload", () => {
@@ -887,11 +887,11 @@ check("verify: a failed forecast is retried, and a fresh one is not refetched", 
 });
 
 check("verify: Vibes are cooling after your own booking reads cleanly", () => {
-  startPlay({ anchor: { name: "Dinner at Beso", time: "17:45", where: "Sarasota" } });
+  startPlay({ anchor: { name: "Dinner reservation", time: "17:45", where: "800 2nd Ave NE" } });
   g.act("begin");
   g.act("here", "anchor");
   g.act("cool");
-  assert(/Dinner at Beso: done\./.test(playText()) && !/Beso's/.test(playText()), playText().slice(0, 200));
+  assert(/Dinner reservation: done\./.test(playText()) && !/reservation's/.test(playText()), playText().slice(0, 200));
 });
 
 check("verify: a note being edited on the desk is not reverted by Not for us or Surprise", () => {
@@ -929,7 +929,7 @@ check("verify: the form says exactly what is missing, takes cents, and keeps the
   assert($("kinds").querySelector('[aria-pressed="true"]'), "re-tap cleared the kind");
   click(document.querySelector('[data-group=occasion] [data-value="Date"]'));
   assert(($("kinds").querySelector('[aria-pressed="true"]') || {}).getAttribute("data-value") === "celebrate", "switching occasion kept the kind");
-  $("date").value = "2030-01-05";
+  $("date").value = "2026-10-09";
   assert(g.submitForm() === false && /Still needed: drinking, must-sees or hidden gems, and a budget\./.test($("form-err").textContent), $("form-err").textContent);
   g.applyPills({ occasion: "Date", drink: "no", lean: "gems" });
   g.renderKinds("Date", "celebrate");
@@ -992,6 +992,131 @@ await checkAsync("verify: when the clipboard refuses, both copy buttons fall bac
     assert($("trail-text") && /copy it by hand/.test($("trail-copied").textContent), "trail fallback missing");
   } finally {
     g.clipboardApi = real;
+  }
+});
+
+// --- friend-test fixes ---
+
+check("friends: the feedback message carries the trail and three prompts", () => {
+  startPlay({ must: "coffee, walking" });
+  g.act("begin");
+  const id = g.liveIds()[0];
+  g.act("here", id);
+  g.act("rate", "love");
+  g.act("found");
+  $("found-name").value = "Mural on 10th St";
+  g.view.found.rating = "no";
+  g.saveFound();
+  const text = g.feedbackText();
+  assert(text.includes(g.STOP_BY_ID[id].name + " (loved it)"), text);
+  assert(/Mural on 10th St \(not for us\), found it ourselves/.test(text), text);
+  assert(/Best moment:/.test(text) && /What felt off or broken:/.test(text) && /Would you use it again\?/.test(text), "prompts");
+  assert(!/\d{3}[-. ]\d{3}[-. ]\d{4}|@/.test(text), "no phone number or email");
+});
+
+check("friends: Tell Jake how it went is on Our day so far and at the end of the day", () => {
+  startPlay();
+  g.act("begin");
+  g.act("trail");
+  assert(/Tell Jake how it went/.test(playText()), "trail");
+  g.act("back");
+  g.act("cool");
+  assert(/Tell Jake how it went/.test(playText()), "wind-down");
+  assert(!/\d{3}[-. ]\d{3}[-. ]\d{4}/.test(fs.readFileSync(new URL("./index.html", import.meta.url), "utf8")), "a phone number in the page");
+});
+
+check("friends: the intro says it's an early test, and play shows the tag", () => {
+  assert(/early test with friends/.test($("screen-about").textContent), "intro");
+  startPlay();
+  assert(/Early test/.test(playText()), "curtain tag");
+  g.act("begin");
+  assert(/Early test/.test(playText()), "loop tag");
+});
+
+check("friends: plan today through 3 days out; further out gets a friendly no", () => {
+  resetPhone();
+  g.setMode("create");
+  g.plan = null;
+  g.fillForm(null);
+  assert($("date").getAttribute("max") === "2026-10-10", "max " + $("date").getAttribute("max"));
+  $("you").value = "A"; $("them").value = "B";
+  g.applyPills({ occasion: "Date", drink: "no", lean: "gems" });
+  g.renderKinds("Date", "easy");
+  $("budget-amount").value = "120";
+  $("date").value = "2026-10-11";
+  assert(g.submitForm() === false && /pick today or one of the next 3 days/.test($("form-err").textContent), $("form-err").textContent);
+  $("date").value = "2028-03-04";
+  assert(g.submitForm() === false, "2028 accepted");
+  $("date").value = "2026-10-10";
+  assert(g.submitForm() === true, "3 days out refused");
+  $("date").value = "2026-10-06";
+  g.plan = null;
+  assert(g.submitForm() === false, "past date accepted");
+});
+
+check("friends: cards say today only on the day, and the weekday otherwise", () => {
+  startPlay({ date: "2026-10-10", must: "coffee" });
+  const why = g.stopView("kahwa").why;
+  assert(/on Saturday at 204/.test(why) && !/\btoday\b/.test(why), why);
+  g.clockOverride = new Date("2026-10-10T09:00:00-04:00");
+  assert(/today at 204/.test(g.stopView("kahwa").why), "on the day");
+  g.clockOverride = new Date("2026-09-20T09:00:00-04:00");
+  assert(/on Saturday, October 10/.test(g.stopView("kahwa").why), "far out");
+  g.clockOverride = PINNED;
+});
+
+check("friends: allergies and 'no fish' keep seafood off", () => {
+  for (const must of ["dinner, allergic to shellfish", "dinner, no fish", "dinner. shrimp allergy", "dinner, he can't eat crab or lobster", "dinner, no sushi"]) {
+    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "300" });
+    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+  }
+  const terms = g.avoidTerms(makePlan({ must: "nut allergy, she's gluten-free, no dairy" }));
+  assert(terms.includes("nuts") && terms.includes("gluten") && terms.includes("dairy"), JSON.stringify(terms));
+  // Still the same as before:
+  assert(!allIds(deckOf({ must: "she hates museums. walking", date: "2026-10-13" })).includes("dali"), "hates museums");
+  assert(deckOf({ must: "She's never been to the Dali, so that's a must.", kind: "celebrate", budgetAmount: "250" }).pools.soft.includes("dali"), "never been");
+  assert(deckOf({ must: "He doesn't eat seafood so let's do tacos", date: "2026-10-13", budgetAmount: "120" }).anchor.id === "bodega", "so tacos");
+  assert(deckOf({ must: "no seafood, dinner", kind: "celebrate", budgetAmount: "300" }).anchor.id !== "stillwaters", "no seafood");
+});
+
+check("friends: a note that says no drinking beats Drinking: yes", () => {
+  for (const must of ["we don't drink, no bars", "no breweries please, coffee", "sober, walking", "skip the bars, tacos"]) {
+    const deck = deckOf({ must, drink: "yes" });
+    assert(!allIds(deck).includes("bench"), must + ": " + JSON.stringify(deck.pools.taste));
+  }
+  assert(allIds(deckOf({ must: "beer, walking", drink: "yes" })).includes("bench"), "drinking still works");
+  assert(!allIds(deckOf({ must: "beer, walking", drink: "no" })).includes("bench"), "Drinking: no still works");
+});
+
+check("friends: no anniversary leftovers in the page or the checks", () => {
+  const page = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
+  const checks = fs.readFileSync(new URL("./qa-verify.mjs", import.meta.url), "utf8");
+  for (const word of ["Be" + "so", "Away from the " + "kids", "Sara" + "sota"]) {
+    assert(!page.includes(word) && !checks.includes(word), "found " + word);
+  }
+});
+
+check("friends: link preview tags and icons are in place", () => {
+  const head = document.head.innerHTML;
+  for (const tag of ['property="og:title"', 'property="og:description"', 'property="og:image"', 'property="og:url"', 'name="twitter:card"', 'rel="icon"', 'rel="apple-touch-icon"']) {
+    assert(head.includes(tag), "missing " + tag);
+  }
+  for (const f of ["og-image.png", "favicon.ico", "favicon-32.png", "apple-touch-icon.png"]) {
+    assert(fs.existsSync(new URL("./" + f, import.meta.url)), "missing file " + f);
+  }
+  const png = fs.readFileSync(new URL("./og-image.png", import.meta.url));
+  assert(png.readUInt32BE(16) === 1200 && png.readUInt32BE(20) === 630, "og image is not 1200x630");
+});
+
+check("friends: escape routes are at least 44px tall and use the escape style", () => {
+  const css = [...document.querySelectorAll("style")].map((x) => x.textContent).join("\n");
+  const rule = /\.escape\s*\{([^}]*)\}/.exec(css);
+  assert(rule && /min-height:\s*44px/.test(rule[1]), "no 44px min-height");
+  startPlay();
+  g.act("begin");
+  for (const act of ["list", "iffy", "cool", "trail"]) {
+    const el = $("play").querySelector('[data-act="' + act + '"]');
+    assert(el && el.classList.contains("escape"), act + " is not an escape button");
   }
 });
 
