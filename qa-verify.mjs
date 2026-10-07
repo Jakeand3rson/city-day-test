@@ -446,19 +446,20 @@ check("desk: wet weather line counts real indoor picks, names none", () => {
   assert(/indoor picks are on the day/.test(line) && !/Dal[ií]|MFA/.test(line), line);
 });
 
-check("desk: Play it here, then Back to your desk", () => {
-  locationState.hash = "#play/" + g.encodePlan(g.plan);
+check("desk: Play it here is a preview, and Back to your desk returns", () => {
+  const enc = g.encodePlan(g.linkPlan(g.plan));
+  locationState.hash = "#preview/" + enc;
   g.boot();
-  assert(g.mode === "play", "play after hash change");
-  assert(/Back to your desk/.test(playText()), "desk link for the creator");
+  assert(g.mode === "play" && g.previewing === true, "preview mode");
+  assert(/Preview\. Nothing you tap here carries into the real day/.test(playText()), "preview banner");
   locationState.hash = "";
-  locationState.search = "?create";
+  locationState.search = "?create=" + encodeURIComponent(g.plan.id);
   g.boot();
-  assert(g.mode === "create", "desk again");
+  assert(g.mode === "create" && g.previewing === false, "desk again");
   assert(locationState.search === "", "?create stripped, so Play it here works next time");
-  locationState.hash = "#play/" + g.encodePlan(g.plan);
+  locationState.hash = "#play/" + enc;
   g.boot();
-  assert(g.mode === "play", "play works again");
+  assert(g.mode === "play" && g.previewing === false, "the real link is not a preview");
 });
 
 check("form: a past date and a half-filled fixed point are refused", () => {
@@ -478,6 +479,266 @@ check("form: a past date and a half-filled fixed point are refused", () => {
   $("anchor-time").value = "18:30";
   assert(g.submitForm() === true, "valid form");
   assert(g.plan.deck.anchor.type === "custom", "anchor saved");
+});
+
+// --- fixes from the pre-PR review ---
+
+function creatorDesk(overrides) {
+  resetPhone();
+  const p = makePlan(overrides);
+  sunny(p.date);
+  g.previewing = false;
+  g.openDay(p, { mode: "create" });
+  return g.plan;
+}
+
+function openLink(hash) {
+  locationState.search = "";
+  locationState.hash = hash;
+  g.boot();
+}
+
+check("review: a preview on the creator's phone never touches the real day", () => {
+  const p = creatorDesk({ must: "coffee, gelato, walking, art", budgetAmount: "200" });
+  const before = g.liveIds().slice();
+  const enc = g.encodePlan(g.linkPlan(p));
+  openLink("#preview/" + enc);
+  g.act("begin");
+  g.act("feel", "taste");
+  g.act("reveal");
+  g.act("skip", g.view.pending);
+  g.act("reveal");
+  g.act("here", g.view.pending);
+  assert(g.playState().trail.length === 1, "preview trail recorded");
+  locationState.hash = "";
+  locationState.search = "?create=" + encodeURIComponent(p.id);
+  g.boot();
+  assert(JSON.stringify(g.liveIds()) === JSON.stringify(before), "desk changed after preview: " + g.liveIds());
+  openLink("#play/" + enc);
+  assert(g.view.panel === "curtain" && g.playState().trail.length === 0 && g.playState().skip.length === 0, "real day starts clean");
+});
+
+check("review: the share link carries the day, not the note, budget or vetoes", () => {
+  creatorDesk({ must: "I'm proposing at sunset. She hates seafood. Keep it cheap.", budgetAmount: "75" });
+  g.plan.skip.push(g.liveIds()[0]);
+  const url = g.shareUrl();
+  const raw = url.slice(url.indexOf("#play/") + 6);
+  const json = Buffer.from(raw.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+  assert(!/proposing|seafood|"budgetAmount"|"skip"|"must":|"surprise"|"rebuild"/.test(json), json);
+  const back = g.decodePlan(raw);
+  assert(back && back.deck && back.you === "A", "still opens");
+});
+
+check("review: an older link without a deck keeps its whole note", () => {
+  const old = makePlan({ must: "x".repeat(380) + " and coffee. Please, no seafood." });
+  delete old.deck;
+  const back = g.decodePlan(g.encodePlan(old));
+  assert(back.must.endsWith("no seafood."), "note cut: " + back.must.slice(-20));
+});
+
+check("review: Back to your desk opens that day, not the newest one", () => {
+  const a = creatorDesk({ you: "Jake", them: "Sam" });
+  const aEnc = g.encodePlan(g.linkPlan(a));
+  const store = JSON.parse(window.localStorage.getItem("cityday-test-v1"));
+  g.plan = null;
+  const b = makePlan({ id: "planB", you: "Ana", them: "Bo" });
+  g.openDay(b, { mode: "create" });
+  openLink("#play/" + aEnc);
+  assert(/\?create=/.test(playHtml()), "desk link carries the id");
+  locationState.hash = "";
+  locationState.search = "?create=" + encodeURIComponent(a.id);
+  g.boot();
+  assert(g.plan.id === a.id && /Jake and Sam/.test($("desk-top").textContent), "opened " + g.plan.id);
+  assert(store.plans[a.id], "store kept day A");
+});
+
+check("review: a cut-off link says so and keeps the address", () => {
+  const p = creatorDesk();
+  const enc = g.encodePlan(g.linkPlan(p));
+  openLink("#play/" + enc.slice(0, 60));
+  assert(g.mode === "play" && /didn't come through whole/.test(playText()), playText().slice(0, 80));
+  assert(locationState.hash.startsWith("#play/"), "hash kept");
+});
+
+check("review: leaving a received link does not leak it into the form", () => {
+  resetPhone();
+  const p = makePlan({ you: "Jake", them: "Sam", must: "secret proposal" });
+  p.deck = g.buildDeck(p);
+  openLink("#play/" + g.encodePlan(p));
+  openLink("");
+  assert(g.plan === null, "plan cleared");
+  assert($("you").value === "" && $("must").value === "", "form empty");
+});
+
+check("review: a new date is a new day with its own id", () => {
+  const p = creatorDesk();
+  const oldId = p.id;
+  g.fillForm(p);
+  $("date").value = "2030-02-02";
+  assert(g.submitForm() === true, "submitted");
+  assert(g.plan.id !== oldId, "same id kept");
+});
+
+check("review: a revealed card survives a reload", () => {
+  const p = startPlay({ must: "vintage, records, art" });
+  g.act("begin");
+  g.act("feel", "dig");
+  g.act("reveal");
+  const card = g.view.pending;
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel === "reveal" && g.view.pending === card, "lost the card: " + g.view.panel);
+  g.act("here", card);
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel === "feel", "after We're here, back to choosing");
+});
+
+check("review: a feeling tapped after its places closed goes back, not to an empty card", () => {
+  startPlay({ date: "2026-10-10", must: "art, vintage", budgetAmount: "300" });
+  g.clockOverride = new Date("2026-10-10T15:20:00-04:00");
+  g.act("begin");
+  const dig = g.plan.deck.pools.dig;
+  assert(g.offered("dig").length, "dig offered at 3:20");
+  g.clockOverride = new Date("2026-10-10T16:50:00-04:00");
+  g.act("feel", "dig");
+  assert(g.view.panel === "feel" || dig.includes(g.view.pending), "panel " + g.view.panel + " pending " + g.view.pending);
+  if (g.view.panel === "commit") {
+    g.clockOverride = new Date("2026-10-10T17:40:00-04:00");
+    g.act("reveal");
+    assert(g.view.panel === "feel", "reveal of a closed place");
+  }
+});
+
+check("review: a second tab does not wipe the first tab's stops", () => {
+  const p = startPlay();
+  g.act("begin");
+  const ids = g.liveIds();
+  g.act("here", ids[0]);
+  const key = "cityday-play-state-" + p.id;
+  const other = JSON.parse(window.localStorage.getItem(key));
+  other.trail.push({ id: ids[1], name: "x", at: new Date().toISOString(), rating: "", found: false });
+  window.localStorage.setItem(key, JSON.stringify(other));
+  g.act("here", ids[2]);
+  const trail = JSON.parse(window.localStorage.getItem(key)).trail.map((t) => t.id);
+  assert(trail.includes(ids[0]) && trail.includes(ids[1]) && trail.includes(ids[2]), trail.join(","));
+});
+
+check("review: hates, doesn't eat, allergic to and can't stand all count as no", () => {
+  for (const must of ["he doesn't eat seafood. dinner somewhere nice", "she hates seafood but loves pasta", "allergic to seafood. pasta, art", "can't stand seafood. dinner"]) {
+    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "250" });
+    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+  }
+  const deck = deckOf({ must: "she hates museums. walking", date: "2026-10-13", budgetAmount: "300" });
+  assert(!allIds(deck).includes("dali") && !allIds(deck).includes("mfa"), JSON.stringify(deck.pools));
+  assert(deckOf({ must: "we don't want to deal with parking, coffee" }).park === false, "parking veto");
+  assert(deckOf({ must: "walk over to the water, coffee", date: "2026-10-13" }).pools.drift.includes("pier"), "'over' is not a no");
+});
+
+check("review: lunch in the note does not invent a 6pm dinner", () => {
+  const deck = deckOf({ must: "Tacos for lunch, then the pier. Home by 4 for the babysitter.", kind: "easy", budgetAmount: "120" });
+  assert(deck.anchor.type === "none", JSON.stringify(deck.anchor));
+  assert(deck.pools.taste.includes("bodega"), "tacos stay a daytime option: " + deck.pools.taste);
+});
+
+check("review: a place sent away on the desk never comes back as dinner", () => {
+  const p = creatorDesk({ date: "2026-10-13", must: "lunch by the water, walking", kind: "celebrate", budgetAmount: "100" });
+  p.skip.push("stillwaters");
+  p.must = "dinner, walking";
+  p.deck = g.buildDeck(p);
+  assert(p.deck.anchor.id !== "stillwaters", JSON.stringify(p.deck.anchor));
+});
+
+check("review: an easy Oct 17 skips the reservation-only volunteer shift and leads with free things", () => {
+  const easy = deckOf({ date: "2026-10-17", must: "easy walking, people watching, coffee", budgetAmount: "120" });
+  assert(!allIds(easy).includes("boyd"), JSON.stringify(easy.pools));
+  const vol = deckOf({ date: "2026-10-17", must: "volunteering outdoors, coffee" });
+  assert(allIds(vol).includes("boyd"), "asked for volunteering");
+  const music = deckOf({ date: "2026-10-17", must: "sleep in, brunch, gelato, a slow stroll", budgetAmount: "250" });
+  assert(music.pools.drift[0] !== "folk", "ticketed show first without asking: " + music.pools.drift);
+  assert(deckOf({ date: "2026-10-17", must: "live music, tacos", budgetAmount: "250" }).pools.drift[0] === "folk", "asked for music");
+});
+
+check("review: the weather after 6pm and on past days tells the truth", () => {
+  g.weatherByDate = {};
+  g.applyForecast("2026-10-10", { properties: { periods: [
+    { name: "Tonight", isDaytime: false, startTime: "2026-10-10T19:00:00-04:00", temperature: 72, temperatureUnit: "F", windSpeed: "5 mph", windDirection: "E", shortForecast: "Chance Showers And Thunderstorms" },
+    { name: "Sunday", isDaytime: true, startTime: "2026-10-11T06:00:00-04:00", temperature: 84, temperatureUnit: "F", shortForecast: "Sunny" }
+  ] } });
+  assert(g.weatherByDate["2026-10-10"].status === "ready" && g.weatherByDate["2026-10-10"].name === "Tonight" && g.weatherByDate["2026-10-10"].wet, JSON.stringify(g.weatherByDate["2026-10-10"]));
+  g.clockOverride = new Date("2026-10-20T10:00:00-04:00");
+  g.loadWeather("2026-10-12");
+  assert(g.weatherLine("2026-10-12") === "This day has passed.", g.weatherLine("2026-10-12"));
+  g.clockOverride = null;
+});
+
+check("review: after dinner, the wind-down and the strip both know it's done", () => {
+  startPlay({ must: "dinner", kind: "celebrate", budgetAmount: "300" });
+  g.act("begin");
+  g.act("here", "bellabrava");
+  g.act("cool");
+  assert(/Dinner's done/.test(playText()) && !/No fixed point/.test(playText()), playText().slice(0, 200));
+  g.act("back");
+  assert(/Dinner: done\./.test(playText()) && !/Leave by/.test(playText()), "strip");
+});
+
+check("review: Plan B lists only what is open right now on the day", () => {
+  startPlay({ date: "2026-10-13", must: "art, coffee", budgetAmount: "300" });
+  wet("2026-10-13");
+  g.clockOverride = new Date("2026-10-13T09:05:00-04:00");
+  g.act("begin");
+  g.act("iffy");
+  assert(!/Museum of Fine Arts|The Dalí Museum/.test(playText()), "lists places that open at 10");
+  g.clockOverride = null;
+});
+
+check("review: Surprise us too hides a dinner the engine picked, but not one you booked", () => {
+  creatorDesk({ must: "pasta dinner, coffee, walking", kind: "celebrate", budgetAmount: "300" });
+  g.plan.surprise = true;
+  g.render();
+  assert(!/BellaBrava/.test($("desk-top").textContent + $("recap").textContent), "dinner named");
+  assert(/Dinner, hidden/.test($("desk-top").textContent), "hidden label");
+  creatorDesk({ anchor: { name: "Dinner at Beso", time: "17:45", where: "Sarasota" } });
+  g.plan.surprise = true;
+  g.render();
+  assert(/Dinner at Beso/.test($("desk-top").textContent), "your own booking stays visible");
+});
+
+check("review: the desk says why there is no dinner, even after a reload", () => {
+  creatorDesk({ must: "Nice dinner somewhere. No seafood, no mexican.", kind: "celebrate", budgetAmount: "120" });
+  assert(/No dinner here fit your note and budget/.test($("desk-top").textContent), $("desk-top").textContent.slice(0, 300));
+  locationState.hash = "";
+  locationState.search = "";
+  g.boot();
+  assert(/No dinner here fit your note and budget/.test($("desk-top").textContent), "after reload");
+});
+
+check("review: the festival is labelled this weekend only, and counts read right", () => {
+  creatorDesk({ date: "2026-10-11", must: "festival, music, walking" });
+  assert(/St\. Pete Fall Festival · this weekend only/.test($("desk-top").textContent), "label");
+  g.plan.surprise = true;
+  g.render();
+  assert(/1 is a dated event\./.test($("desk-top").textContent), $("desk-top").textContent.slice(0, 400));
+});
+
+check("review: Copy our day falls back to a selectable box without a clipboard", () => {
+  startPlay();
+  g.act("begin");
+  g.act("here", g.liveIds()[0]);
+  g.act("trail");
+  g.act("copy-trail");
+  assert($("trail-text") && /A day in St\. Pete|An anniversary/.test($("trail-text").value), "fallback box");
+  assert(/copy it by hand/.test($("trail-copied").textContent), "told what to do");
+});
+
+check("review: a link with a prototype id does not claim to be yours", () => {
+  creatorDesk();
+  const p = makePlan({ id: "__proto__" });
+  p.deck = g.buildDeck(p);
+  openLink("#play/" + g.encodePlan(p));
+  assert(!/Back to your desk/.test(playText()), "desk link shown");
+});
+
+check("review: the budget help says the note can override it", () => {
+  assert(/unless your note asks for them/.test(document.querySelector("#budget-amount").parentNode.textContent), "copy");
 });
 
 const failed = results.filter((r) => r.startsWith("FAIL"));

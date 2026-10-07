@@ -434,7 +434,7 @@
         <label class="field">
           <span>Budget for the day</span>
           <input type="number" id="budget-amount" name="budgetAmount" min="0" step="1" inputmode="numeric" placeholder="200" required />
-          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. A lower number keeps the pricier dinners and ticketed stops off. It is a guide, not a receipt.</p>
+          <p class="meta" style="margin-top:0.45rem">A dollar amount for the two of you. A lower number keeps the pricier dinners and ticketed stops off, unless your note asks for them (art, live music). It is a guide, not a receipt.</p>
         </label>
         <label class="field">
           <span>What do you two like?</span>
@@ -497,6 +497,7 @@
     var plan = null;
     var mode = "create";
     var clockOverride = null;
+    var previewing = false;
     var view = { panel: "curtain", feel: null, pending: null, found: null };
 
     // ---------- dates and time ----------
@@ -753,7 +754,8 @@
         id: "boyd",
         name: "Native grass planting at Boyd Hill",
         feel: "drift",
-        tags: ["outdoor", "nature", "volunteer", "hands"],
+        booking: true,
+        tags: ["nature", "volunteer", "volunteering", "planting", "garden", "gardening", "preserve"],
         outdoor: true,
         address: "1101 Country Club Way South, St. Petersburg",
         query: "Boyd Hill Nature Preserve, 1101 Country Club Way South, St. Petersburg, FL",
@@ -869,7 +871,7 @@
         music: true,
         address: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg",
         query: "The St. Pete Pier, 800 2nd Ave NE, St. Petersburg, FL",
-        gem: false, bar: false, dated: true, order: 6, covers: "pier",
+        gem: false, bar: false, dated: true, order: 6, covers: "pier", only: "this weekend only",
         source: "https://stpetepier.org/signature-event/st-pete-fall-festival/",
         hint: "Free to walk in. Music, food, and a pumpkin patch on the water. Only this weekend.",
         isOpen: function (d, iso) { return iso === "2026-10-10" || iso === "2026-10-11"; },
@@ -1104,10 +1106,17 @@
       return String((p && p.must) || "").toLowerCase();
     }
 
-    // "no seafood", "skip museums", "not too fancy" -> the phrases to avoid.
+    // "no seafood", "she hates museums", "allergic to shellfish" -> the phrases to avoid.
+    var NEGATION_CUES = [
+      "no", "skip", "avoid", "not into", "not", "never", "without", "hates?", "hating", "nothing",
+      "can['’]?t stand", "cannot stand", "can['’]?t do", "allergic to", "sick of", "tired of",
+      "(?:doesn['’]?t|don['’]?t|won['’]?t|isn['’]?t|aren['’]?t|didn['’]?t)(?:\\s+(?:really|even))?\\s+(?:want|like|love|eat|drink|do|need|care for|enjoy|have to(?:\\s+deal with)?|into)"
+    ];
+    var NEGATION_RE = new RegExp("(?:^|[\\s,;.(])(?:" + NEGATION_CUES.join("|") + ")\\s+([^,;.!?\\n]+)", "g");
+
     function negatedPhrases(text) {
       var out = [];
-      var re = /(?:^|[\s,;.(])(?:no|skip|avoid|not|without|hate|don['’]?t want|nothing)\s+([^,;.!?\n]+)/g;
+      var re = new RegExp(NEGATION_RE.source, "g");
       var m;
       while ((m = re.exec(text))) {
         var phrase = m[1].split(/\s+(?:and|or|but|please)\b/)[0].trim();
@@ -1123,9 +1132,9 @@
     }
 
     function noteAvoids(p) {
-      var text = noteText(p);
+      var phrases = negatedPhrases(noteText(p));
       return {
-        museums: /no museums?\b|skip museums?\b|avoid museums?\b|without museums?\b|don'?t want museums?\b|no dali\b|skip dali\b|no mfa\b|skip mfa\b/.test(text)
+        museums: phrases.some(function (ph) { return /museum|\bdal[ií]\b|\bmfa\b/.test(ph); })
       };
     }
 
@@ -1189,7 +1198,10 @@
     }
 
     function stopAllowed(p, s, d, iso, cap, wants, avoids) {
+      if ((p.skip || []).indexOf(s.id) !== -1) return false;
       if (avoids.museums && (s.id === "dali" || s.id === "mfa")) return false;
+      // Places that need a reservation only come in when the note asks for that kind of thing.
+      if (s.booking && !tagScore(s, positiveText(p))) return false;
       if (avoidsStop(p, s)) return false;
       if (p.kind === "away" && s.id === "pumpkin") return false;
       if (s.bar && p.drink !== "yes") return false;
@@ -1211,8 +1223,9 @@
         var t = parseClock(p.anchor.time);
         return { type: "custom", time: t, leave: Math.max(0, t - 0.5) };
       }
-      var wantsDinner = wants.food || p.kind === "celebrate" || /dinner|evening|night/.test(text);
-      if (!wantsDinner) return { type: "none" };
+      var wantsDinner = p.kind === "celebrate" || /dinner|supper|evening|night/.test(text) ||
+        (wants.food && !/\b(?:lunch|brunch|breakfast|noon)\b/.test(text));
+      if (!wantsDinner) return { type: "none", reason: "not_asked" };
       // The note wins first, then the dinner that fits the budget and the kind of day.
       var tier = cap === null || cap >= 150 ? "nice" : cap >= 80 ? "mid" : "cheap";
       if (p.kind === "easy" && tier === "nice") tier = "mid";
@@ -1224,7 +1237,7 @@
         var ta = (a.costBand === tier ? 0 : 1), tb = (b.costBand === tier ? 0 : 1);
         return (ta - tb) || (a.order - b.order);
       });
-      if (!pool.length) return { type: "none" };
+      if (!pool.length) return { type: "none", reason: "none_fit" };
       return { type: "stop", id: pool[0].id, time: 18, leave: 17.5 };
     }
 
@@ -1238,18 +1251,18 @@
       var cap = spendCap(p);
       var seed = (p.must || "") + "|" + iso + "|" + (p.kind || "") + "|" + (p.lean || "") + "|" + (p.budgetAmount || "") + "|" + (p.rebuild || 0);
       var anchor = pickAnchor(p, d, iso, cap, wants, avoids, text);
-      var skipped = p.skip || [];
       var allowed = STOPS.filter(function (s) {
-        return s.feel && skipped.indexOf(s.id) === -1 && stopAllowed(p, s, d, iso, cap, wants, avoids);
+        return s.feel && stopAllowed(p, s, d, iso, cap, wants, avoids);
       });
       var covered = {};
       allowed.forEach(function (s) { if (s.covers) covered[s.covers] = true; });
       allowed = allowed.filter(function (s) { return !covered[s.id] && s.id !== anchor.id; });
       function leanRank(s) { return p.lean === "gems" ? (s.gem ? 0 : 1) : (s.gem ? 1 : 0); }
+      function leads(s) { return s.dated && (s.cost !== "ticket" || tagScore(s, text) > 0) ? 1 : 0; }
       var pools = {};
       FEEL_ORDER.forEach(function (f) {
         pools[f] = allowed.filter(function (s) { return s.feel === f; }).sort(function (a, b) {
-          return ((b.dated ? 1 : 0) - (a.dated ? 1 : 0)) ||
+          return (leads(b) - leads(a)) ||
             (tagScore(b, text) - tagScore(a, text)) ||
             (leanRank(a) - leanRank(b)) ||
             (hashOf(seed + a.id) % 97) - (hashOf(seed + b.id) % 97);
@@ -1308,6 +1321,7 @@
       var a = anchorView();
       var sun = "Sunset is about " + fmtHour(sunsetHour(parseDate(plan.date))) + ".";
       if (!a) return sun;
+      if (mode === "play" && !anchorOffered()) return (a.custom ? a.name : "Dinner") + ": done. " + sun;
       if (a.custom) return a.name + " at " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ". " + sun;
       return "Dinner around " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ". " + sun;
     }
@@ -1320,7 +1334,7 @@
     }
 
     function liveIds() {
-      var skip = (plan.skip || []).concat(playState().skip || []);
+      var skip = (plan.skip || []).concat(mode === "play" ? (playState().skip || []) : []);
       return deckIds().filter(function (id) { return skip.indexOf(id) === -1; });
     }
 
@@ -1357,6 +1371,7 @@
       if (!w || w.status === "loading") return "Checking the daytime forecast…";
       if (w.status === "later") return "The forecast isn't out yet for this date.";
       if (w.status === "error") return "The forecast didn't load. No weather was invented.";
+      if (w.status === "past") return "This day has passed.";
       var line = w.name + ", " + w.temp + ", wind " + w.wind + ". " + w.short + ".";
       if (w.wet) {
         line += mode === "play"
@@ -1371,6 +1386,10 @@
       var day = null;
       periods.forEach(function (per) {
         if (!day && per && per.isDaytime && periodDate(per.startTime) === iso) day = per;
+      });
+      // After about 6pm the day's first period is "Tonight".
+      periods.forEach(function (per) {
+        if (!day && per && periodDate(per.startTime) === iso) day = per;
       });
       if (!day) {
         weatherByDate[iso] = { status: "later" };
@@ -1391,6 +1410,10 @@
     function loadWeather(iso) {
       var existing = weatherByDate[iso];
       if (existing) return;
+      if (iso < nowNY().iso) {
+        weatherByDate[iso] = { status: "past" };
+        return;
+      }
       weatherByDate[iso] = { status: "loading" };
       nwsGet("https://api.weather.gov/points/27.770,-82.640").then(function (point) {
         var forecastUrl = point && point.properties && point.properties.forecast;
@@ -1423,6 +1446,7 @@
       });
       var a = raw.anchor && typeof raw.anchor === "object" ? raw.anchor : { type: "none" };
       var anchor = { type: "none" };
+      if (a.reason === "not_asked" || a.reason === "none_fit") anchor.reason = a.reason;
       var t = Number(a.time), leave = Number(a.leave);
       if (a.type === "stop" && STOP_BY_ID[a.id] && STOP_BY_ID[a.id].dinner && t >= 0 && t < 24) {
         anchor = { type: "stop", id: a.id, time: t, leave: isFinite(leave) ? leave : t - 0.5 };
@@ -1447,7 +1471,7 @@
       obj.you = String(obj.you || "").slice(0, 60);
       obj.them = String(obj.them || "").slice(0, 60);
       obj.custom = "";
-      obj.must = String(obj.must || "").slice(0, 400);
+      obj.must = String(obj.must || "").slice(0, 2000);
       obj.rebuild = Number(obj.rebuild) || 0;
       obj.kind = ["away", "celebrate", "easy"].indexOf(obj.kind) === -1 ? "" : obj.kind;
       obj.budget = ["100", "250", "none"].indexOf(String(obj.budget || "")) === -1 ? "" : String(obj.budget);
@@ -1483,14 +1507,25 @@
       return "#play/" + encoded;
     }
 
+    // What the link carries: the frozen day, not the creator's note, budget or vetoes.
+    function linkPlan(p) {
+      if (!p.deck) return p;
+      var o = {};
+      ["id", "you", "them", "occasion", "kind", "date", "drink", "lean", "anchor", "deck"].forEach(function (k) {
+        if (p[k] != null) o[k] = p[k];
+      });
+      return o;
+    }
+
     function shareUrl() {
-      return location.origin + location.pathname + playHash(encodePlan(plan));
+      return location.origin + location.pathname + playHash(encodePlan(linkPlan(plan)));
     }
 
     function parseIncomingHash() {
       var raw = location.hash ? location.hash.slice(1) : "";
       if (!raw) return { mode: "create", encoded: "" };
       if (raw.indexOf("play/") === 0) return { mode: "play", encoded: raw.slice(5) };
+      if (raw.indexOf("preview/") === 0) return { mode: "play", encoded: raw.slice(8), preview: true };
       // Bare hash = an older share link.
       return { mode: "play", encoded: raw };
     }
@@ -1516,23 +1551,36 @@
 
     var playCache = null;
 
+    // The creator's "Play it here" preview never touches the real day's state on this phone.
+    function playKey() {
+      return PLAY_PREFIX + plan.id + (previewing ? "-preview" : "");
+    }
+
     function playState() {
       if (!plan) return { skip: [], trail: [] };
-      if (playCache && playCache.id === plan.id) return playCache.state;
-      var st = readJSON(PLAY_PREFIX + plan.id, {});
+      if (playCache && playCache.key === playKey()) return playCache.state;
+      var st = readJSON(playKey(), {});
       if (!st || typeof st !== "object") st = {};
       st.skip = Array.isArray(st.skip) ? st.skip.map(String) : [];
       st.trail = Array.isArray(st.trail) ? st.trail : [];
-      var old = readJSON(OLD_SKIP_PREFIX + plan.id, []);
+      var old = previewing ? [] : readJSON(OLD_SKIP_PREFIX + plan.id, []);
       if (Array.isArray(old)) old.forEach(function (id) { if (st.skip.indexOf(String(id)) === -1) st.skip.push(String(id)); });
       st.started = !!st.started;
       st.parked = !!st.parked;
-      playCache = { id: plan.id, state: st };
+      st.pending = typeof st.pending === "string" ? st.pending : "";
+      st.feel = typeof st.feel === "string" ? st.feel : "";
+      st.panel = st.panel === "commit" || st.panel === "reveal" ? st.panel : "";
+      playCache = { key: playKey(), state: st };
       return st;
     }
 
     function savePlay() {
-      if (plan) writeJSON(PLAY_PREFIX + plan.id, playState());
+      if (plan) writeJSON(playKey(), playState());
+    }
+
+    function ownsPlan(id) {
+      var store = readStore();
+      return !!(store.plans && typeof store.plans === "object" && Object.prototype.hasOwnProperty.call(store.plans, id));
     }
 
     function readStore() {
@@ -1609,13 +1657,41 @@
       }
       view.feel = feel;
       if (feel === "anchor") {
+        if (!anchorOffered()) return go("feel");
         view.pending = "anchor";
       } else {
         var options = offered(feel);
+        if (!options.length) return go("feel");
         var others = options.filter(function (id) { return id !== view.pending; });
         view.pending = pickRandom(others.length ? others : options);
       }
+      holdCard("commit");
       go("commit");
+    }
+
+    function holdCard(panel) {
+      var st = playState();
+      st.pending = view.pending || "";
+      st.feel = view.feel || "";
+      st.panel = view.pending ? panel : "";
+      savePlay();
+    }
+
+    function cardStillGood(pending, feel) {
+      if (!pending) return false;
+      if (pending === "anchor") return anchorOffered();
+      return offered(feel).indexOf(pending) !== -1;
+    }
+
+    // The clock may have moved since the commit screen was drawn.
+    function revealNow() {
+      if (!cardStillGood(view.pending, view.feel)) {
+        var options = view.feel && view.feel !== "anchor" ? offered(view.feel) : [];
+        if (!options.length) { holdCard(""); view.pending = null; return go("feel"); }
+        view.pending = pickRandom(options);
+      }
+      holdCard("reveal");
+      go("reveal");
     }
 
     function markHere(id) {
@@ -1626,8 +1702,8 @@
       if (!st.trail.some(function (t) { return t.id === id; })) {
         st.trail.push({ id: id, name: name, at: (clockOverride || new Date()).toISOString(), rating: "", found: false });
       }
-      savePlay();
       view.pending = null;
+      holdCard("");
       go("feel");
     }
 
@@ -1638,8 +1714,10 @@
       var options = view.feel && view.feel !== "anchor" ? offered(view.feel) : [];
       if (options.length && view.panel === "reveal") {
         view.pending = pickRandom(options);
+        holdCard("commit");
         go("commit");
       } else {
+        if (view.panel !== "list") { view.pending = null; holdCard(""); }
         go(view.panel === "list" ? "list" : "feel");
       }
     }
@@ -1663,16 +1741,30 @@
       view.panel = panel;
       render();
       window.scrollTo(0, 0);
+      focusTop(document.getElementById("play"));
+    }
+
+    // After the screen is redrawn, move focus to its heading so screen readers hear the new step.
+    function focusTop(box) {
+      var h = box && box.querySelector(".place, h1");
+      if (!h || !h.focus) return;
+      h.setAttribute("tabindex", "-1");
+      h.focus({ preventScroll: true });
     }
 
     function act(name, arg) {
+      // Another tab may have played this day since this one last looked.
+      playCache = null;
       var st = playState();
       if (name === "begin") { st.started = true; savePlay(); return go(ensureDeck(plan).park && !st.parked ? "start" : "feel"); }
       if (name === "parked") { st.parked = true; savePlay(); return go("feel"); }
       if (name === "feel") return chooseFeel(arg);
-      if (name === "reveal") return go("reveal");
+      if (name === "reveal") return revealNow();
       if (name === "shuffle") return chooseFeel(view.feel);
-      if (name === "back") return go("feel");
+      if (name === "back") {
+        if (view.panel === "commit" || view.panel === "reveal") { view.pending = null; holdCard(""); }
+        return go("feel");
+      }
       if (name === "here") return markHere(arg);
       if (name === "skip") return skipHere(arg);
       if (name === "rate") return rateLast(arg);
@@ -1685,6 +1777,7 @@
     }
 
     function saveFound() {
+      playCache = null;
       var nameEl = document.getElementById("found-name");
       var noteEl = document.getElementById("found-note");
       var name = nameEl ? nameEl.value.trim() : "";
@@ -1717,10 +1810,26 @@
     function copyTrail() {
       var text = trailText();
       var done = document.getElementById("trail-copied");
-      if (navigator.clipboard && navigator.clipboard.writeText) {
+      function byHand() {
+        var box = document.getElementById("trail-text");
+        if (!box) {
+          box = document.createElement("textarea");
+          box.id = "trail-text";
+          box.setAttribute("readonly", "");
+          box.setAttribute("aria-label", "Our day, as text");
+          if (done && done.parentNode) done.parentNode.insertBefore(box, done);
+        }
+        box.value = text;
+        if (box.focus) box.focus();
+        if (box.select) box.select();
+        if (done) { done.textContent = "Select this and copy it by hand."; done.classList.remove("hidden"); }
+      }
+      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function () {
-          if (done) done.classList.remove("hidden");
-        }).catch(function () {});
+          if (done) { done.textContent = "Copied. Paste it into your notes."; done.classList.remove("hidden"); }
+        }).catch(byHand);
+      } else {
+        byHand();
       }
     }
 
@@ -1773,9 +1882,8 @@
     }
 
     function deskLinkHtml() {
-      var store = readStore();
-      if (!store.plans || !store.plans[plan.id]) return "";
-      return '<p style="text-align:center;margin-top:1.2rem"><a class="quiet" href="' + esc(location.pathname + "?create") + '">Back to your desk</a></p>';
+      if (!ownsPlan(plan.id)) return "";
+      return '<p style="text-align:center;margin-top:1.2rem"><a class="quiet" href="' + esc(location.pathname + "?create=" + encodeURIComponent(plan.id)) + '">Back to your desk</a></p>';
     }
 
     function startHtml() {
@@ -1899,11 +2007,13 @@
 
     function iffyHtml() {
       var visited = visitedIds();
-      var inside = liveIds().filter(function (id) { return visited.indexOf(id) === -1 && !STOP_BY_ID[id].outdoor; }).map(stopView).filter(openNow);
+      var h = nowNY().hour;
+      var inside = liveIds().filter(function (id) { return visited.indexOf(id) === -1 && !STOP_BY_ID[id].outdoor; }).map(stopView)
+        .filter(function (v) { return !isPlanDay() || (v.start <= h && h < v.end - 0.25); });
       var html = '<div class="card reveal"><div class="stamp peach">Plan B</div><p class="place">Soft landing</p>' +
         '<p class="why">' + esc(weatherLine(plan.date)) + " Florida storms usually pass. Duck inside, then pick up where you left off.</p></div>";
       html += inside.length
-        ? "<h3>Indoors, open now</h3>" + inside.map(function (v) { return cardHtml(v, { here: true }); }).join("")
+        ? "<h3>" + (isPlanDay() ? "Indoors, open now" : "Indoors on the day") + "</h3>" + inside.map(function (v) { return cardHtml(v, { here: true }); }).join("")
         : '<p class="note">Nothing indoors on the list is open right now. A café or a shop doorway works. Wait it out and check back.</p>';
       var a = anchorView();
       if (a && anchorOffered()) html += '<p class="strip">' + esc(anchorLine()) + "</p>";
@@ -1916,6 +2026,8 @@
       var html = '<div class="card reveal"><div class="stamp peach">Wind down</div><p class="place">Call it early</p>';
       if (a && anchorOffered()) {
         html += '<p class="why">Head toward ' + esc(a.name) + " early. " + (a.custom ? "It's set for " + esc(fmtHour(a.time)) + "." : "Dinner around " + esc(fmtHour(a.time)) + ", earlier if they'll seat you.") + "</p>" + dirBtn(a, "Directions to " + a.name);
+      } else if (a) {
+        html += '<p class="why">' + esc(a.custom ? a.name : "Dinner") + "'s done. Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       } else {
         html += '<p class="why">No fixed point today, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       }
@@ -1973,7 +2085,15 @@
     function renderPlay() {
       var st = playState();
       if (!st.started) view.panel = "curtain";
-      else if (view.panel === "curtain") view.panel = ensureDeck(plan).park && !st.parked ? "start" : "feel";
+      else if (view.panel === "curtain") {
+        if (st.panel && cardStillGood(st.pending, st.feel)) {
+          view.pending = st.pending;
+          view.feel = st.feel;
+          view.panel = st.panel;
+        } else {
+          view.panel = ensureDeck(plan).park && !st.parked ? "start" : "feel";
+        }
+      }
       if (view.panel === "reveal" && !view.pending) view.panel = "feel";
       var html = "";
       if (view.panel === "curtain") html = curtainHtml();
@@ -1986,6 +2106,10 @@
       else if (view.panel === "found") html = foundHtml();
       else if (view.panel === "trail") html = trailHtml();
       else html = feelHtml();
+      if (previewing) {
+        html = '<p class="strip">Preview. Nothing you tap here carries into the real day.</p>' + html +
+          (view.panel === "curtain" || view.panel === "trail" ? "" : deskLinkHtml());
+      }
       document.getElementById("play").innerHTML = html;
     }
 
@@ -2018,15 +2142,21 @@
       html += '<p class="note">' + esc(planLine(plan)) + "</p>";
       if (!datedCount()) html += '<p class="note">No dated event is verified for this day. The day uses places with standing hours that are open that date.</p>';
       html += "<h3>Where the day lands</h3>";
+      var noneFit = ensureDeck(plan).anchor.reason === "none_fit";
+      var hideDinner = plan.surprise && a && !a.custom;
       html += a
-        ? '<div class="mini"><p><strong>' + esc(a.name) + "</strong></p><p class=\"meta\">" + esc(anchorLine()) + "</p>" +
-          (a.custom ? "" : '<p class="meta">Not booked. If you want a sure table, call ' + esc(a.name) + ".</p>") + "</div>"
-        : '<p class="meta">No fixed point. Your note did not ask for dinner. ' + esc(anchorLine()) + " Add a reservation under \"Anything already set?\" to anchor the day.</p>";
+        ? '<div class="mini"><p><strong>' + esc(hideDinner ? "Dinner, hidden" : a.name) + "</strong></p><p class=\"meta\">" + esc(anchorLine()) + "</p>" +
+          (a.custom ? "" : hideDinner
+            ? '<p class="meta">Not booked. Untick Surprise us too to see where, if you want to call ahead.</p>'
+            : '<p class="meta">Not booked. If you want a sure table, call ' + esc(a.name) + ".</p>") + "</div>"
+        : '<p class="meta">No fixed point. ' + (noneFit ? "No dinner here fit your note and budget." : "Your note did not ask for dinner.") + " " + esc(anchorLine()) +
+          " Add a reservation under \"Anything already set?\" to anchor the day.</p>";
       html += '<label class="check"><input type="checkbox" id="surprise"' + (plan.surprise ? " checked" : "") + ' /><span><strong>Surprise us too.</strong> Hide the places from me, so I can play the day without spoilers.</span></label>';
       if (plan.surprise) {
         var feelsWith = FEEL_ORDER.filter(function (f) { return (ensureDeck(plan).pools[f] || []).some(function (id) { return ids.indexOf(id) !== -1; }); }).length;
+        var dated = datedCount();
         html += '<p class="note">What we checked: ' + ids.length + " places verified open on " + esc(formatWhen(d)) + ", across " + feelsWith + " feelings. " +
-          (datedCount() ? datedCount() + " of them only happen that day. " : "") + "The forecast is checked when it is out.</p>";
+          (dated ? dated + (dated === 1 ? " is a dated event. " : " are dated events. ") : "") + "The forecast is checked when it is out.</p>";
       } else {
         FEEL_ORDER.forEach(function (f) {
           var list = (ensureDeck(plan).pools[f] || []).filter(function (id) { return ids.indexOf(id) !== -1; });
@@ -2034,7 +2164,7 @@
           html += "<h3>" + esc(FEELS[f].label) + "</h3>";
           html += list.map(function (id) {
             var v = stopView(id);
-            return '<div class="mini"><p>' + esc(v.name) + (v.dated ? " · only this day" : "") + '</p><p class="meta">' + esc(v.hours) +
+            return '<div class="mini"><p>' + esc(v.name) + (v.dated ? " · " + (STOP_BY_ID[id].only || "only this day") : "") + '</p><p class="meta">' + esc(v.hours) +
               ' · <button type="button" class="skip" style="display:inline;margin:0" data-desk-skip="' + esc(id) + '">Not for us</button></p></div>';
           }).join("");
         });
@@ -2061,7 +2191,7 @@
         (kindLabel(plan) ? '<p class="recap-k">Kind</p><p class="why">' + esc(kindLabel(plan)) + "</p>" : "") +
         (budgetLabel(plan) ? '<p class="recap-k">Budget</p><p class="why">' + esc(budgetLabel(plan)) + "</p>" : "") +
         '<p class="recap-k">Date</p><p class="why">' + esc(when) + "</p>" +
-        (a ? '<p class="recap-k">Fixed point</p><p class="why">' + esc(a.name + ", " + fmtHour(a.time)) + "</p>" : "") +
+        (a ? '<p class="recap-k">Fixed point</p><p class="why">' + esc((plan.surprise && !a.custom ? "Dinner (hidden)" : a.name) + ", " + fmtHour(a.time)) + "</p>" : "") +
         '<p class="recap-k">Places on the day</p>' + items +
         (plan.must ? '<p class="recap-k">What you two like</p><p class="why">' + esc(plan.must) + "</p>" : "");
     }
@@ -2089,7 +2219,7 @@
       if (opts.mode) setMode(opts.mode);
       ensureDeck(plan);
       if (mode === "play") {
-        var want = playHash(encodePlan(plan));
+        var want = (previewing ? "#preview/" : "#play/") + encodePlan(linkPlan(plan));
         if (location.hash !== want) history.replaceState(null, "", want);
         render();
         show("play");
@@ -2175,11 +2305,14 @@
       if (problem) {
         err.textContent = problem;
         err.classList.remove("hidden");
+        err.setAttribute("tabindex", "-1");
+        if (err.scrollIntoView) err.scrollIntoView({ block: "center" });
+        if (err.focus) err.focus({ preventScroll: true });
         return false;
       }
       err.classList.add("hidden");
       var next = {
-        id: plan && plan.id ? plan.id : uid(),
+        id: plan && plan.id && plan.date === date ? plan.id : uid(),
         you: you,
         them: them,
         occasion: pills.occasion,
@@ -2266,6 +2399,8 @@
         plan.deck = buildDeck(plan);
         persist();
         render();
+        var next = document.querySelector("[data-desk-skip]") || document.getElementById("surprise");
+        if (next && next.focus) next.focus();
       }
     });
 
@@ -2274,6 +2409,8 @@
         plan.surprise = !!e.target.checked;
         persist();
         render();
+        var box = document.getElementById("surprise");
+        if (box && box.focus) box.focus();
       }
     });
 
@@ -2293,8 +2430,10 @@
 
     document.getElementById("open-guest").addEventListener("click", function () {
       if (!plan) return;
+      // A fresh preview each time, kept apart from the real day on this phone.
+      try { localStorage.removeItem(PLAY_PREFIX + plan.id + "-preview"); } catch (e) {}
       // Same page, new hash: the hashchange handler switches to play.
-      location.hash = playHash(encodePlan(plan)).slice(1);
+      location.hash = "preview/" + encodePlan(linkPlan(plan));
     });
 
     document.getElementById("rebuild").addEventListener("click", function () {
@@ -2340,42 +2479,80 @@
       document.getElementById("context-help").close();
     });
 
-    function wantCreate() {
+    function createParam() {
       try {
         var q = new URLSearchParams(location.search || "");
-        return q.has("create") || q.get("mode") === "create";
+        if (q.has("create")) return q.get("create") || "";
+        return q.get("mode") === "create" ? "" : null;
       } catch (e) {
-        return /(?:\?|&)create(?:&|=|$)/.test(location.search || "");
+        return /(?:\?|&)create(?:&|=|$)/.test(location.search || "") ? "" : null;
       }
+    }
+
+    function wantCreate() {
+      return createParam() !== null;
+    }
+
+    function brokenLink() {
+      setMode("play");
+      plan = null;
+      document.getElementById("play").innerHTML =
+        '<p class="kicker">Hmm</p><h1>This link didn\'t come through whole.</h1>' +
+        '<p class="lede">Part of it got cut off on the way. Ask whoever sent it to send it again.</p>' +
+        '<p class="meta"><a href="' + esc(location.pathname) + '">Or make a day of your own</a></p>';
+      show("play");
+    }
+
+    function openSaved(id) {
+      var store = readStore();
+      if (!id || !ownsPlan(id)) return false;
+      try {
+        var saved = decodePlan(encodePlan(store.plans[id]));
+        if (saved) {
+          openDay(saved, { mode: "create" });
+          return true;
+        }
+      } catch (e) {}
+      return false;
     }
 
     function boot() {
       var incoming = parseIncomingHash();
+      previewing = !!incoming.preview;
       if (incoming.encoded && !wantCreate()) {
-        try {
-          var decoded = decodePlan(incoming.encoded);
-          if (decoded) {
-            openDay(decoded, { mode: "play" });
-            return;
-          }
-        } catch (e) {}
+        var decoded = null;
+        try { decoded = decodePlan(incoming.encoded); } catch (e) {}
+        if (decoded) {
+          openDay(decoded, { mode: "play" });
+          return;
+        }
+        // Never fall through to someone's desk and wipe the link they were sent.
+        brokenLink();
+        return;
       }
+      previewing = false;
       setMode("create");
       var store = readStore();
-      if (store.last && store.plans && store.plans[store.last]) {
-        try {
-          var saved = decodePlan(encodePlan(store.plans[store.last]));
-          if (saved) {
-            openDay(saved, { mode: "create" });
-            return;
-          }
-        } catch (e2) {}
-      }
+      if (openSaved(createParam())) return;
+      if (openSaved(store.last)) return;
+      plan = null;
+      playCache = null;
+      view = { panel: "curtain", feel: null, pending: null, found: null };
       fillForm(null);
       show("about");
     }
 
-    if (window.addEventListener) window.addEventListener("hashchange", boot);
+    if (window.addEventListener) {
+      window.addEventListener("hashchange", boot);
+      window.addEventListener("storage", function (e) {
+        if (plan && mode === "play" && e.key === playKey()) { playCache = null; render(); }
+      });
+    }
+    if (document.addEventListener) {
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden && plan && mode === "play") { playCache = null; render(); }
+      });
+    }
 
     setMode("create");
     boot();
