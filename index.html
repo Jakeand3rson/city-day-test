@@ -498,6 +498,9 @@
     var mode = "create";
     var clockOverride = null;
     var previewing = false;
+    var storageOK = (function () {
+      try { localStorage.setItem("cityday-probe", "1"); localStorage.removeItem("cityday-probe"); return true; } catch (e) { return false; }
+    })();
     var view = { panel: "curtain", feel: null, pending: null, found: null };
 
     // ---------- dates and time ----------
@@ -755,7 +758,7 @@
         name: "Native grass planting at Boyd Hill",
         feel: "drift",
         booking: true,
-        tags: ["nature", "volunteer", "volunteering", "planting", "garden", "gardening", "preserve"],
+        tags: ["nature", "volunteer", "volunteering", "planting", "gardening", "nature preserve"],
         outdoor: true,
         address: "1101 Country Club Way South, St. Petersburg",
         query: "Boyd Hill Nature Preserve, 1101 Country Club Way South, St. Petersburg, FL",
@@ -1107,11 +1110,18 @@
     }
 
     // "no seafood", "she hates museums", "allergic to shellfish" -> the phrases to avoid.
+    // "never been to the Dalí" and "doesn't want to miss the festival" are wishes, not vetoes.
     var NEGATION_CUES = [
-      "no", "skip", "avoid", "not into", "not", "never", "without", "hates?", "hating", "nothing",
+      "no", "skip", "avoid", "not into", "not(?!\\s+to\\s+miss)",
+      "never(?!\\s+(?:been|tried|had|seen|done|get|got|gotten|went|gone|visited|miss(?:ed|es)?|say|do|did|thought|knew|stop))",
+      "without", "hates?", "hating", "nothing",
       "can['’]?t stand", "cannot stand", "can['’]?t do", "allergic to", "sick of", "tired of",
-      "(?:doesn['’]?t|don['’]?t|won['’]?t|isn['’]?t|aren['’]?t|didn['’]?t)(?:\\s+(?:really|even))?\\s+(?:want|like|love|eat|drink|do|need|care for|enjoy|have to(?:\\s+deal with)?|into)"
+      "(?:doesn['’]?t|don['’]?t|won['’]?t|isn['’]?t|aren['’]?t|didn['’]?t)(?:\\s+(?:really|even))?\\s+(?:want(?!\\s+to\\s+miss)|like|love|eat|drink|do|need|care for|enjoy|have to(?:\\s+deal with)?|into)"
     ];
+    // "museums are not our thing", "seafood isn't really his thing"
+    var NOT_OUR_THING_RE = /(?:^|[,;.!?]\s*|\b(?:and|but)\s+)([a-z'’ -]{3,40}?)\s+(?:isn['’]?t|aren['’]?t|is\s+not|are\s+not)\s+(?:really\s+)?(?:our|my|his|her|their)\s+thing/g;
+    // A veto ends where the next idea starts: "doesn't eat seafood so let's do tacos".
+    var CLAUSE_END_RE = /\s+(?:and|or|but|please|so|then|instead|maybe|because|since|which|though|although|unless|let['’]?s|we|we['’]re|he|she|i|i['’]m|they|you)\b/;
     var NEGATION_RE = new RegExp("(?:^|[\\s,;.(])(?:" + NEGATION_CUES.join("|") + ")\\s+([^,;.!?\\n]+)", "g");
 
     function negatedPhrases(text) {
@@ -1119,8 +1129,13 @@
       var re = new RegExp(NEGATION_RE.source, "g");
       var m;
       while ((m = re.exec(text))) {
-        var phrase = m[1].split(/\s+(?:and|or|but|please)\b/)[0].trim();
+        var phrase = (" " + m[1]).split(CLAUSE_END_RE)[0].trim();
         if (phrase && !/^but\b/.test(phrase)) out.push(phrase);
+      }
+      var thing = new RegExp(NOT_OUR_THING_RE.source, "g");
+      while ((m = thing.exec(text))) {
+        var subject = m[1].trim().split(/\s+/).slice(-3).join(" ");
+        if (subject) out.push(subject);
       }
       return out;
     }
@@ -1131,11 +1146,12 @@
       return text;
     }
 
+    // Turning down one museum is not turning down both.
     function noteAvoids(p) {
       var phrases = negatedPhrases(noteText(p));
-      return {
-        museums: phrases.some(function (ph) { return /museum|\bdal[ií]\b|\bmfa\b/.test(ph); })
-      };
+      var dali = phrases.some(function (ph) { return /museum|\bdal[ií](?![a-z])/.test(ph); });
+      var mfa = phrases.some(function (ph) { return /museum|\bmfa\b|fine arts/.test(ph); });
+      return { dali: dali, mfa: mfa, museums: dali && mfa };
     }
 
     function hasWord(text, word) {
@@ -1159,7 +1175,7 @@
       }
       return {
         empty: false,
-        art: (/\bart\b|museum|gallery|dali/.test(text) && !avoids.museums),
+        art: (/\bart\b|museum|gallery|dal[ií]/.test(text) && !avoids.museums),
         music: /music|live band|concert/.test(text),
         walk: /walking|people watching|stroll|wander/.test(text),
         parking: /parking|garage|\bcar\b|driving|drove|drive downtown/.test(text),
@@ -1199,7 +1215,8 @@
 
     function stopAllowed(p, s, d, iso, cap, wants, avoids) {
       if ((p.skip || []).indexOf(s.id) !== -1) return false;
-      if (avoids.museums && (s.id === "dali" || s.id === "mfa")) return false;
+      if (avoids.dali && s.id === "dali") return false;
+      if (avoids.mfa && s.id === "mfa") return false;
       // Places that need a reservation only come in when the note asks for that kind of thing.
       if (s.booking && !tagScore(s, positiveText(p))) return false;
       if (avoidsStop(p, s)) return false;
@@ -1392,7 +1409,7 @@
         if (!day && per && periodDate(per.startTime) === iso) day = per;
       });
       if (!day) {
-        weatherByDate[iso] = { status: "later" };
+        weatherByDate[iso] = { status: "later", fetchedAt: Date.now() };
         return;
       }
       var blob = (day.name || "") + " " + (day.shortForecast || "") + " " + (day.detailedForecast || "");
@@ -1403,28 +1420,40 @@
         temp: (day.temperature != null ? day.temperature : "—") + "°" + (day.temperatureUnit || "F"),
         wind: wind || "—",
         short: day.shortForecast || "No short forecast",
-        wet: forecastMentionsWet(blob)
+        wet: forecastMentionsWet(blob),
+        fetchedAt: Date.now()
       };
+    }
+
+    // A failed load is retried after 2 minutes; a forecast older than 45 minutes is refreshed.
+    function weatherStale(w) {
+      if (!w.fetchedAt) return false;
+      var age = Date.now() - w.fetchedAt;
+      if (w.status === "error") return age > 2 * 60000;
+      if (w.status === "ready" || w.status === "later") return age > 45 * 60000;
+      return false;
     }
 
     function loadWeather(iso) {
       var existing = weatherByDate[iso];
-      if (existing) return;
+      if (existing && !weatherStale(existing)) return;
       if (iso < nowNY().iso) {
         weatherByDate[iso] = { status: "past" };
         return;
       }
-      weatherByDate[iso] = { status: "loading" };
+      // Keep showing the forecast we have while a fresh one loads.
+      var keep = existing && existing.status === "ready" ? existing : null;
+      weatherByDate[iso] = keep ? Object.assign({}, keep, { fetchedAt: Date.now() }) : { status: "loading", fetchedAt: Date.now() };
       nwsGet("https://api.weather.gov/points/27.770,-82.640").then(function (point) {
         var forecastUrl = point && point.properties && point.properties.forecast;
         if (!forecastUrl) throw new Error("no forecast url");
         return nwsGet(forecastUrl);
       }).then(function (forecast) {
         applyForecast(iso, forecast);
-        if (plan && plan.date === iso) render();
+        if (plan && plan.date === iso && !typingPanel()) render();
       }).catch(function () {
-        weatherByDate[iso] = { status: "error" };
-        if (plan && plan.date === iso) render();
+        weatherByDate[iso] = keep ? Object.assign({}, keep, { fetchedAt: Date.now() }) : { status: "error", fetchedAt: Date.now() };
+        if (plan && plan.date === iso && !typingPanel()) render();
       });
     }
 
@@ -1570,6 +1599,7 @@
       st.pending = typeof st.pending === "string" ? st.pending : "";
       st.feel = typeof st.feel === "string" ? st.feel : "";
       st.panel = st.panel === "commit" || st.panel === "reveal" ? st.panel : "";
+      st.heldOn = typeof st.heldOn === "string" ? st.heldOn : "";
       playCache = { key: playKey(), state: st };
       return st;
     }
@@ -1674,6 +1704,7 @@
       st.pending = view.pending || "";
       st.feel = view.feel || "";
       st.panel = view.pending ? panel : "";
+      st.heldOn = view.pending ? nowNY().iso : "";
       savePlay();
     }
 
@@ -1737,6 +1768,11 @@
       return null;
     }
 
+    // Panels where a redraw would throw away what someone is typing or copying.
+    function typingPanel() {
+      return mode === "play" && (view.panel === "found" || view.panel === "trail");
+    }
+
     function go(panel) {
       view.panel = panel;
       render();
@@ -1754,7 +1790,8 @@
 
     function act(name, arg) {
       // Another tab may have played this day since this one last looked.
-      playCache = null;
+      // With storage blocked, the in-memory copy is the only copy, so keep it.
+      if (storageOK) playCache = null;
       var st = playState();
       if (name === "begin") { st.started = true; savePlay(); return go(ensureDeck(plan).park && !st.parked ? "start" : "feel"); }
       if (name === "parked") { st.parked = true; savePlay(); return go("feel"); }
@@ -1777,7 +1814,7 @@
     }
 
     function saveFound() {
-      playCache = null;
+      if (storageOK) playCache = null;
       var nameEl = document.getElementById("found-name");
       var noteEl = document.getElementById("found-note");
       var name = nameEl ? nameEl.value.trim() : "";
@@ -1807,6 +1844,11 @@
       return lines.join("\n");
     }
 
+    // The Clipboard API, or null where a browser or in-app webview doesn't offer it.
+    var clipboardApi = function () {
+      return typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard : null;
+    };
+
     function copyTrail() {
       var text = trailText();
       var done = document.getElementById("trail-copied");
@@ -1824,8 +1866,9 @@
         if (box.select) box.select();
         if (done) { done.textContent = "Select this and copy it by hand."; done.classList.remove("hidden"); }
       }
-      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function () {
+      var clip = clipboardApi();
+      if (clip) {
+        clip.writeText(text).then(function () {
           if (done) { done.textContent = "Copied. Paste it into your notes."; done.classList.remove("hidden"); }
         }).catch(byHand);
       } else {
@@ -2027,7 +2070,7 @@
       if (a && anchorOffered()) {
         html += '<p class="why">Head toward ' + esc(a.name) + " early. " + (a.custom ? "It's set for " + esc(fmtHour(a.time)) + "." : "Dinner around " + esc(fmtHour(a.time)) + ", earlier if they'll seat you.") + "</p>" + dirBtn(a, "Directions to " + a.name);
       } else if (a) {
-        html += '<p class="why">' + esc(a.custom ? a.name : "Dinner") + "'s done. Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
+        html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : "Dinner's done.") + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       } else {
         html += '<p class="why">No fixed point today, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       }
@@ -2044,13 +2087,13 @@
         '<p class="kicker">Off the list</p><h1>We found something.</h1>' +
         '<p class="lede">Log it so you remember it. It goes on your day.</p>' +
         '<p class="err hidden" id="found-err" role="alert">Give it a name, even a rough one.</p>' +
-        '<label class="field"><span>What was it?</span><input type="text" id="found-name" maxlength="80" placeholder="The mural on 10th St, a taco truck…" /></label>' +
+        '<label class="field"><span>What was it?</span><input type="text" id="found-name" maxlength="80" value="' + esc(f.name || "") + '" placeholder="The mural on 10th St, a taco truck…" /></label>' +
         '<div class="group"><p>How was it?</p><div class="rate">' +
           '<button type="button" data-found-rate="love" aria-pressed="' + pressed("love") + '">Loved it</button>' +
           '<button type="button" data-found-rate="fine" aria-pressed="' + pressed("fine") + '">Fine</button>' +
           '<button type="button" data-found-rate="no" aria-pressed="' + pressed("no") + '">Not for us</button>' +
         "</div></div>" +
-        '<label class="field"><span>A note (optional)</span><input type="text" id="found-note" maxlength="200" /></label>' +
+        '<label class="field"><span>A note (optional)</span><input type="text" id="found-note" maxlength="200" value="' + esc(f.note || "") + '" /></label>' +
         '<button type="button" class="quiet" id="found-where">' + (f.lat != null ? "Location saved" : "Save where we are") + "</button>" +
         '<button type="button" class="btn btn-primary" id="found-save">Add to our day</button>' +
         '<button type="button" class="skip" data-act="back">Never mind</button>'
@@ -2086,7 +2129,7 @@
       var st = playState();
       if (!st.started) view.panel = "curtain";
       else if (view.panel === "curtain") {
-        if (st.panel && cardStillGood(st.pending, st.feel)) {
+        if (st.panel && st.heldOn === nowNY().iso && cardStillGood(st.pending, st.feel)) {
           view.pending = st.pending;
           view.feel = st.feel;
           view.panel = st.panel;
@@ -2172,8 +2215,7 @@
       }
       document.getElementById("desk-top").innerHTML = html;
       document.getElementById("share-url").value = shareUrl();
-      var noteEdit = document.getElementById("note-edit");
-      if (noteEdit && document.activeElement !== noteEdit) noteEdit.value = plan.must || "";
+
       renderRecap(ids);
     }
 
@@ -2198,9 +2240,9 @@
 
     function render() {
       if (!plan) return;
+      loadWeather(plan.date);
       if (mode === "play") renderPlay();
       else renderDesk();
-      loadWeather(plan.date);
     }
 
     function show(which) {
@@ -2227,7 +2269,18 @@
         persist();
         render();
         show("desk");
+        var noteEdit = document.getElementById("note-edit");
+        if (noteEdit) noteEdit.value = plan.must || "";
       }
+    }
+
+    // Another desk tab may have sent places away since this one loaded.
+    function syncFromStore() {
+      if (!plan || !ownsPlan(plan.id)) return;
+      var saved = readStore().plans[plan.id];
+      (saved && Array.isArray(saved.skip) ? saved.skip : []).forEach(function (id) {
+        if (STOP_BY_ID[id] && plan.skip.indexOf(id) === -1) plan.skip.push(id);
+      });
     }
 
     // ---------- the form ----------
@@ -2295,8 +2348,16 @@
       var anTime = document.getElementById("anchor-time").value;
       var anWhere = document.getElementById("anchor-where").value.trim();
       var problem = "";
-      if (!you || !them || !pills.occasion || !pills.kind || !date || !parseDate(date) || !pills.drink || !pills.lean || !/^\d+$/.test(amount)) {
-        problem = "Add both names, an occasion, the kind of day, a date, a budget, and the other choices.";
+      var missing = [];
+      if (!you || !them) missing.push("both names");
+      if (!pills.occasion) missing.push("the occasion");
+      if (!pills.kind) missing.push("the kind of day");
+      if (!date || !parseDate(date)) missing.push("the date");
+      if (!pills.drink) missing.push("drinking");
+      if (!pills.lean) missing.push("must-sees or hidden gems");
+      if (!/^\d+(?:\.\d+)?$/.test(amount)) missing.push(amount ? "a budget in dollars, like 150" : "a budget");
+      if (missing.length) {
+        problem = "Still needed: " + (missing.length > 1 ? missing.slice(0, -1).join(", ") + (missing.length > 2 ? "," : "") + " and " + missing[missing.length - 1] : missing[0]) + ".";
       } else if (date < nowNY().iso) {
         problem = "Pick today or a date ahead. The day checks what is open on that date.";
       } else if ((anName || anTime || anWhere) && (!anName || parseClock(anTime) === null)) {
@@ -2324,7 +2385,7 @@
         style: "mystery",
         lean: pills.lean,
         budget: "",
-        budgetAmount: amount,
+        budgetAmount: String(Math.round(Number(amount))),
         must: document.getElementById("must").value.trim().slice(0, 400),
         anchor: anName ? { name: anName.slice(0, 80), time: anTime, where: anWhere.slice(0, 120) } : null,
         skip: plan && plan.date === date ? (plan.skip || []) : [],
@@ -2338,11 +2399,16 @@
 
     document.querySelectorAll("#day-form .pills button").forEach(function (btn) {
       btn.addEventListener("click", function () {
+        var wasOn = btn.getAttribute("aria-pressed") === "true";
         btn.parentNode.querySelectorAll("[data-value]").forEach(function (b) {
           b.setAttribute("aria-pressed", b === btn ? "true" : "false");
         });
         var group = btn.closest("[data-group]");
-        if (group && group.getAttribute("data-group") === "occasion") renderKinds(btn.getAttribute("data-value"), "");
+        if (group && group.getAttribute("data-group") === "occasion" && !wasOn) {
+          // Every occasion offers the same three kinds, so a change keeps the one picked.
+          var kindOn = document.querySelector('#kinds [aria-pressed="true"]');
+          renderKinds(btn.getAttribute("data-value"), kindOn ? kindOn.getAttribute("data-value") : "");
+        }
       });
     });
 
@@ -2360,6 +2426,12 @@
     });
 
     // ---------- events ----------
+
+    document.getElementById("play").addEventListener("input", function (e) {
+      if (!view.found || !e.target) return;
+      if (e.target.id === "found-name") view.found.name = e.target.value;
+      if (e.target.id === "found-note") view.found.note = e.target.value;
+    });
 
     document.getElementById("play").addEventListener("click", function (e) {
       var rateBtn = e.target.closest("[data-found-rate]");
@@ -2394,23 +2466,28 @@
       var skipBtn = e.target.closest("[data-desk-skip]");
       if (skipBtn) {
         var id = skipBtn.getAttribute("data-desk-skip");
+        var idx = Array.prototype.indexOf.call(document.querySelectorAll("[data-desk-skip]"), skipBtn);
+        syncFromStore();
         if (plan.skip.indexOf(id) === -1) plan.skip.push(id);
         // Same order as before, with the next place stepping in.
         plan.deck = buildDeck(plan);
         persist();
         render();
-        var next = document.querySelector("[data-desk-skip]") || document.getElementById("surprise");
-        if (next && next.focus) next.focus();
+        document.getElementById("save-note").textContent = "Place removed. Copy the link again; a link you already copied still has it.";
+        var after = document.querySelectorAll("[data-desk-skip]");
+        var next = after[Math.min(idx, after.length - 1)] || document.getElementById("surprise");
+        if (next && next.focus) next.focus({ preventScroll: true });
       }
     });
 
     document.getElementById("desk-top").addEventListener("change", function (e) {
       if (e.target && e.target.id === "surprise") {
+        syncFromStore();
         plan.surprise = !!e.target.checked;
         persist();
         render();
         var box = document.getElementById("surprise");
-        if (box && box.focus) box.focus();
+        if (box && box.focus) box.focus({ preventScroll: true });
       }
     });
 
@@ -2418,8 +2495,9 @@
       var url = shareUrl();
       var box = document.getElementById("share-url");
       box.value = url;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function () {
+      var clip = clipboardApi();
+      if (clip) {
+        clip.writeText(url).then(function () {
           document.getElementById("save-note").textContent = "Link copied. They get the walk, not your form.";
         }).catch(function () { box.focus(); box.select(); });
       } else {
@@ -2438,6 +2516,7 @@
 
     document.getElementById("rebuild").addEventListener("click", function () {
       if (!plan || mode !== "create") return;
+      syncFromStore();
       plan.must = document.getElementById("note-edit").value.trim().slice(0, 400);
       document.getElementById("must").value = plan.must;
       plan.rebuild = (Number(plan.rebuild) || 0) + 1;
@@ -2523,6 +2602,7 @@
         var decoded = null;
         try { decoded = decodePlan(incoming.encoded); } catch (e) {}
         if (decoded) {
+          previewing = !!incoming.preview && ownsPlan(decoded.id);
           openDay(decoded, { mode: "play" });
           return;
         }
@@ -2545,12 +2625,12 @@
     if (window.addEventListener) {
       window.addEventListener("hashchange", boot);
       window.addEventListener("storage", function (e) {
-        if (plan && mode === "play" && e.key === playKey()) { playCache = null; render(); }
+        if (plan && mode === "play" && e.key === playKey()) { playCache = null; if (!typingPanel()) render(); }
       });
     }
     if (document.addEventListener) {
       document.addEventListener("visibilitychange", function () {
-        if (!document.hidden && plan && mode === "play") { playCache = null; render(); }
+        if (!document.hidden && plan && mode === "play") { if (storageOK) playCache = null; if (!typingPanel()) render(); }
       });
     }
 

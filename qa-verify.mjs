@@ -6,8 +6,11 @@ const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
 const { window, document } = parseHTML(html);
 
 const store = {};
+// Like a browser, setting location.hash without "#" stores it with one.
 const locationState = {
-  hash: "",
+  _hash: "",
+  get hash() { return this._hash; },
+  set hash(v) { v = String(v || ""); this._hash = v && v[0] !== "#" ? "#" + v : v; },
   search: "",
   pathname: "/city-day-test/",
   href: "https://jakeand3rson.github.io/city-day-test/",
@@ -68,6 +71,16 @@ vm.runInContext(scriptBody, window);
 const g = window;
 const $ = (id) => document.getElementById(id);
 
+// Every check runs at a fixed moment before the trip (Wed Oct 7, noon in St. Pete), so the suite
+// gives the same answer on Saturday as on any other day. Checks that need the day set their own clock.
+const PINNED = new Date("2026-10-07T12:00:00-04:00");
+g.clockOverride = PINNED;
+
+function click(el) {
+  assert(el, "nothing to click");
+  el.dispatchEvent(new window.Event("click", { bubbles: true }));
+}
+
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
 }
@@ -116,7 +129,7 @@ function resetPhone() {
   Object.keys(store).forEach((k) => delete store[k]);
   locationState.hash = "";
   locationState.search = "";
-  g.clockOverride = null;
+  g.clockOverride = PINNED;
 }
 
 function startPlay(overrides) {
@@ -222,7 +235,8 @@ check("sunset: about 7:10pm on October 10", () => {
 check("link: the deck rides in the link and survives a weather change", () => {
   const p = makePlan({ must: "coffee, art, dinner", kind: "celebrate", budgetAmount: "300" });
   p.deck = g.buildDeck(p);
-  const back = g.decodePlan(g.encodePlan(p));
+  // The real share link carries no note, so a rebuild on the recipient's phone would show.
+  const back = g.decodePlan(g.encodePlan(g.linkPlan(p)));
   assert(JSON.stringify(back.deck) === JSON.stringify(p.deck), "deck changed in transit");
   wet(p.date);
   g.plan = back;
@@ -297,7 +311,8 @@ check("play: Not this, try again swaps in another from the same feeling", () => 
   const first = g.view.pending;
   g.act("skip", first);
   assert(g.playState().skip.includes(first), "skip saved");
-  assert(g.view.pending !== first, "new pick");
+  assert(g.view.panel === "commit" && g.view.pending && g.view.pending !== first, "panel " + g.view.panel + " pending " + g.view.pending);
+  assert(g.plan.deck.pools.taste.includes(g.view.pending), "replacement from the same feeling");
 });
 
 check("play: Chapter 0 parking when the note mentions driving", () => {
@@ -339,6 +354,7 @@ check("play: Sky looks iffy offers only indoor places", () => {
   const outdoor = g.liveIds().filter((id) => g.STOP_BY_ID[id].outdoor).map((id) => g.STOP_BY_ID[id].name);
   outdoor.forEach((n) => assert(!playText().includes(n), "outdoor in plan B: " + n));
   assert(/Plan B/.test(playText()), "plan B");
+  assert($("play").querySelectorAll("article").length >= 1, "plan B lists indoor places");
 });
 
 check("play: wet weather copy never names a place before it is revealed", () => {
@@ -431,13 +447,16 @@ check("desk: Surprise us too hides the places from the creator", () => {
 });
 
 check("desk: Not for us on the desk swaps the next place in", () => {
-  const before = g.liveIds();
-  const target = before[0];
-  const feel = g.STOP_BY_ID[target].feel;
-  g.plan.skip.push(target);
-  g.plan.deck = g.buildDeck(g.plan);
+  g.plan.surprise = false;
+  g.render();
+  const target = g.plan.deck.pools.taste[0];
+  assert(g.plan.deck.pools.taste.length === 3, "precondition: a full taste pool");
+  click($("desk-top").querySelector('[data-desk-skip="' + target + '"]'));
   assert(!g.liveIds().includes(target), "removed");
-  assert(!g.plan.deck.pools[feel].includes(target), "rebuilt without it");
+  assert(g.plan.deck.pools.taste.length === 3 && !g.plan.deck.pools.taste.includes(target), "the next place stepped in: " + g.plan.deck.pools.taste);
+  const saved = JSON.parse(window.localStorage.getItem("cityday-test-v1")).plans[g.plan.id];
+  assert(saved.skip.includes(target), "saved");
+  assert(/Copy the link again/.test($("save-note").textContent), "told the copied link is stale");
 });
 
 check("desk: wet weather line counts real indoor picks, names none", () => {
@@ -448,7 +467,8 @@ check("desk: wet weather line counts real indoor picks, names none", () => {
 
 check("desk: Play it here is a preview, and Back to your desk returns", () => {
   const enc = g.encodePlan(g.linkPlan(g.plan));
-  locationState.hash = "#preview/" + enc;
+  click($("open-guest"));
+  assert(locationState.hash === "#preview/" + enc, "button sets the preview hash: " + locationState.hash.slice(0, 20));
   g.boot();
   assert(g.mode === "play" && g.previewing === true, "preview mode");
   assert(/Preview\. Nothing you tap here carries into the real day/.test(playText()), "preview banner");
@@ -502,7 +522,9 @@ check("review: a preview on the creator's phone never touches the real day", () 
   const p = creatorDesk({ must: "coffee, gelato, walking, art", budgetAmount: "200" });
   const before = g.liveIds().slice();
   const enc = g.encodePlan(g.linkPlan(p));
-  openLink("#preview/" + enc);
+  click($("open-guest"));
+  g.boot();
+  assert(g.previewing === true, "Play it here opened a preview");
   g.act("begin");
   g.act("feel", "taste");
   g.act("reveal");
@@ -516,6 +538,10 @@ check("review: a preview on the creator's phone never touches the real day", () 
   assert(JSON.stringify(g.liveIds()) === JSON.stringify(before), "desk changed after preview: " + g.liveIds());
   openLink("#play/" + enc);
   assert(g.view.panel === "curtain" && g.playState().trail.length === 0 && g.playState().skip.length === 0, "real day starts clean");
+  // A second Play it here starts a fresh preview.
+  openLink("");
+  click($("open-guest"));
+  assert(window.localStorage.getItem("cityday-play-state-" + p.id + "-preview") === null, "old preview cleared");
 });
 
 check("review: the share link carries the day, not the note, budget or vetoes", () => {
@@ -539,17 +565,19 @@ check("review: an older link without a deck keeps its whole note", () => {
 check("review: Back to your desk opens that day, not the newest one", () => {
   const a = creatorDesk({ you: "Jake", them: "Sam" });
   const aEnc = g.encodePlan(g.linkPlan(a));
-  const store = JSON.parse(window.localStorage.getItem("cityday-test-v1"));
   g.plan = null;
   const b = makePlan({ id: "planB", you: "Ana", them: "Bo" });
   g.openDay(b, { mode: "create" });
+  const store = JSON.parse(window.localStorage.getItem("cityday-test-v1"));
+  assert(store.plans[a.id] && store.plans.planB && store.last === "planB", "both days stored, B newest");
   openLink("#play/" + aEnc);
-  assert(/\?create=/.test(playHtml()), "desk link carries the id");
-  locationState.hash = "";
-  locationState.search = "?create=" + encodeURIComponent(a.id);
+  const link = $("play").querySelector('a[href*="?create="]');
+  assert(link, "desk link shown");
+  const href = link.getAttribute("href");
+  assert(href.endsWith("?create=" + encodeURIComponent(a.id)), href);
+  applyUrl(href);
   g.boot();
   assert(g.plan.id === a.id && /Jake and Sam/.test($("desk-top").textContent), "opened " + g.plan.id);
-  assert(store.plans[a.id], "store kept day A");
 });
 
 check("review: a cut-off link says so and keeps the address", () => {
@@ -601,11 +629,17 @@ check("review: a feeling tapped after its places closed goes back, not to an emp
   g.clockOverride = new Date("2026-10-10T16:50:00-04:00");
   g.act("feel", "dig");
   assert(g.view.panel === "feel" || dig.includes(g.view.pending), "panel " + g.view.panel + " pending " + g.view.pending);
-  if (g.view.panel === "commit") {
-    g.clockOverride = new Date("2026-10-10T17:40:00-04:00");
-    g.act("reveal");
-    assert(g.view.panel === "feel", "reveal of a closed place");
-  }
+});
+
+check("review: a place that closed between commit and reveal is not revealed", () => {
+  startPlay({ date: "2026-10-10", must: "art, vintage", budgetAmount: "300" });
+  g.clockOverride = new Date("2026-10-10T15:20:00-04:00");
+  g.act("begin");
+  g.act("feel", "dig");
+  assert(g.view.panel === "commit" && g.view.pending, "commit at 3:20");
+  g.clockOverride = new Date("2026-10-10T17:40:00-04:00");
+  g.act("reveal");
+  assert(g.view.panel === "feel" && !g.view.pending, "panel " + g.view.panel + " pending " + g.view.pending);
 });
 
 check("review: a second tab does not wipe the first tab's stops", () => {
@@ -667,7 +701,7 @@ check("review: the weather after 6pm and on past days tells the truth", () => {
   g.clockOverride = new Date("2026-10-20T10:00:00-04:00");
   g.loadWeather("2026-10-12");
   assert(g.weatherLine("2026-10-12") === "This day has passed.", g.weatherLine("2026-10-12"));
-  g.clockOverride = null;
+  g.clockOverride = PINNED;
 });
 
 check("review: after dinner, the wind-down and the strip both know it's done", () => {
@@ -687,7 +721,11 @@ check("review: Plan B lists only what is open right now on the day", () => {
   g.act("begin");
   g.act("iffy");
   assert(!/Museum of Fine Arts|The Dalí Museum/.test(playText()), "lists places that open at 10");
-  g.clockOverride = null;
+  g.clockOverride = new Date("2026-10-13T10:30:00-04:00");
+  g.act("back");
+  g.act("iffy");
+  assert(/Museum of Fine Arts|The Dalí Museum/.test(playText()), "at 10:30 the museums are open");
+  g.clockOverride = PINNED;
 });
 
 check("review: Surprise us too hides a dinner the engine picked, but not one you booked", () => {
@@ -739,6 +777,222 @@ check("review: a link with a prototype id does not claim to be yours", () => {
 
 check("review: the budget help says the note can override it", () => {
   assert(/unless your note asks for them/.test(document.querySelector("#budget-amount").parentNode.textContent), "copy");
+});
+
+// --- fixes from the verification pass ---
+
+check("verify: wishes are not vetoes; vetoes stop at the next idea", () => {
+  const dali = deckOf({ must: "She's never been to the Dali, so that's a must. Nice dinner after.", kind: "celebrate", budgetAmount: "250" });
+  assert(dali.pools.soft.includes("dali"), "never been: " + dali.pools.soft);
+  assert(deckOf({ must: "never tried gelato from Paciugo, walking" }).pools.taste.includes("paciugo"), "never tried");
+  assert(deckOf({ must: "she doesn't want to miss the festival" }).pools.drift.includes("festival"), "doesn't want to miss");
+  assert(deckOf({ must: "He doesn't eat seafood so let's do tacos", date: "2026-10-13", budgetAmount: "120" }).anchor.id === "bodega", "so let's do tacos");
+  assert(deckOf({ must: "she can't stand seafood so maybe italian", date: "2026-10-13", kind: "celebrate", budgetAmount: "250" }).anchor.id === "bellabrava", "so maybe italian");
+  assert(deckOf({ must: "he doesn't drink so coffee and gelato instead", date: "2026-10-13" }).pools.taste.includes("kahwa"), "so coffee");
+});
+
+check("verify: turning down one museum keeps the other; post-noun and accented vetoes work", () => {
+  const one = deckOf({ must: "he didn't like the MFA but loves the Dali", date: "2026-10-13" });
+  assert(one.pools.soft.includes("dali") && !one.pools.soft.includes("mfa"), JSON.stringify(one.pools.soft));
+  const thing = deckOf({ must: "museums are not our thing, coffee and records", date: "2026-10-13" });
+  assert(!thing.pools.soft.includes("dali") && !thing.pools.soft.includes("mfa"), JSON.stringify(thing.pools.soft));
+  const accent = deckOf({ must: "no Dalí please, walking", date: "2026-10-13" });
+  assert(!accent.pools.soft.includes("dali"), JSON.stringify(accent.pools.soft));
+  assert(!allIds(deckOf({ date: "2026-10-17", drink: "yes", must: "beer garden, walking, tacos" })).includes("boyd"), "beer garden");
+});
+
+check("verify: with storage blocked, the loop still plays", () => {
+  startPlay({ must: "coffee, walking" });
+  const real = window.localStorage;
+  const blocked = { getItem() { throw new Error("SecurityError"); }, setItem() { throw new Error("SecurityError"); }, removeItem() {} };
+  window.localStorage = blocked;
+  g.storageOK = false;
+  try {
+    g.playCache = null;
+    g.act("begin");
+    g.act("feel", "taste");
+    assert(g.view.panel === "commit", "panel " + g.view.panel);
+    g.act("reveal");
+    g.act("here", g.view.pending);
+    assert(g.view.panel === "feel" && g.playState().trail.length === 1, "trail in memory");
+  } finally {
+    window.localStorage = real;
+    g.storageOK = true;
+  }
+});
+
+check("verify: what you typed in We found something survives a redraw", () => {
+  startPlay();
+  g.act("begin");
+  g.act("found");
+  const name = $("found-name");
+  name.value = "Taco truck on 10th";
+  name.dispatchEvent(new window.Event("input", { bubbles: true }));
+  const note = $("found-note");
+  note.value = "get two";
+  note.dispatchEvent(new window.Event("input", { bubbles: true }));
+  g.render();
+  assert($("found-name").value === "Taco truck on 10th" && $("found-note").value === "get two", "wiped");
+  g.saveFound();
+  assert(g.playState().trail[0].name === "Taco truck on 10th", "saved");
+});
+
+check("verify: a card held during an early peek is not the first screen of the day", () => {
+  startPlay({ date: "2026-10-10", must: "dinner", kind: "celebrate", budgetAmount: "300" });
+  g.clockOverride = new Date("2026-10-08T20:00:00-04:00");
+  g.act("begin");
+  g.act("feel", "anchor");
+  g.act("reveal");
+  g.clockOverride = new Date("2026-10-10T09:00:00-04:00");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel === "feel", "panel " + g.view.panel);
+});
+
+check("verify: a forwarded preview link plays as the real day on someone else's phone", () => {
+  resetPhone();
+  const p = makePlan({ id: "fromSomeoneElse" });
+  p.deck = g.buildDeck(p);
+  openLink("#preview/" + g.encodePlan(p));
+  assert(g.previewing === false && !/Preview\./.test(playText()), "shown as a preview");
+  assert(locationState.hash.startsWith("#play/"), "hash rewritten to the real link");
+});
+
+check("verify: an old link settles on 'This day has passed' without a tap", () => {
+  resetPhone();
+  g.weatherByDate = {};
+  g.clockOverride = new Date("2026-10-12T10:00:00-04:00");
+  const p = makePlan({ date: "2026-10-10" });
+  p.deck = g.buildDeck(p);
+  openLink("#play/" + g.encodePlan(p));
+  assert(/This day has passed\./.test(playText()) && !/Checking/.test(playText()), playText().slice(0, 200));
+});
+
+check("verify: a failed forecast is retried, and a fresh one is not refetched", () => {
+  let calls = 0;
+  const realFetch = g.fetch;
+  g.fetch = async () => { calls++; throw new Error("offline"); };
+  try {
+    g.clockOverride = PINNED;
+    g.weatherByDate = { "2026-10-10": { status: "error", fetchedAt: Date.now() - 5 * 60000 } };
+    g.loadWeather("2026-10-10");
+    assert(calls === 1, "stale error retried: " + calls);
+    g.weatherByDate = { "2026-10-10": { status: "error", fetchedAt: Date.now() } };
+    g.loadWeather("2026-10-10");
+    g.weatherByDate = { "2026-10-10": { status: "ready", name: "Sat", temp: "80°F", wind: "5", short: "Sunny", wet: false, fetchedAt: Date.now() } };
+    g.loadWeather("2026-10-10");
+    assert(calls === 1, "fresh entries refetched: " + calls);
+  } finally {
+    g.fetch = realFetch;
+  }
+});
+
+check("verify: Vibes are cooling after your own booking reads cleanly", () => {
+  startPlay({ anchor: { name: "Dinner at Beso", time: "17:45", where: "Sarasota" } });
+  g.act("begin");
+  g.act("here", "anchor");
+  g.act("cool");
+  assert(/Dinner at Beso: done\./.test(playText()) && !/Beso's/.test(playText()), playText().slice(0, 200));
+});
+
+check("verify: a note being edited on the desk is not reverted by Not for us or Surprise", () => {
+  creatorDesk({ must: "coffee, art, walking", budgetAmount: "300" });
+  $("note-edit").value = "coffee, art, walking, tacos for lunch";
+  click($("desk-top").querySelector("[data-desk-skip]"));
+  assert($("note-edit").value === "coffee, art, walking, tacos for lunch", "reverted by Not for us");
+  const box = $("surprise");
+  box.checked = true;
+  box.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert($("note-edit").value === "coffee, art, walking, tacos for lunch", "reverted by Surprise");
+  click($("rebuild"));
+  assert(g.plan.must === "coffee, art, walking, tacos for lunch", "rebuilt from the edited note");
+});
+
+check("verify: a second desk tab's vetoes survive a rebuild here", () => {
+  const p = creatorDesk({ must: "coffee, gelato, walking", budgetAmount: "200" });
+  const target = g.liveIds()[0];
+  const saved = JSON.parse(window.localStorage.getItem("cityday-test-v1"));
+  saved.plans[p.id].skip = [target];
+  window.localStorage.setItem("cityday-test-v1", JSON.stringify(saved));
+  click($("rebuild"));
+  assert(g.plan.skip.includes(target) && !g.liveIds().includes(target), "other tab's veto lost");
+});
+
+check("verify: the form says exactly what is missing, takes cents, and keeps the kind on a re-tap", () => {
+  resetPhone();
+  g.setMode("create");
+  g.plan = null;
+  g.fillForm(null);
+  $("you").value = "A"; $("them").value = "B";
+  click(document.querySelector('[data-group=occasion] [data-value="Anniversary"]'));
+  click($("kinds").querySelector('[data-value="celebrate"]'));
+  click(document.querySelector('[data-group=occasion] [data-value="Anniversary"]'));
+  assert($("kinds").querySelector('[aria-pressed="true"]'), "re-tap cleared the kind");
+  click(document.querySelector('[data-group=occasion] [data-value="Date"]'));
+  assert(($("kinds").querySelector('[aria-pressed="true"]') || {}).getAttribute("data-value") === "celebrate", "switching occasion kept the kind");
+  $("date").value = "2030-01-05";
+  assert(g.submitForm() === false && /Still needed: drinking, must-sees or hidden gems, and a budget\./.test($("form-err").textContent), $("form-err").textContent);
+  g.applyPills({ occasion: "Date", drink: "no", lean: "gems" });
+  g.renderKinds("Date", "celebrate");
+  $("budget-amount").value = "150.50";
+  assert(g.submitForm() === true && g.plan.budgetAmount === "151", "cents: " + (g.plan && g.plan.budgetAmount));
+});
+
+check("verify: resubmitting the same date keeps the day's id and its desk vetoes", () => {
+  const p = creatorDesk({ must: "coffee, gelato, walking", budgetAmount: "200" });
+  const id = p.id;
+  const target = g.liveIds()[0];
+  click($("desk-top").querySelector('[data-desk-skip="' + target + '"]'));
+  click($("edit"));
+  assert(g.submitForm() === true, "resubmitted");
+  assert(g.plan.id === id, "id changed on the same date");
+  assert(g.plan.skip.includes(target) && !g.liveIds().includes(target), "desk veto lost");
+});
+
+check("verify: Copy link without a clipboard selects the link to copy by hand", () => {
+  creatorDesk();
+  const box = $("share-url");
+  let focused = false, selected = false;
+  box.focus = () => { focused = true; };
+  box.select = () => { selected = true; };
+  click($("copy"));
+  assert(box.value.includes("#play/"), "link in the box");
+  assert(focused && selected, "not selected for copying by hand");
+});
+
+async function checkAsync(name, fn) {
+  try {
+    await fn();
+    results.push("PASS " + name);
+    console.log("PASS " + name);
+  } catch (e) {
+    results.push("FAIL " + name + ": " + e.message);
+    console.error("FAIL " + name + ": " + e.message);
+  }
+}
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+await checkAsync("verify: when the clipboard refuses, both copy buttons fall back to copy-by-hand", async () => {
+  const real = g.clipboardApi;
+  g.clipboardApi = () => ({ writeText: () => Promise.reject(new Error("NotAllowedError")) });
+  try {
+    creatorDesk();
+    const box = $("share-url");
+    let selected = false;
+    box.select = () => { selected = true; };
+    click($("copy"));
+    await tick();
+    assert(selected, "desk link not selected");
+    g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+    g.act("begin");
+    g.act("here", g.liveIds()[0]);
+    g.act("trail");
+    g.act("copy-trail");
+    await tick();
+    assert($("trail-text") && /copy it by hand/.test($("trail-copied").textContent), "trail fallback missing");
+  } finally {
+    g.clipboardApi = real;
+  }
 });
 
 const failed = results.filter((r) => r.startsWith("FAIL"));
