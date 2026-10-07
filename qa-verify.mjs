@@ -1120,6 +1120,58 @@ check("friends: escape routes are at least 44px tall and use the escape style", 
   }
 });
 
+// --- fixes from the PR 1 review ---
+
+check("review: a second veto in the same clause still counts ('can't have dairy so no gelato')", () => {
+  assert(!allIds(deckOf({ must: "can't have dairy so no gelato", kind: "celebrate", budgetAmount: "300" })).includes("paciugo"), "gelato");
+  assert(deckOf({ must: "we can't eat gluten so no pizza, dinner", kind: "celebrate", budgetAmount: "300" }).anchor.id !== "bellabrava", "pizza");
+  const caffeine = deckOf({ must: "she can't have caffeine so no coffee, gelato instead", budgetAmount: "300" });
+  assert(!allIds(caffeine).includes("kahwa") && allIds(caffeine).includes("paciugo"), JSON.stringify(caffeine.pools.taste));
+  assert(!allIds(deckOf({ must: "can't eat shellfish and no museums", budgetAmount: "300" })).includes("dali"), "museums");
+});
+
+check("review: allergy lists block every allergen, written any common way", () => {
+  for (const must of ["dinner, she's allergic to nuts and shellfish", "dinner, allergic to peanuts, shellfish", "dinner, shellfish and peanut allergies",
+    "dinner, she has an allergy to shellfish", "dinner. Allergies: shellfish", "dinner, she has food allergies (shellfish)", "dinner, no nuts and no shellfish"]) {
+    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "300" });
+    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+  }
+  const both = g.avoidTerms(makePlan({ must: "allergic to nuts and dairy" }));
+  assert(both.includes("nuts") && both.includes("dairy"), JSON.stringify(both));
+  assert(deckOf({ must: "allergic to shellfish and we want tacos, dinner", kind: "celebrate", budgetAmount: "300" }).anchor.id === "bodega", "the list stops at the first non-food");
+});
+
+check("review: long phrases don't veto everything tagged food or dinner", () => {
+  assert(allIds(deckOf({ must: "dinner, she can't eat spicy food", budgetAmount: "300" })).includes("market"), "market kept");
+  assert(deckOf({ must: "we can't have a late dinner, babysitter", kind: "celebrate", budgetAmount: "300" }).anchor.type === "stop", "dinner kept");
+});
+
+check("review: 'not picky' and 'no preference' aren't vetoes", () => {
+  for (const must of ["not picky about tacos or pizza, dinner", "no strong preference between tacos or italian, dinner"]) {
+    assert(g.avoidTerms(makePlan({ must })).length === 0, must);
+  }
+  assert(g.negatedPhrases("no crab or lobster").join() === "crab or lobster", "or still carries a real veto");
+});
+
+check("review: drinking turns off only when the note is about alcohol", () => {
+  for (const must of ["Neither of us drinks. walking and coffee", "nobody drinks, tacos", "non-drinkers, walking", "we don't drink, no bars", "skip the breweries", "no alcohol please"]) {
+    assert(g.effectiveDrink(makePlan({ must, drink: "yes" })) === "no", must);
+  }
+  for (const must of ["I don't drink coffee, but a brewery sounds fun", "not into wine, love a good brewery", "no wine bars, a brewery is great"]) {
+    assert(g.effectiveDrink(makePlan({ must, drink: "yes" })) === "yes", must);
+  }
+});
+
+check("review: once dinner is checked in, the screen you land on offers the feedback", () => {
+  startPlay({ must: "dinner", kind: "celebrate", budgetAmount: "300" });
+  g.act("begin");
+  assert(!/Tell Jake how it went/.test(playText()), "too early");
+  g.act("here", "bellabrava");
+  assert(/Tell Jake how it went/.test(playText()), "missing after dinner");
+  click($("play").querySelector('.btn[data-act="trail"]'));
+  assert(g.view.panel === "trail" && $("play").querySelector('[data-act="feedback"]'), "goes to the feedback");
+});
+
 const failed = results.filter((r) => r.startsWith("FAIL"));
 console.log("\n--- summary ---");
 console.log(results.length - failed.length + " passed, " + failed.length + " failed");

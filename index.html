@@ -1191,7 +1191,8 @@
     // "no seafood", "she hates museums", "allergic to shellfish" -> the phrases to avoid.
     // "never been to the Dalí" and "doesn't want to miss the festival" are wishes, not vetoes.
     var NEGATION_CUES = [
-      "no", "skip", "avoid", "not into", "not(?!\\s+to\\s+miss)",
+      "no(?!\\s+(?:strong\\s+|real\\s+|particular\\s+)?preference)", "skip", "avoid", "not into",
+      "not(?!\\s+(?:to\\s+miss|picky|fussy|sure|too\\s+picky))",
       "never(?!\\s+(?:been|tried|had|seen|done|get|got|gotten|went|gone|visited|miss(?:ed|es)?|say|do|did|thought|knew|stop))",
       "without", "hates?", "hating", "nothing",
       "(?:can['’]?t|cannot)\\s+(?:stand|do|eat|have|drink)", "allergic to", "sick of", "tired of",
@@ -1209,8 +1210,12 @@
       var re = new RegExp(NEGATION_RE.source, "g");
       var m;
       while ((m = re.exec(text))) {
-        var phrase = (" " + m[1]).split(CLAUSE_END_RE)[0].trim();
+        var kept = (" " + m[1]).split(CLAUSE_END_RE)[0];
+        var phrase = kept.trim();
         if (phrase && !/^but\b/.test(phrase)) out.push(phrase);
+        // Resume right after the kept words: a second "no X" later in the same clause still counts.
+        var phraseStart = m.index + m[0].length - m[1].length;
+        re.lastIndex = Math.max(m.index + 1, phraseStart + Math.max(0, kept.length - 1));
       }
       var thing = new RegExp(NOT_OUR_THING_RE.source, "g");
       while ((m = thing.exec(text))) {
@@ -1253,22 +1258,44 @@
     };
 
     // "shellfish allergy", "nut allergies", "gluten-free"
-    var ALLERGY_RE = /([a-z][a-z'’ -]{1,30}?)[\s-]+allerg(?:y|ies)\b|\b(gluten|dairy|nut|peanut|lactose|egg|soy|sesame)[\s-]free\b|\b(celiac|coeliac)\b/g;
+    // "shellfish and peanut allergies" (list before) / "allergic to nuts, shellfish",
+    // "Allergies: shellfish", "an allergy to crab" (list after) / "gluten-free", "celiac".
+    var ALLERGY_BEFORE_RE = /([a-z][a-z'’ ,&\/-]{1,60}?)[\s-]+allerg(?:y|ies)\b/g;
+    var ALLERGY_AFTER_RE = /\b(?:allergic\s+to|allerg(?:y|ies)\s*(?::|-|\(|to\b))\s*([^.;!?\n]+)/g;
+    var FREE_FROM_RE = /\b(gluten|dairy|nut|peanut|lactose|egg|soy|sesame)[\s-]free\b|\b(celiac|coeliac)\b/g;
+
+    function allergenGroups(item) {
+      return Object.keys(AVOID_GROUPS).filter(function (group) {
+        return AVOID_GROUPS[group].some(function (w) { return hasWord(item, w); });
+      });
+    }
+
+    // Walk a list of foods ("nuts, shellfish and dairy") and stop at the first item that isn't one,
+    // so "allergic to shellfish and we want tacos" doesn't veto the tacos.
+    function walkAllergens(text, backwards) {
+      var items = text.split(/\s*(?:,|&|\/|\(|\)|\band\b|\bor\b)\s*/).filter(function (x) { return x.trim(); });
+      if (backwards) items.reverse();
+      var groups = [];
+      for (var i = 0; i < items.length; i++) {
+        var hit = allergenGroups(items[i]);
+        if (!hit.length) break;
+        hit.forEach(function (g) { if (groups.indexOf(g) === -1) groups.push(g); });
+      }
+      return groups;
+    }
 
     function avoidTerms(p) {
-      var phrases = negatedPhrases(noteText(p));
       var text = noteText(p);
-      var m, re = new RegExp(ALLERGY_RE.source, "g");
-      while ((m = re.exec(text))) {
-        var term = m[1] ? m[1].trim().split(/\s+/).slice(-2).join(" ") : (m[2] || m[3]);
-        if (term) phrases.push(term);
-      }
+      var phrases = negatedPhrases(text);
       var terms = phrases.slice();
-      Object.keys(AVOID_GROUPS).forEach(function (group) {
-        var words = AVOID_GROUPS[group];
-        var hit = phrases.some(function (ph) { return words.some(function (w) { return hasWord(ph, w); }); });
-        if (hit) terms.push(group);
-      });
+      function add(g) { if (terms.indexOf(g) === -1) terms.push(g); }
+      phrases.forEach(function (ph) { allergenGroups(ph).forEach(add); });
+      var m, re = new RegExp(ALLERGY_BEFORE_RE.source, "g");
+      while ((m = re.exec(text))) walkAllergens(m[1], true).forEach(add);
+      re = new RegExp(ALLERGY_AFTER_RE.source, "g");
+      while ((m = re.exec(text))) walkAllergens(m[1], false).forEach(add);
+      re = new RegExp(FREE_FROM_RE.source, "g");
+      while ((m = re.exec(text))) allergenGroups(m[1] || m[2]).forEach(add);
       return terms;
     }
 
@@ -1276,18 +1303,30 @@
       var terms = avoidTerms(p);
       if (!terms.length) return false;
       return (s.tags || []).some(function (tag) {
-        return terms.some(function (ph) { return ph === tag || hasWord(ph, tag); });
+        // "can't eat spicy food" or "a late dinner" shouldn't veto everything tagged food or dinner.
+        var generic = /^(?:food|dinner|lunch)$/.test(tag);
+        return terms.some(function (ph) { return ph === tag || (!generic && hasWord(ph, tag)); });
       });
     }
 
     // Notes win over the drinking pill: "we don't drink", "no bars", "skip the breweries".
-    var NO_DRINK_RE = /\b(?:don['’]?t|doesn['’]?t|do not|does not|won['’]?t|never|can['’]?t|not)\s+(?:really\s+)?drink(?:s|ing)?\b|\bsober\b|\bteetotal|\bno (?:alcohol|booze|drinks?|drinking|bars?|breweries|brewery|beer|wine|cocktails?)\b|\balcohol[- ]free\b|\bdry (?:day|date|night)\b/;
+    // "don't drink coffee" is about coffee; "no wine, but a beer" still wants the brewery.
+    var NO_DRINK_RE = new RegExp([
+      "\\b(?:don['’]?t|doesn['’]?t|do not|does not|won['’]?t|never|can['’]?t|not)\\s+(?:really\\s+)?drink(?:s|ing)?\\b(?!\\s+(?:coffee|tea|soda|pop|caffeine|milk|juice|water|energy|much\\s+coffee))",
+      "\\b(?:neither|none) of (?:us|them|you)\\s+(?:really\\s+)?drinks?\\b",
+      "\\b(?:nobody|no one)\\s+(?:really\\s+)?drinks\\b",
+      "\\bnon[- ]?drinkers?\\b",
+      "\\bnot (?:big |really |much of )?(?:a )?drinkers?\\b",
+      "\\bsober\\b", "\\bteetotal",
+      "\\bno (?:alcohol|booze|drinks?|drinking|bars?|breweries|brewery)\\b",
+      "\\balcohol[- ]free\\b", "\\bdry (?:day|date|night)\\b"
+    ].join("|"));
 
     function effectiveDrink(p) {
       var text = noteText(p);
       if (NO_DRINK_RE.test(text)) return "no";
       var vetoed = negatedPhrases(text).some(function (ph) {
-        return /\b(?:bars?|brewer(?:y|ies)|beers?|wines?|alcohol|cocktails?|drinks?|drinking|booze)\b/.test(ph);
+        return /^(?:the\s+|any\s+)?(?:bars?|brewer(?:y|ies)|alcohol|drinks?|drinking|booze)\b/.test(ph);
       });
       return vetoed ? "no" : p.drink;
     }
@@ -2028,7 +2067,7 @@
       }
       if (share) {
         share({ title: "City Day: how it went", text: text }).then(function () {
-          feedbackStatus("Thanks. " + FEEDBACK_TO + " will see it.");
+          feedbackStatus("Thanks for sending it.");
         }).catch(function (err) {
           // Closing the share sheet isn't an error; anything else falls back to copying.
           if (!err || err.name !== "AbortError") copyIt();
@@ -2185,6 +2224,13 @@
         '<button type="button" class="escape" data-act="trail">Our day so far</button>' +
         "</div>";
       html += '<p class="meta" style="margin-top:1.2rem">' + esc(weatherLine(plan.date)) + "</p>";
+      // Once dinner (or the main event) is checked in, nothing is left open, or the day has passed,
+      // the day is winding down: point to where the feedback lives.
+      var wound = (a && !anchorOffered()) || !buttons || plan.date < nowNY().iso;
+      if (wound) {
+        html += '<div class="test-note" style="margin-top:1.2rem"><p><strong>How did it go?</strong> It\'s an early test, and ' + esc(FEEDBACK_TO) + " wants to hear what worked and what didn't.</p>" +
+          '<button type="button" class="btn btn-primary" data-act="trail">Tell ' + esc(FEEDBACK_TO) + " how it went</button></div>";
+      }
       return html;
     }
 
