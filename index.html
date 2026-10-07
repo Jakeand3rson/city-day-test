@@ -1104,6 +1104,37 @@
       }
     ];
 
+    // Places kept as plain data: weekly hours copied from each place's own site, the dates it says
+    // it is closed, and the day the hours were checked. weekStop() turns each one into the same
+    // shape as the entries above. week[0] is Sunday; [open, close] in 24h hours, null when closed.
+    var PLACES = [
+    ];
+
+    function hoursRange(w) {
+      return fmtHour(w[0]) + "–" + fmtHour(w[1]);
+    }
+
+    function weekStop(e) {
+      var closed = e.closedDates || [];
+      function day(d) { return e.week[String(d.getDay())] || null; }
+      e.isOpen = function (d, iso) { return !!day(d) && closed.indexOf(iso) === -1; };
+      e.hours = function (d) { var w = day(d); return w ? hoursRange(w) : "Closed"; };
+      e.start = function (d) { var w = day(d); return w ? w[0] : 0; };
+      e.end = function (d) { var w = day(d); return w ? w[1] : 0; };
+      e.order = e.order || 20;
+      e.bar = false;
+      e.dated = false;
+      e.covers = null;
+      e.gem = e.gem !== false;
+      var line = e.why;
+      e.why = function (ctx) {
+        return line + " Its own site lists " + ctx.hours + " " + ctx.on + ".";
+      };
+      return e;
+    }
+
+    PLACES.forEach(function (e) { STOPS.push(weekStop(e)); });
+
     var STOP_BY_ID = {};
     STOPS.forEach(function (s) { STOP_BY_ID[s.id] = s; });
 
