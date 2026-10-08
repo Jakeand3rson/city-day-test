@@ -1024,6 +1024,7 @@ check("friends: Tell Jake how it went is on Our day so far and at the end of the
   assert(/Tell Jake how it went/.test(playText()), "wind-down");
   const page = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
   assert(!/(?:tel|sms|mailto):/i.test(page) && !/\d/.test(g.FEEDBACK_TO), "a way to reach Jake directly in the page");
+  assert(!/\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}/.test(page), "a phone number in the page");
 });
 
 await checkAsync("friends: Tell Jake how it went shares, copies, or falls back to copy-by-hand", async () => {
@@ -1270,8 +1271,15 @@ check("catalog: park hours come from the sun, not a guess", () => {
   assert(Math.abs(park.end(oct) - (g.sunsetHour(oct) + 0.5)) < 0.1, "closes 30 min after sunset: " + park.end(oct));
   assert(park.end(jan) < park.end(oct), "closes earlier in winter");
   assert(/opens 30 min before sunrise, closes 30 min after sunset/.test(park.hours(oct)), park.hours(oct));
-  const sr = g.sunriseHour(oct);
-  assert(sr > 7.2 && sr < 7.6, "sunrise on Oct 10 about 7:25am: " + sr);
+  // Published times for St. Pete (sunrise-sunset.org), including both DST switch days.
+  const published = [["2026-10-10", "07:26", "19:08"], ["2026-11-01", "06:40", "17:47"], ["2026-12-21", "07:15", "17:41"],
+    ["2027-03-14", "07:39", "19:39"], ["2027-06-21", "06:34", "20:30"]];
+  const hrs = (t) => Number(t.slice(0, 2)) + Number(t.slice(3)) / 60;
+  for (const [iso, rise, set] of published) {
+    const d = g.parseDate(iso);
+    assert(Math.abs(g.sunriseHour(d) - hrs(rise)) <= 3 / 60, iso + " sunrise " + g.fmtHour(g.sunriseHour(d)) + ", published " + rise);
+    assert(Math.abs(g.sunsetHour(d) - hrs(set)) <= 3 / 60, iso + " sunset " + g.fmtHour(g.sunsetHour(d)) + ", published " + set);
+  }
   assert(g.STOP_BY_ID["crescent-lake-park"].end(oct) === 23, "an exact close stays exact");
 });
 
@@ -1292,6 +1300,56 @@ check("catalog: a place isn't offered on days its source lists shorter hours or 
   for (const e of g.PLACES) {
     for (const iso of (e.closedDates || []).concat(e.skipDates || [])) assert(g.parseDate(iso), e.id + " has a bad date " + iso);
   }
+});
+
+check("catalog: a note about kids, rain or walking doesn't lift the budget limit; naming the place does", () => {
+  const ticketed = (must) => {
+    const d = deckOf({ date: "2026-10-13", budgetAmount: "20", must });
+    return [d.anchor.id, ...Object.values(d.pools).flat()].filter((id) => id && g.pricey(g.STOP_BY_ID[id], "2026-10-13"));
+  };
+  for (const must of ["walking and coffee", "we have kids", "we love the pier", "rainy day", "indoor stuff"]) {
+    assert(ticketed(must).length === 0, must + ": " + ticketed(must));
+  }
+  assert(ticketed("sunken gardens and coffee").includes("sunken-gardens"), "named Sunken Gardens");
+  assert(ticketed("the chihuly").includes("chihuly-collection"), "named the Chihuly");
+});
+
+check("catalog: 'no kids' says who's coming; it doesn't veto places that welcome kids", () => {
+  const p = makePlan({ must: "no kids, just the two of us" });
+  const vetoed = g.STOPS.filter((s) => g.avoidsStop(p, s)).map((s) => s.id);
+  assert(vetoed.length === 0, "vetoed: " + vetoed);
+  assert(g.avoidsStop(makePlan({ must: "no museums" }), g.STOP_BY_ID["james-museum"]), "a real veto still works");
+});
+
+check("catalog: meal words count once, so a named cuisine still wins", () => {
+  const anchor = (must) => deckOf({ date: "2026-10-13", budgetAmount: "100", must }).anchor.id;
+  assert(anchor("lunch, then dinner. thai please") === "pin-wok-bowl", "thai: " + anchor("lunch, then dinner. thai please"));
+  assert(anchor("a dinner and a lunch spot, falafel") === "baba-on-central", "falafel: " + anchor("a dinner and a lunch spot, falafel"));
+  assert(anchor("vietnamese dinner") === "la-v-vietnamese", "vietnamese");
+});
+
+check("catalog: a midday break counts as closed", () => {
+  startPlay({ date: "2026-10-13", must: "thai, indoor" });
+  const v = g.stopView("pin-wok-bowl");
+  const at = (t) => { g.clockOverride = new Date("2026-10-13T" + t + ":00-04:00"); return g.openNow(v); };
+  assert(at("13:00") && !at("14:45") && at("15:30") && at("16:30"), "open, closing for the break, reopening soon, open");
+  g.clockOverride = new Date("2026-10-13T15:30:00-04:00");
+  g.act("begin");
+  g.act("iffy");
+  assert(!/Pin Wok/.test(playText()), "listed as open now during its break");
+  g.clockOverride = new Date("2026-10-13T16:30:00-04:00");
+  g.act("back");
+  g.act("iffy");
+  assert(/Pin Wok/.test(playText()), "not listed once it reopens");
+  g.clockOverride = PINNED;
+});
+
+check("catalog: a $40 day still gets a cheap dinner and cheap food to pick from", () => {
+  const d = deckOf({ date: "2026-10-13", budgetAmount: "40", must: "dinner" });
+  const a = g.STOP_BY_ID[d.anchor.id];
+  assert(a && a.costBand === "cheap", "dinner: " + (d.anchor.id || d.anchor.reason));
+  const food = d.pools.taste.filter((id) => g.STOP_BY_ID[id].meal && g.STOP_BY_ID[id].meal !== "coffee");
+  assert(food.every((id) => g.STOP_BY_ID[id].costBand === "cheap"), "taste: " + d.pools.taste);
 });
 
 check("catalog: city park sources say the city lists the hours", () => {

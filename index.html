@@ -1146,7 +1146,7 @@
       {"id": "st-pete-museum-of-history", "name": "St. Petersburg Museum of History", "feel": "soft", "cost": "ticket", "tags": ["history", "museum", "indoor", "baseball", "kids", "rainy day", "pier"], "kids": true, "gem": false, "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "St. Petersburg Museum of History, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://historystpete.org/visit/", "week": {"0": [12, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-03-28", "2027-11-25", "2027-12-25"], "hoursText": "Museum Hours: Monday – Saturday: 10 a.m. to 5 p.m. Sunday: Noon to 5 p.m. Museum is closed on Thanksgiving, Christmas, and Easter", "hoursChecked": "2026-10-08", "hint": "Parking is in the Pier's Dolphin lot next to the museum; Pier parking is metered by the hour.", "why": "An indoor museum at the entrance to the Pier District covering the world's first commercial airline, 150 years of baseball history and the city's tourism past."},
       {"id": "james-museum", "name": "The James Museum of Western & Wildlife Art", "feel": "soft", "cost": "ticket", "tags": ["art", "museum", "western", "wildlife", "indoor", "kids", "rainy day"], "kids": true, "gem": false, "address": "150 Central Ave, St. Petersburg, FL 33701", "query": "The James Museum of Western & Wildlife Art, 150 Central Ave, St. Petersburg, FL", "source": "https://thejamesmuseum.org/hours-parking/", "week": {"0": [10, 17], "1": [10, 17], "2": [10, 20], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "hoursText": "Open Daily: 10 AM – 5 PM. Open Tuesdays: 10 AM – 8 PM. Closed Thanksgiving & Christmas Days. Last admission ticket sold at 4:30 PM Wednesday-Monday and 7:30 PM on Tuesday.", "hoursChecked": "2026-10-08", "hint": "Tuesdays are $10 for adults ($5 youth) with hours until 8 PM; museum parking is on levels 3-4 of the South Core garage behind the building.", "why": "A downtown Central Ave museum of Western and wildlife art with a cafe and strollers allowed in the galleries."},
       {"id": "woodson-museum", "name": "The Woodson African American Museum of Florida", "feel": "soft", "tags": ["history", "museum", "free", "indoor", "black history", "garden"], "address": "2240 9th Ave S, St. Petersburg, FL 33712", "query": "The Woodson African American Museum of Florida, 2240 9th Ave S, St. Petersburg, FL", "source": "https://woodsonmuseum.org/", "week": {"0": null, "1": null, "2": [12, 17], "3": [12, 17], "4": [12, 17], "5": [12, 17], "6": [12, 17]}, "hoursText": "Hours: Tuesday-Saturday from 12-5 PM. (Admission: Free Admission during hours of Tuesday-Saturday from 12-5 PM)", "hoursChecked": "2026-10-08", "hint": "Free admission, open Tuesday through Saturday afternoons only (12-5 PM).", "why": "A free museum in Midtown. Through January 2027 it has a Smithsonian-linked exhibition connecting St. Petersburg's history to the American story, and an outdoor Underground Railroad installation in its Legacy Garden."},
-      {"id": "chihuly-collection", "name": "Chihuly Collection", "feel": "soft", "cost": "ticket", "tags": ["art", "glass", "museum", "indoor", "rainy day"], "gem": false, "address": "720 Central Ave, St. Petersburg, FL 33701", "query": "Chihuly Collection, 720 Central Ave, St. Petersburg, FL", "source": "https://moreanartscenter.org/chihuly-collection-location/", "week": {"0": [12, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "skipDates": ["2026-12-24", "2026-12-31", "2027-03-28", "2027-05-31", "2027-07-04", "2027-09-06"], "hoursText": "Open Daily: Monday-Saturday 10AM – 5PM, Sundays: 12PM – 5PM. Closed on Christmas and Thanksgiving Days. Closes at 3pm on Christmas Eve, New Year's Eve, Easter, Memorial Day, July 4th, and Labor Day.", "hoursChecked": "2026-10-08", "hint": "Admission includes a live glass demonstration at the Morean Glass Studio; buying tickets ahead is recommended.", "why": "A permanent collection of large-scale Dale Chihuly glass installations in a Central Ave building designed specifically for them, a contained indoor visit."}
+      {"id": "chihuly-collection", "name": "Chihuly Collection", "feel": "soft", "cost": "ticket", "tags": ["art", "glass", "chihuly", "museum", "indoor", "rainy day"], "gem": false, "address": "720 Central Ave, St. Petersburg, FL 33701", "query": "Chihuly Collection, 720 Central Ave, St. Petersburg, FL", "source": "https://moreanartscenter.org/chihuly-collection-location/", "week": {"0": [12, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "skipDates": ["2026-12-24", "2026-12-31", "2027-03-28", "2027-05-31", "2027-07-04", "2027-09-06"], "hoursText": "Open Daily: Monday-Saturday 10AM – 5PM, Sundays: 12PM – 5PM. Closed on Christmas and Thanksgiving Days. Closes at 3pm on Christmas Eve, New Year's Eve, Easter, Memorial Day, July 4th, and Labor Day.", "hoursChecked": "2026-10-08", "hint": "Admission includes a live glass demonstration at the Morean Glass Studio; buying tickets ahead is recommended.", "why": "A permanent collection of large-scale Dale Chihuly glass installations in a Central Ave building designed specifically for them, a contained indoor visit."}
     ];
 
     function hoursRange(w) {
@@ -1187,6 +1187,7 @@
       };
       e.start = function (d) { return opens(d); };
       e.end = function (d) { return closes(d); };
+      e.gap = function (d) { return (e.split && e.split[String(d.getDay())]) || null; };
       e.order = e.order || 20;
       e.bar = false;
       e.dated = false;
@@ -1401,6 +1402,8 @@
       var terms = avoidTerms(p);
       if (!terms.length) return false;
       return (s.tags || []).some(function (tag) {
+        // "no kids, just us" says who's coming. It isn't a veto on places that welcome kids.
+        if (/^(?:kids|family)$/.test(tag)) return false;
         // "can't eat spicy food" or "a late dinner" shouldn't veto everything tagged food or dinner.
         var generic = /^(?:food|dinner|lunch)$/.test(tag);
         return terms.some(function (ph) { return ph === tag || (!generic && hasWord(ph, tag)); });
@@ -1455,12 +1458,24 @@
     }
 
     function tagScore(s, text) {
-      var score = 0;
+      var score = 0, generic = 0;
       (s.tags || []).forEach(function (tag) {
-        // "dinner" or "food" in a note says less about a place than "vietnamese" or "pizza" does.
-        if (hasWord(text, tag)) score += /^(?:food|dinner|lunch)$/.test(tag) ? 1 : 2;
+        // "dinner" or "food" in a note says less about a place than "vietnamese" or "pizza" does,
+        // and counts once however many of them a place carries.
+        if (!hasWord(text, tag)) return;
+        if (/^(?:food|dinner|lunch)$/.test(tag)) generic = 1;
+        else score += 2;
       });
-      return score;
+      return score + generic;
+    }
+
+    // Tags that say who a place suits or when, not what it is. A note that mentions kids or rain
+    // isn't asking for a ticketed museum, so these don't lift the budget limit.
+    var SITUATION_TAGS = /^(?:food|dinner|lunch|kids|family|indoor|outdoor|rainy day|walking|evening|pier|water|waterfront|downtown|free)$/;
+
+    function asksFor(s, text) {
+      return (s.tags || []).some(function (tag) { return !SITUATION_TAGS.test(tag) && hasWord(text, tag); }) ||
+        hasWord(text, s.name.toLowerCase().replace(/^the /, ""));
     }
 
     function fitsBudget(s, cap) {
@@ -1486,7 +1501,7 @@
       if (p.kind === "away" && s.id === "pumpkin") return false;
       if (s.bar && effectiveDrink(p) !== "yes") return false;
       if (s.meal && !fitsBudget(s, cap)) return false;
-      if (cap !== null && cap < 150 && pricey(s, iso) && !wants.art && !(wants.music && s.id === "folk") && !(tagScore(s, positiveText(p)) > 0)) return false;
+      if (cap !== null && cap < 150 && pricey(s, iso) && !wants.art && !(wants.music && s.id === "folk") && !asksFor(s, positiveText(p))) return false;
       return s.isOpen(d, iso);
     }
 
@@ -1570,6 +1585,7 @@
         hint: s.hint || "",
         start: s.start(d, iso),
         end: s.end(d, iso),
+        gap: s.gap ? s.gap(d) : null,
         why: s.why({ iso: iso, day: d.getDay(), when: formatWhen(d), hours: hours, occ: occasionPhrase(plan), on: dayPhrase(iso) }),
         source: s.source,
         dated: s.dated,
@@ -1915,6 +1931,8 @@
     function openNow(v) {
       if (!isPlanDay()) return true;
       var h = nowNY().hour;
+      // In a midday break, or its last half hour before: only if it reopens within the hour.
+      if (v.gap && h >= v.gap[0] - 0.5 && h < v.gap[1]) return h + 1 >= v.gap[1];
       return v.start <= h + 1 && h < v.end - 0.5;
     }
 
@@ -2398,7 +2416,7 @@
       var visited = visitedIds();
       var h = nowNY().hour;
       var inside = liveIds().filter(function (id) { return visited.indexOf(id) === -1 && !STOP_BY_ID[id].outdoor; }).map(stopView)
-        .filter(function (v) { return !isPlanDay() || (v.start <= h && h < v.end - 0.25); });
+        .filter(function (v) { return !isPlanDay() || (v.start <= h && h < v.end - 0.25 && !(v.gap && h >= v.gap[0] - 0.25 && h < v.gap[1])); });
       var html = '<div class="card reveal"><div class="stamp peach">Plan B</div><p class="place">Soft landing</p>' +
         '<p class="why">' + esc(weatherLine(plan.date)) + " Florida storms usually pass. Duck inside, then pick up where you left off.</p></div>";
       html += inside.length
