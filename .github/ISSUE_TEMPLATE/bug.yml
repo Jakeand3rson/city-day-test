@@ -1,0 +1,54 @@
+name: Bug
+description: Something is broken, or the day trusted the wrong signal.
+labels: ["type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repo is public. Don't paste names, phone numbers, emails, or anyone's personal note into this issue.
+        If it breaks the friends test or the live site, the PM will add `P0`.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps, including what you typed in the brief (date, budget, drinking, note).
+      placeholder: |
+        1. Open https://jakeand3rson.github.io/city-day-test/
+        2. Make a day for Saturday, budget $300, note "allergic to shellfish"
+        3. Look at the dinner pick
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device / browser
+      placeholder: "iPhone 15, Safari, iOS 18"
+    validations:
+      required: true
+  - type: textarea
+    id: link
+    attributes:
+      label: Share link (if any)
+      description: |
+        A `#play/...` link contains the whole frozen deck (the places, the fixed point, and the names on the curtain), so it reproduces the exact day. Only paste it if you're OK with that being public. Otherwise describe the day instead.
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag images here. Crop out anything personal.
+    validations:
+      required: false

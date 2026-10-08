@@ -1,0 +1,66 @@
+name: Feature
+description: Something new for players or creators. Filed by the PM after Jake and the PM agree on it.
+labels: ["type:feature", "status:needs-decision"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read the charter first: `docs/reviews/2026-10-direction.md` in the private **city-day** repo. Where anything disagrees with it, the charter wins.
+        This repo is public. Don't put names, phone numbers, emails, or other personal details in this issue.
+        New issues start as `status:needs-decision`. Switch to `status:ready` only when the acceptance criteria are final.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / who it's for
+      description: What's wrong or missing today, and for whom (the creator making the day, the people playing it, or both)?
+      placeholder: "Friends who play a day have no way to tell Jake how it went."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What we'll build, in plain English. Point at line numbers in index.html if you know them.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist. Each item must be testable by `npm test` or by a person on a phone.
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] `npm test` passes, with new checks for the above
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: What this issue does NOT change. Keeps PRs small.
+      placeholder: "The feel → reveal → go → We're here loop. Old #play/ links."
+    validations:
+      required: true
+  - type: textarea
+    id: direction
+    attributes:
+      label: Direction-doc check
+      description: >-
+        Which rule or decision in the charter (2026-10-direction.md) this follows.
+        Name the section, e.g. "§0 decision 6: free window is today through 3 days out".
+    validations:
+      required: true
+  - type: textarea
+    id: test-notes
+    attributes:
+      label: Test notes
+      description: What `npm test` (qa-verify.mjs) should check, and what to check by hand at phone size (390×844).
+      value: |
+        **npm test should check:**
+        - 
+
+        **Phone check (390×844):**
+        - 
+    validations:
+      required: true

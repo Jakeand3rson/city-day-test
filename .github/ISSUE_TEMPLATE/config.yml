@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How we work (SDLC)
+    url: https://github.com/Jakeand3rson/city-day-test/blob/main/docs/SDLC.md
+    about: How issues, PRs, review, play-tests, and merges work for City Day.
