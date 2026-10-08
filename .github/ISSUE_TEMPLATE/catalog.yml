@@ -1,0 +1,83 @@
+name: Catalog place
+description: Add or fix a place, its hours, or a dated event in the catalog.
+title: "[Catalog] "
+labels: ["type:data", "area:catalog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **The rule: no source = not added. Never guess hours.**
+        The source must be the place's own website or its official listing page. Hours are copied exactly as that source lists them, including weekly patterns, seasonal changes, and holiday closures. If the hours can't be confirmed from a source, the place doesn't go in.
+        Bars and breweries: we have enough. Don't add more without a decision from Jake.
+  - type: input
+    id: name
+    attributes:
+      label: Place name
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source URL (official site or official listing)
+      placeholder: "https://..."
+    validations:
+      required: true
+  - type: textarea
+    id: hours
+    attributes:
+      label: Hours, as listed on the source
+      description: Copy them word for word, including closed days and any holiday or seasonal notes.
+      placeholder: |
+        Mon: closed
+        Tue–Thu: 11am–9pm
+        Fri–Sat: 11am–10pm
+        Sun: 10am–3pm
+    validations:
+      required: true
+  - type: input
+    id: address
+    attributes:
+      label: Address
+    validations:
+      required: true
+  - type: input
+    id: tags
+    attributes:
+      label: Tags
+      description: Use the existing tag vocabulary in the catalog (for example food, dinner, coffee, drift, indoor, kid, seafood). Note which feeling it fits (tasty, drift, dig through, slow and soft, real dinner).
+    validations:
+      required: true
+  - type: dropdown
+    id: price
+    attributes:
+      label: Price level
+      options:
+        - "Free"
+        - "$"
+        - "$$"
+        - "$$$"
+        - "Not applicable"
+    validations:
+      required: true
+  - type: input
+    id: checked
+    attributes:
+      label: Date checked
+      description: The day you read the hours on the source (YYYY-MM-DD).
+      placeholder: "2026-10-07"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / hint
+      description: Optional. A practical one-line hint, the way a friend who knows the city would say it. Anything that couldn't be confirmed, said plainly.
+    validations:
+      required: false
+  - type: checkboxes
+    id: rule
+    attributes:
+      label: Source check
+      options:
+        - label: I read these hours on the source above, and didn't guess or fill anything in.
+          required: true
