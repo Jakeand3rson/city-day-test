@@ -1308,6 +1308,17 @@ check("catalog: at least 35 places, each with a source and hours", () => {
   }
 });
 
+check("catalog: the new places cover drift, cheap meals, coffee and dessert, kids, and rainy days", () => {
+  const added = g.PLACES;
+  const count = (f) => added.filter(f).length;
+  assert(count((e) => e.feel === "drift") >= 3, "drift places added");
+  assert(count((e) => (e.meal === "lunch" || e.meal === "dinner") && (e.costBand === "cheap" || e.costBand === "mid")) >= 4, "$ or $$ meals added");
+  assert(count((e) => e.meal === "coffee") >= 1 && count((e) => e.meal === "dessert") >= 1, "coffee and dessert stops added");
+  assert(count((e) => e.kids) >= 5, "kid-friendly places added");
+  assert(count((e) => e.tags.includes("indoor") && !e.outdoor) >= 5, "indoor places added");
+  for (const e of added) assert(e.address && e.query, e.id + " has no address or maps query");
+});
+
 check("catalog: ids are unique, no bars or breweries added, every feel and meal is valid", () => {
   const ids = g.STOPS.map((s) => s.id);
   assert(new Set(ids).size === ids.length, "duplicate ids");
