@@ -26,7 +26,7 @@ Jake and the PM talk it through: what's the problem, who it's for, and does it f
 The PM files an issue using a template (Feature, Bug, or Catalog place) and sets:
 
 - a **type**, **priority**, **size**, and **area** label
-- the **milestone**, if it's part of one (e.g. `Friends test v0.1`)
+- the **milestone**, if it's part of one (e.g. `v1: Friends test`). `Later (post-v1)` is parked: don't pick it up until Jake moves the issue to `v1: Friends test` and `status:ready`.
 - a **status**: `status:needs-decision` while anything is still open; `status:ready` once the acceptance criteria are final
 
 Blank issues are turned off, so every issue has the same shape.
@@ -51,7 +51,10 @@ The card moves to **In review**.
 
 ### 5. PM review
 
-The PM reads the PR against the issue's acceptance criteria and the charter, and leaves a review comment saying "approve" or "changes needed" and why, item by item. The PM doesn't merge. If changes are needed, the dev pushes more commits to the same branch.
+The PM reads the PR against the issue's acceptance criteria and the charter, and leaves a review comment with a proof table: one row per criterion, the proof, and a status (Met, Not convincing, or Missing). The PM doesn't merge.
+
+- If any row isn't Met, the PM adds `needs:changes`. The dev pushes fixes to the same branch and removes the label when done.
+- Every row Met means "approved for play-test".
 
 ### 6. Play-test
 
@@ -64,6 +67,18 @@ Jake merges the PR. GitHub Pages deploys `main` within a few minutes, and the li
 ### 8. Verify
 
 The PM checks the live site, at phone size, against the acceptance criteria. If it holds, the card moves to **Done**. If not, the PM reopens the issue or files a new bug that links to the PR.
+
+---
+
+## Questions
+
+If you're blocked on a product question, don't guess on anything a player or creator will see.
+
+1. Comment on the issue (or the PR, if it's about the PR). Start with `Question for PM:`, then the question, two or three options, and the one you recommend and why.
+2. Add `needs:pm-answer`.
+3. Move on to other `status:ready` work.
+
+The PM answers within about an hour during the day, with a comment starting "PM (Adventure Planner):", and removes the label. When Jake has to decide, the PM relabels it `needs:owner-answer` and replies once he has. Pick the ticket back up when the label is gone, and follow the answer exactly.
 
 ---
 
@@ -140,6 +155,14 @@ An issue is done when:
 | `status:needs-decision` | Jake and the PM are still deciding. Don't build it. |
 | `status:ready` | Fully specced. A dev can pick it up. |
 | `status:blocked` | Waiting on something. The issue says what. |
+
+### Needs
+
+| Label | Meaning |
+|---|---|
+| `needs:pm-answer` | The dev asked the PM a question (see [Questions](#questions)). Work on something else until it's answered. |
+| `needs:owner-answer` | The PM passed the question to Jake. Wait. |
+| `needs:changes` | The PM's review found missing proof or required changes. The dev removes it after pushing the fixes. |
 
 GitHub's default labels (`bug`, `enhancement`, and so on) are still there but aren't used. Use the labels above instead.
 

@@ -8,6 +8,7 @@ For the dev team: humans and AI coding agents alike. The full lifecycle is in [d
 2. **Only pick up issues labeled `status:ready`.** `status:needs-decision` means Jake and the PM are still deciding. Don't build it.
 3. **Check for an open PR** that already covers the issue. If one exists, don't duplicate it.
 4. **Comment on the issue when you start** ("Picking this up") and assign yourself if you can.
+5. **Blocked on a product question?** Comment `Question for PM:` with two or three options and your recommendation, add `needs:pm-answer`, and work on something else. Don't guess on anything a player or creator will see. See [Questions](docs/SDLC.md#questions).
 
 ## Workflow
 
