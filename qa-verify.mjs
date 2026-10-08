@@ -1026,6 +1026,74 @@ check("friends: Tell Jake how it went is on Our day so far and at the end of the
   assert(!/(?:tel|sms|mailto):/i.test(page) && !/\d/.test(g.FEEDBACK_TO), "a way to reach Jake directly in the page");
 });
 
+await checkAsync("friends: Tell Jake how it went shares, copies, or falls back to copy-by-hand", async () => {
+  const realShare = g.shareApi;
+  const realClip = g.clipboardApi;
+  const status = () => { const d = $("feedback-done"); return d && !d.classList.contains("hidden") ? d.textContent : ""; };
+  const send = () => click($("play").querySelector('[data-act="feedback"]'));
+  let shared, copied;
+  function onTrail() {
+    startPlay({ must: "coffee" });
+    g.act("begin");
+    g.act("here", g.liveIds()[0]);
+    g.act("trail");
+    shared = null;
+    copied = null;
+  }
+  const failWith = (name) => () => Promise.reject(Object.assign(new Error(name), { name }));
+  const clipOk = () => ({ writeText: (t) => { copied = t; return Promise.resolve(); } });
+  try {
+    // The share sheet sends it.
+    onTrail();
+    g.shareApi = () => (data) => { shared = data; return Promise.resolve(); };
+    g.clipboardApi = clipOk;
+    send();
+    await tick();
+    assert(shared && shared.text === g.feedbackText(), "share got the message");
+    assert(status() === "Thanks for sending it." && copied === null, "after a share: " + status());
+    // Closing the share sheet is quiet: no copy, no message, no box.
+    onTrail();
+    g.shareApi = () => failWith("AbortError");
+    send();
+    await tick();
+    assert(copied === null && status() === "" && !$("feedback-text"), "after closing the sheet: " + status());
+    // Any other share failure copies instead.
+    onTrail();
+    g.shareApi = () => failWith("NotAllowedError");
+    send();
+    await tick();
+    assert(copied === g.feedbackText() && status() === "Copied. Text it to Jake.", "after a share error: " + status());
+    // No share sheet, and the clipboard works.
+    onTrail();
+    g.shareApi = () => null;
+    send();
+    await tick();
+    assert(copied === g.feedbackText() && status() === "Copied. Text it to Jake.", "no share sheet: " + status());
+    // No share sheet, and the clipboard refuses: the message appears to copy by hand.
+    onTrail();
+    g.clipboardApi = () => ({ writeText: failWith("NotAllowedError") });
+    send();
+    await tick();
+    assert($("feedback-text") && $("feedback-text").value === g.feedbackText(), "copy-by-hand box");
+    assert(status() === "Select this, copy it, and text it to Jake.", "clipboard refused: " + status());
+    // No share sheet and no clipboard at all.
+    onTrail();
+    g.clipboardApi = () => null;
+    send();
+    await tick();
+    assert($("feedback-text") && $("feedback-text").value === g.feedbackText(), "no clipboard: copy-by-hand box");
+  } finally {
+    g.shareApi = realShare;
+    g.clipboardApi = realClip;
+  }
+});
+
+check("friends: the feedback message names the day", () => {
+  const p = startPlay({ date: "2026-10-10", must: "coffee" });
+  const text = g.feedbackText();
+  assert(text.includes(g.formatWhen(g.parseDate(p.date))) && /October 10/.test(text), text.split("\n").slice(0, 3).join(" / "));
+});
+
 check("friends: the intro says it's an early test, and play shows the tag", () => {
   assert(/early test with friends/.test($("screen-about").textContent), "intro");
   startPlay();
@@ -1053,6 +1121,26 @@ check("friends: plan today through 3 days out; further out gets a friendly no", 
   $("date").value = "2026-10-06";
   g.plan = null;
   assert(g.submitForm() === false, "past date accepted");
+});
+
+// Built by main at 607190a, before the 3-day window, for Saturday, March 6, 2027: Alex and Riley,
+// with a dinner reservation at 6:30pm. Kept as text so a later change can't quietly re-encode it.
+const OLD_FAR_LINK = "eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjctMDMtMDYiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJhbmNob3IiOnsibmFtZSI6IkRpbm5lciByZXNlcnZhdGlvbiIsInRpbWUiOiIxODozMCIsIndoZXJlIjoiODAwIDJuZCBBdmUgTkUifSwiZGVjayI6eyJ2IjoxLCJhbmNob3IiOnsidHlwZSI6ImN1c3RvbSIsInRpbWUiOjE4LjUsImxlYXZlIjoxOH0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImthaHdhIiwic3RpbGx3YXRlcnMiXSwiZHJpZnQiOlsicGllciJdLCJkaWciOlsiZ2xhc3MiLCJhcnRwb29sIl0sInNvZnQiOlsibWZhIiwiZGFsaSIsIm1vcmVhbiJdfSwicGFyayI6ZmFsc2V9fQ";
+
+check("friends: an old link dated past the 3-day window still opens and plays", () => {
+  resetPhone();
+  sunny("2027-03-06");
+  openLink("#play/" + OLD_FAR_LINK);
+  assert(g.mode === "play" && g.plan && g.plan.date === "2027-03-06", "didn't open: " + playText().slice(0, 80));
+  assert(g.view.panel === "curtain" && /Alex and Riley/.test(playText()), playText().slice(0, 80));
+  g.act("begin");
+  g.act("feel", "taste");
+  g.act("reveal");
+  const id = g.view.pending;
+  assert(["market", "kahwa", "stillwaters"].includes(id), "revealed " + id);
+  g.act("here", id);
+  const trail = g.playState().trail;
+  assert(trail.length === 1 && trail[0].id === id, "We're here didn't log the stop");
 });
 
 check("friends: cards say today only on the day, and the weekday otherwise", () => {
