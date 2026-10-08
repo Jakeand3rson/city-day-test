@@ -33,11 +33,11 @@ Blank issues are turned off, so every issue has the same shape.
 
 ### 3. Pick up
 
-The dev picks up a `status:ready` issue. Either they assign themselves, or Jake hands the issue link to an agent like Claude Code. The dev:
+The dev picks up a `status:ready` issue. Either they assign themselves, or Jake hands the issue link to an agent like Claude Code. More than one dev team can work in this repo at once, so every ticket is **claimed** before work starts. See [Claiming a ticket](#claiming-a-ticket). The dev:
 
-- comments on the issue ("Picking this up")
+- claims the issue: swaps `status:ready` for `status:in-progress` and posts a status comment
 - creates a branch: `feat/<issue#>-slug`, `fix/<issue#>-slug`, `chore/<issue#>-slug`, or `data/<issue#>-slug`
-- moves the card to **In progress** (once the project board exists)
+- keeps the status comment current until the PR is open
 
 ### 4. Build + PR
 
@@ -67,6 +67,45 @@ Jake merges the PR. GitHub Pages deploys `main` within a few minutes, and the li
 ### 8. Verify
 
 The PM checks the live site, at phone size, against the acceptance criteria. If it holds, the card moves to **Done**. If not, the PM reopens the issue or files a new bug that links to the PR.
+
+---
+
+## Claiming a ticket
+
+Several dev teams can work here at the same time, and they all post through the same GitHub account (`Jakeand3rson`). Assigning an issue can't tell teams apart, so a claim is a label plus a status comment.
+
+**Before you claim**, check that the issue:
+
+- still has `status:ready`
+- has no open PR with `Closes #N`
+- has no other team's status comment updated in the last 24 hours
+
+**To claim:**
+
+1. Swap `status:ready` for `status:in-progress`, and assign the issue.
+2. Post one status comment, and keep editing that same comment instead of adding new ones. It holds:
+   - `Starting: <role>, branch <name>`
+   - who claimed it: a team name or session ID, since everyone posts as the same account
+   - the time it was last updated
+   - a short checklist: plan, build, checks, reviews, PR opened
+3. Edit the comment as each step lands.
+
+**While it's claimed:**
+
+- Other teams skip it. They only pick up `status:ready`.
+- If you're waiting on a `Question for PM:`, keep the claim and say so in the status comment.
+- Once the PR is open, leave `status:in-progress` on. The issue closes when the PR merges.
+
+**Letting go:**
+
+- If you stop before the PR is open, put `status:ready` back, remove `status:in-progress`, and say in the status comment where the work stands and which branch has it.
+- A claim whose status comment hasn't been updated in 24 hours has lapsed. Another team may put `status:ready` back and take it, building on the pushed branch if there is one.
+
+**Working alongside other teams:**
+
+- Pull the latest `main` before you branch and before you push.
+- Never force-push or rewrite a branch someone else might use.
+- Before opening a PR, check other open PRs that change the same code, and say in your PR how they overlap.
 
 ---
 
@@ -154,6 +193,7 @@ An issue is done when:
 |---|---|
 | `status:needs-decision` | Jake and the PM are still deciding. Don't build it. |
 | `status:ready` | Fully specced. A dev can pick it up. |
+| `status:in-progress` | Claimed by a dev team. Don't pick it up. Its status comment says who has it and how far along it is (see [Claiming a ticket](#claiming-a-ticket)). |
 | `status:blocked` | Waiting on something. The issue says what. |
 
 ### Needs
@@ -186,7 +226,7 @@ The plan is a GitHub Project called "City Day" with these columns: **Backlog →
 
 - Backlog = open issue, `status:needs-decision`
 - Ready = `status:ready`, nobody assigned
-- In progress = assigned, or the dev has commented that they're on it
+- In progress = `status:in-progress`, with a status comment saying who has it
 - In review = open PR with `Closes #N`
 - Done = closed issue, checked on the live site
 
