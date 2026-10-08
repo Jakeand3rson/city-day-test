@@ -21,6 +21,8 @@ For the dev team: humans and AI coding agents alike. The full lifecycle is in [d
 3. Run `npm install && npm test`. Add checks to `qa-verify.mjs` for what you changed. All checks must pass.
 4. Check it at phone size (390×844).
 5. Open a PR against `main`, fill in the PR template, and put `Closes #N` at the top.
+   - Fill in the **Acceptance criteria proof** table: one row per criterion in the issue, each with its proof. That's an automated check that passes in CI (by its exact name), a 390×844 screenshot, or a source link for catalog data. The PM marks a PR without it `needs:changes`.
+   - If the PR touches the play flow or the share format, the standard proof is `standard: old #play/ links still play (open, reveal, We're here)` in `qa-verify.mjs`. Before you change the link format, add a link built by the current `main` to `OLD_LINKS` there.
 6. CI (`npm test`) must be green.
 7. Wait for PM review and Jake's play-test. **Jake merges.**
 
