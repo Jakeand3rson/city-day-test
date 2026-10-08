@@ -1283,6 +1283,17 @@ check("catalog: a lunch break and a past-midnight close read correctly", () => {
   assert(!g.STOP_BY_ID["joey-brooklyns-pizza"].dinner, "a takeout slice shop is not a dinner anchor");
 });
 
+check("catalog: a place isn't offered on days its source lists shorter hours or an event", () => {
+  const open = (id, iso) => g.STOP_BY_ID[id].isOpen(g.parseDate(iso), iso);
+  assert(!open("chihuly-collection", "2026-12-24") && open("chihuly-collection", "2026-12-23"), "Chihuly closes at 3pm on Christmas Eve");
+  assert(!open("tbw-discovery-center", "2026-12-15") && open("tbw-discovery-center", "2026-12-16"), "TBW's short day");
+  assert(!open("st-pete-shuffleboard-club", "2026-11-05") && open("st-pete-shuffleboard-club", "2026-11-12"), "Shuffleboard's fundraiser night");
+  assert(!open("st-pete-shuffleboard-club", "2026-12-24"), "Shuffleboard's Christmas Eve closure");
+  for (const e of g.PLACES) {
+    for (const iso of (e.closedDates || []).concat(e.skipDates || [])) assert(g.parseDate(iso), e.id + " has a bad date " + iso);
+  }
+});
+
 check("catalog: city park sources say the city lists the hours", () => {
   startPlay({ date: "2026-10-13", must: "" });
   assert(/The city's parks page lists/.test(g.stopView("north-straub-park").why), g.stopView("north-straub-park").why);
