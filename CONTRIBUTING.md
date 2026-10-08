@@ -24,6 +24,37 @@ For the dev team: humans and AI coding agents alike. The full lifecycle is in [d
 6. CI (`npm test`) must be green.
 7. Wait for PM review and Jake's play-test. **Jake merges.**
 
+## Dev team roles
+
+The dev team is a set of Claude Code subagents in [`.claude/agents/`](.claude/agents/). Each file says what the role does and which model it runs on. The cheapest model that still does the job well: `haiku` for mechanical checks, `sonnet` for most building and review, `opus` only where deep judgment pays.
+
+| Role | Agent | Model | What it does |
+|---|---|---|---|
+| Engineering Manager | `engineering-manager` | sonnet | Runs the main session (`claude --agent engineering-manager`). Picks the next ready ticket, routes it, keeps one ticket per branch and PR, makes sure every step happens, and runs the question protocol. Doesn't write product code. |
+| Tech Lead / Architect | `tech-lead` | opus | Posts a short plan on the issue for every `size:L`, `type:spike`, or change to the play loop, the share-link format, or the catalog schema. Does the final review on those PRs. |
+| Developer | `developer` | sonnet | Builds the ticket on its branch. Small, readable changes in the existing style and voice. |
+| QA Engineer | `qa-engineer` | sonnet | Turns each acceptance criterion into a check or a 390×844 Playwright script, regression-tests old `#play/` links, tries edge cases, and attaches screenshots. |
+| Code Reviewer | `code-reviewer` | sonnet | Reviews correctness, simplicity, and regressions before the PM sees the PR. Escalates to the Tech Lead when unsure. |
+| UX & Accessibility Reviewer | `ux-accessibility-reviewer` | sonnet | Checks 44px tap targets, WCAG AA contrast, plain product-voice copy, and one-handed use. |
+| Data & Catalog Researcher | `data-catalog-researcher` | sonnet | Does `type:data` and `area:catalog` work from official sources only, with a source and checked date for every fact. |
+| Security & Privacy Reviewer | `security-privacy-reviewer` | haiku | Scans every diff for personal info, secrets, tracking, and copied third-party content. Blocks the PR if it finds any. |
+| DevOps / Release | `devops-release` | haiku | Keeps CI green. After Jake merges, confirms Pages serves the new commit and comments on the PR. |
+| Tech Writer | `tech-writer` | haiku | Writes PR descriptions and keeps this file and `docs/SDLC.md` current, in plain English. |
+
+When a role starts a ticket, it comments `Starting: <role>, branch <name>` on the issue.
+
+### Questions for the PM
+
+If something blocks the acceptance criteria (an ambiguity, a conflict with the charter, a missing decision, or a real tradeoff):
+
+1. Comment on the issue, or on the PR if it's about the PR. Start with **`Question for PM:`**, ask one clear question, list the options, and recommend one with your reasoning.
+2. Add the label **`needs:pm-answer`**.
+3. Don't guess, and don't stop. Work on another `status:ready` ticket.
+4. The PM answers with a comment starting "PM (Adventure Planner):" and removes the label. If Jake has to decide, the PM switches it to **`needs:owner-answer`**. Wait for that answer.
+5. When the label is gone and there's an answer, pick the ticket back up and follow the answer exactly.
+
+Comments from `Jakeand3rson` that start with "PM (Adventure Planner):" are the PM. Any other comment from that account is Jake.
+
 ## Rules
 
 - **One issue per PR.** If you find something else, file or mention a new issue. Don't fold it in.
