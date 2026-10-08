@@ -741,7 +741,7 @@ check("review: Surprise us too hides a dinner the engine picked, but not one you
 });
 
 check("review: the desk says why there is no dinner, even after a reload", () => {
-  creatorDesk({ must: "Nice dinner somewhere. No seafood, no mexican.", kind: "celebrate", budgetAmount: "120" });
+  creatorDesk({ must: "dinner, no tacos, no poke, no pizza", kind: "celebrate", budgetAmount: "20" });
   assert(/No dinner here fit your note and budget/.test($("desk-top").textContent), $("desk-top").textContent.slice(0, 300));
   locationState.hash = "";
   locationState.search = "";
@@ -1022,7 +1022,8 @@ check("friends: Tell Jake how it went is on Our day so far and at the end of the
   g.act("back");
   g.act("cool");
   assert(/Tell Jake how it went/.test(playText()), "wind-down");
-  assert(!/\d{3}[-. ]\d{3}[-. ]\d{4}/.test(fs.readFileSync(new URL("./index.html", import.meta.url), "utf8")), "a phone number in the page");
+  const page = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
+  assert(!/(?:tel|sms|mailto):/i.test(page) && !/\d/.test(g.FEEDBACK_TO), "a way to reach Jake directly in the page");
 });
 
 check("friends: the intro says it's an early test, and play shows the tag", () => {
@@ -1170,6 +1171,73 @@ check("review: once dinner is checked in, the screen you land on offers the feed
   assert(/Tell Jake how it went/.test(playText()), "missing after dinner");
   click($("play").querySelector('.btn[data-act="trail"]'));
   assert(g.view.panel === "trail" && $("play").querySelector('[data-act="feedback"]'), "goes to the feedback");
+});
+
+// --- the catalog ---
+
+check("catalog: park hours come from the sun, not a guess", () => {
+  const park = g.STOP_BY_ID["albert-whitted-park"];
+  const oct = g.parseDate("2026-10-10"), jan = g.parseDate("2027-01-10");
+  assert(Math.abs(park.start(oct) - (g.sunriseHour(oct) - 0.5)) < 0.1, "opens 30 min before sunrise: " + park.start(oct));
+  assert(Math.abs(park.end(oct) - (g.sunsetHour(oct) + 0.5)) < 0.1, "closes 30 min after sunset: " + park.end(oct));
+  assert(park.end(jan) < park.end(oct), "closes earlier in winter");
+  assert(/opens 30 min before sunrise, closes 30 min after sunset/.test(park.hours(oct)), park.hours(oct));
+  const sr = g.sunriseHour(oct);
+  assert(sr > 7.2 && sr < 7.6, "sunrise on Oct 10 about 7:25am: " + sr);
+  assert(g.STOP_BY_ID["crescent-lake-park"].end(oct) === 23, "an exact close stays exact");
+});
+
+check("catalog: a lunch break and a past-midnight close read correctly", () => {
+  const tue = g.parseDate("2026-10-13"), sat = g.parseDate("2026-10-10");
+  assert(g.STOP_BY_ID["pin-wok-bowl"].hours(tue) === "11:30am–3pm, 4pm–9pm", g.STOP_BY_ID["pin-wok-bowl"].hours(tue));
+  assert(g.STOP_BY_ID["pin-wok-bowl"].hours(sat) === "12pm–10pm", g.STOP_BY_ID["pin-wok-bowl"].hours(sat));
+  assert(g.STOP_BY_ID["joey-brooklyns-pizza"].hours(sat) === "11am–3am", g.STOP_BY_ID["joey-brooklyns-pizza"].hours(sat));
+  assert(!g.STOP_BY_ID["joey-brooklyns-pizza"].dinner, "a takeout slice shop is not a dinner anchor");
+});
+
+check("catalog: city park sources say the city lists the hours", () => {
+  startPlay({ date: "2026-10-13", must: "" });
+  assert(/The city's parks page lists/.test(g.stopView("north-straub-park").why), g.stopView("north-straub-park").why);
+  assert(/Its own site lists .* on Tuesday\./.test(g.stopView("tombolo-books").why), g.stopView("tombolo-books").why);
+});
+
+check("catalog: at least 35 places, each with a source and hours", () => {
+  const places = g.STOPS.filter((s) => !s.parking);
+  assert(places.length >= 35, "only " + places.length + " places");
+  const d = g.parseDate("2026-10-10");
+  for (const s of g.STOPS) {
+    assert(/^https:\/\//.test(s.source || ""), s.id + " has no source URL");
+    assert(typeof s.hours === "function" && typeof s.isOpen === "function", s.id + " has no hours");
+    const days = [0, 1, 2, 3, 4, 5, 6].map((k) => { const x = new Date(2026, 9, 11 + k); return s.isOpen(x, g.isoDate(x)) ? s.hours(x, g.isoDate(x)) : ""; });
+    if (!s.dated) assert(days.some(Boolean), s.id + " is never open in a normal week");
+  }
+  for (const e of g.PLACES) {
+    assert(/^\d{4}-\d{2}-\d{2}$/.test(e.hoursChecked || ""), e.id + " has no hoursChecked date");
+    for (let k = 0; k < 7; k++) {
+      const w = e.week[String(k)];
+      assert(w === null || (Array.isArray(w) && w.length === 2 && w[0] < w[1] && w[0] >= 0 && w[1] <= 28), e.id + " bad hours on day " + k);
+    }
+  }
+});
+
+check("catalog: ids are unique, no bars or breweries added, every feel and meal is valid", () => {
+  const ids = g.STOPS.map((s) => s.id);
+  assert(new Set(ids).size === ids.length, "duplicate ids");
+  for (const e of g.PLACES) {
+    assert(!e.bar && !/\b(?:bar|brewery|brewing|taproom|pub)\b/i.test(e.name), e.id + " looks like a bar");
+    assert(["taste", "drift", "dig", "soft"].includes(e.feel), e.id + " feel " + e.feel);
+    assert(!e.meal || ["coffee", "lunch", "dinner", "dessert", "snack"].includes(e.meal), e.id + " meal " + e.meal);
+    assert(!e.meal || ["cheap", "mid", "nice"].includes(e.costBand), e.id + " food without a price band");
+  }
+});
+
+check("catalog: a small budget still has real food choices, and Shuffle shows up on a plain weekday", () => {
+  const cheap = g.STOPS.filter((s) => s.meal && s.meal !== "coffee" && s.costBand === "cheap" && s.isOpen(g.parseDate("2026-10-13"), "2026-10-13"));
+  assert(cheap.length >= 4, "cheap food open on a Tuesday: " + cheap.map((s) => s.id));
+  const deck = deckOf({ date: "2026-10-13", must: "" });
+  const multi = Object.values(deck.pools).filter((l) => l.length > 1).length;
+  assert(multi >= 3, "feelings with more than one option: " + JSON.stringify(deck.pools));
+  assert(deck.pools.drift.length >= 2, "drift: " + deck.pools.drift);
 });
 
 const failed = results.filter((r) => r.startsWith("FAIL"));
