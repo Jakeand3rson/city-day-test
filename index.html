@@ -339,7 +339,7 @@
       margin: 0 0 1rem;
     }
     .reveal { text-align: center; animation: rise 0.45s ease; }
-    .reveal .why, .reveal .meta { text-align: left; }
+    .reveal .why, .reveal .meta, .reveal .strip { text-align: left; }
     @keyframes rise {
       from { opacity: 0; transform: translateY(14px); }
       to { opacity: 1; transform: none; }
@@ -600,6 +600,11 @@
 
     function isPlanDay() {
       return !!plan && nowNY().iso === plan.date;
+    }
+
+    // The hour on the plan's own day, or null on any other day.
+    function planHour() {
+      return isPlanDay() ? nowNY().hour : null;
     }
 
     function addDays(iso, n) {
@@ -1117,7 +1122,7 @@
     // it is closed, and the day the hours were checked. weekStop() turns each one into the same
     // shape as the entries above. week[0] is Sunday; [open, close] in 24h hours, null when closed.
     var PLACES = [
-      {"id": "sunken-gardens", "name": "Sunken Gardens", "feel": "drift", "cost": "ticket", "tags": ["garden", "plants", "flamingos", "kids", "family", "walking", "history"], "outdoor": true, "kids": true, "gem": false, "address": "1825 4th St N, St. Petersburg, FL 33704", "query": "Sunken Gardens, 1825 4th St N, St. Petersburg, FL", "source": "https://sunkengardens.org/plan-your-visit/", "week": {"0": [12, 16.5], "1": [10, 16.5], "2": [10, 16.5], "3": [10, 16.5], "4": [10, 16.5], "5": [10, 16.5], "6": [10, 16.5]}, "closedDates": ["2026-11-26", "2026-12-24", "2026-12-25", "2027-11-25", "2027-12-24", "2027-12-25"], "hoursText": "Monday - Saturday: 10 a.m. - 4:30 p.m. Sunday: 12 p.m. - 4:30 p.m. The last admission is sold at 4 p.m. daily. Gardens may close due to inclement weather. Sunken Gardens is open everyday except Thanksgiving, Christmas Eve, and Christmas Day.", "hoursChecked": "2026-10-08", "hint": "Pay in person on the day of your visit (admission can't be bought in advance), and the last admission is sold at 4 p.m.", "why": "St. Pete's oldest living museum: shady garden paths with flamingos, tropical birds and tortoises, and visitors tend to spend about 1.5 to 2 hours there."},
+      {"id": "sunken-gardens", "name": "Sunken Gardens", "feel": "drift", "cost": "ticket", "tags": ["garden", "plants", "flamingos", "kids", "family", "walking", "history"], "outdoor": true, "kids": true, "gem": false, "address": "1825 4th St N, St. Petersburg, FL 33704", "query": "Sunken Gardens, 1825 4th St N, St. Petersburg, FL", "source": "https://sunkengardens.org/plan-your-visit/", "week": {"0": [12, 16.5], "1": [10, 16.5], "2": [10, 16.5], "3": [10, 16.5], "4": [10, 16.5], "5": [10, 16.5], "6": [10, 16.5]}, "closedDates": ["2026-11-26", "2026-12-24", "2026-12-25", "2027-11-25", "2027-12-24", "2027-12-25"], "lastEntry": 16, "hoursText": "Monday - Saturday: 10 a.m. - 4:30 p.m. Sunday: 12 p.m. - 4:30 p.m. The last admission is sold at 4 p.m. daily. Gardens may close due to inclement weather. Sunken Gardens is open everyday except Thanksgiving, Christmas Eve, and Christmas Day.", "hoursChecked": "2026-10-08", "hint": "Pay in person on the day of your visit (admission can't be bought in advance), and the last admission is sold at 4 p.m.", "why": "St. Pete's oldest living museum: shady garden paths with flamingos, tropical birds and tortoises, and visitors tend to spend about 1.5 to 2 hours there."},
       {"id": "crescent-lake-park", "name": "Crescent Lake Park", "feel": "drift", "tags": ["park", "lake", "walking", "playground", "kids", "banyans", "dogs"], "outdoor": true, "kids": true, "address": "1320 5th St N, St. Petersburg, FL 33701", "query": "Crescent Lake Park, 1320 5th St N, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/crescent_lake_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "Bring a blanket, as the city suggests; there's also a playground, recreation trails and a dog park.", "why": "A park surrounded by banyan trees, with recreation trails and a playground, a short walk from Sunken Gardens."},
       {"id": "north-straub-park", "name": "North Straub Park", "feel": "drift", "tags": ["waterfront", "park", "walking", "bay", "views", "downtown"], "outdoor": true, "address": "400 Bayshore Dr NE, St. Petersburg, FL 33701", "query": "North Straub Park, 400 Bayshore Dr NE, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/north_straub_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "The recreation trails are open to walkers, runners and bikers.", "why": "A downtown bayfront park with views of the bay and recreation trails."},
       {"id": "demens-landing-park", "name": "Demens Landing Park", "feel": "drift", "tags": ["waterfront", "park", "picnic", "bay", "boats"], "outdoor": true, "address": "Bayshore Dr SE & 2nd Ave SE, St. Petersburg, FL 33701", "query": "Demens Landing Park, Bayshore Dr SE & 2nd Ave SE, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/demens_landing_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "There are picnic shelters and restrooms; the shelters can be rented, so one may be booked.", "why": "A short stroll from downtown, with picnic areas and a view of the bay and boat ramps."},
@@ -1130,7 +1135,7 @@
       {"id": "duncan-mcclellan-gallery", "name": "Duncan McClellan Gallery", "feel": "dig", "tags": ["art", "glass", "gallery", "garden", "free", "indoor", "warehouse arts"], "address": "2342 Emerson Ave S, St. Petersburg, FL 33712", "query": "Duncan McClellan Gallery, 2342 Emerson Ave S, St. Petersburg, FL", "source": "https://dmglass.com/", "week": {"0": [12, 16], "1": [11, 18], "2": [11, 18], "3": [11, 18], "4": [11, 18], "5": [11, 18], "6": [11, 18]}, "hoursText": "GALLERY HOURS: Monday through Saturday from 11:00 a.m. until 6:00 p.m. Sundays from noon to 4:00 p.m. There is NO admission fee and NO appointment is necessary.", "hoursChecked": "2026-10-08", "hint": "No admission fee and no appointment needed.", "why": "A free glass-art gallery in a converted packing plant in the Warehouse Arts District, with planted sculpture gardens to wander."},
       {"id": "the-merchant", "name": "The Merchant – Purveyor of Local Goods", "feel": "dig", "tags": ["shop", "local", "makers", "gifts", "art", "indoor", "rainy day"], "address": "645 Central Ave, Suite 8, St. Petersburg, FL 33701", "query": "The Merchant, 645 Central Ave, St. Petersburg, FL", "source": "https://www.merchantstpete.com/", "week": {"0": [10, 16], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 20], "6": [10, 20]}, "hoursText": "Mon - Thurs: 10am-5pm; Fri - Sat: 10am - 8pm; Sun: 10am-4pm", "hoursChecked": "2026-10-08", "hint": "Open until 8pm on Friday and Saturday.", "why": "A downtown general-store style shop with art, gifts and goods from over 80 Florida artisans and makers on Central Ave."},
       {"id": "coastal-house-vintage", "name": "Coastal House Vintage", "feel": "dig", "tags": ["vintage", "secondhand", "handmade", "home decor", "crafts", "indoor"], "address": "2820 1st Ave N, St. Petersburg, FL", "query": "Coastal House Vintage, 2820 1st Ave N, St. Petersburg, FL", "source": "https://www.coastalhousevintage.com/", "week": {"0": [12, 17], "1": [10, 18], "2": [10, 18], "3": [10, 18], "4": [10, 18], "5": [10, 18], "6": [10, 18]}, "hoursText": "Shop Hours: Mondays - Saturdays 10am - 6pm, Sundays 12pm-5pm. *Open Crafting Available during Shop Hours*", "hoursChecked": "2026-10-08", "hint": "The Craft Cafe inside has drop-in DIY projects any time the shop is open, no reservations needed.", "why": "A shop of curated vintage, secondhand and handmade home goods on 1st Ave N, with a drop-in Craft Cafe."},
-      {"id": "floridarama", "name": "FloridaRAMA", "feel": "soft", "cost": "ticket", "tags": ["art", "immersive", "kids", "family", "indoor", "rainy day", "warehouse arts"], "kids": true, "address": "2606 Fairfield Ave S, St. Petersburg, FL 33712", "query": "FloridaRAMA, 2606 Fairfield Ave S, St. Petersburg, FL", "source": "https://www.floridarama.art/", "week": {"0": [10, 20], "1": [12, 20], "2": null, "3": null, "4": [12, 20], "5": [12, 20], "6": [10, 20]}, "hoursText": "Art Experience Hours: Monday 12 pm–8 pm; Tuesday Closed; Wednesday Closed; Thursday 12 pm–8 pm; Friday 12 pm–8 pm; Saturday 10 am–8 pm; Sunday 10 am–8 pm. We suggest arriving 1.5 hours prior to closing to maximize your experience!", "hoursChecked": "2026-10-08", "hint": "Last entry is 1.5 hours before closing; the entrance and ticket desk are inside The Factory Building 5. Through November 2, admission includes a PG-13 paranormal experience.", "why": "An indoor immersive art walk-through built on original Florida stories in the Warehouse Arts District, designed for all ages."},
+      {"id": "floridarama", "name": "FloridaRAMA", "feel": "soft", "cost": "ticket", "tags": ["art", "immersive", "kids", "family", "indoor", "rainy day", "warehouse arts"], "kids": true, "address": "2606 Fairfield Ave S, St. Petersburg, FL 33712", "query": "FloridaRAMA, 2606 Fairfield Ave S, St. Petersburg, FL", "source": "https://www.floridarama.art/", "week": {"0": [10, 20], "1": [12, 20], "2": null, "3": null, "4": [12, 20], "5": [12, 20], "6": [10, 20]}, "hoursText": "Art Experience Hours: Monday 12 pm–8 pm; Tuesday Closed; Wednesday Closed; Thursday 12 pm–8 pm; Friday 12 pm–8 pm; Saturday 10 am–8 pm; Sunday 10 am–8 pm. We suggest arriving 1.5 hours prior to closing to maximize your experience!", "lastEntry": 18.5, "lastEntryText": "Last entry occurs 1.5 hours prior to closing. (https://www.floridarama.art/information/)", "hoursChecked": "2026-10-08", "hint": "Last entry is 1.5 hours before closing; the entrance and ticket desk are inside The Factory Building 5. Through November 2, admission includes a PG-13 paranormal experience.", "why": "An indoor immersive art walk-through built on original Florida stories in the Warehouse Arts District, designed for all ages."},
       {"id": "la-v-vietnamese", "name": "La V Vietnamese Fusion", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["vietnamese", "pho", "banh mi", "noodles", "vegetarian", "boba", "indoor"], "address": "441 Central Ave, St. Petersburg, FL 33701", "query": "La V Vietnamese Fusion, 441 Central Ave, St. Petersburg, FL", "source": "https://lavfusion.com/", "week": {"0": [11, 22], "1": [11, 22], "2": [11, 22], "3": [11, 22], "4": [11, 22], "5": [11, 22], "6": [11, 22]}, "hoursText": "Open 7 days a week 11:00a – 10:00p", "hoursChecked": "2026-10-08", "hint": "The $14.40 Lunch Box runs Tuesday to Friday, 11am to 2pm, dine-in only and not on holidays.", "why": "Vietnamese pho, banh mi and vermicelli bowls on downtown Central Ave, with a separate vegetarian menu."},
       {"id": "pin-wok-bowl", "name": "Pin Wok & Bowl", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["thai", "sushi", "poke", "japanese", "curry", "noodles", "indoor"], "address": "445 Central Avenue, St. Petersburg, FL 33701", "query": "Pin Wok & Bowl, 445 Central Avenue, St. Petersburg, FL", "source": "https://pinwokandbowl.com/", "week": {"0": [12, 21], "1": null, "2": [11.5, 21], "3": [11.5, 21], "4": [11.5, 21], "5": [11.5, 22], "6": [12, 22]}, "split": {"2": [15, 16], "3": [15, 16], "4": [15, 16], "5": [15, 16]}, "hoursText": "Monday Closed; Tuesday-Thursday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 9:00 PM; Friday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 10:00 PM; Saturday 12:00 PM - 10:00 PM; Sunday 12:00 PM - 9:00 PM", "hoursChecked": "2026-10-08", "hint": "The site recommends making a reservation ahead of time.", "why": "Thai curries, pad thai, sushi rolls and poke bowls in one downtown Central Ave stop."},
       {"id": "perrys-porch", "name": "Perry's Porch", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["american", "seafood", "sandwiches", "burgers", "waterfront", "pier", "patio", "family"], "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "Perry's Porch, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://www.perrysporch.com/", "week": {"0": [7, 21], "1": [7, 22], "2": [7, 22], "3": [7, 22], "4": [7, 22], "5": [7, 22], "6": [7, 22]}, "hoursText": "Monday -Saturday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-10pm | Dinner; Sunday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-9pm | Dinner", "hoursChecked": "2026-10-08", "hint": "Perry's Porch is cashless: debit or credit cards only.", "why": "Lunch or dinner with park and waterfront views at the entrance to the St. Pete Pier."},
@@ -1144,7 +1149,7 @@
       {"id": "cafe-clementine", "name": "Café Clementine (Le Clementine Bakeshop)", "feel": "taste", "meal": "snack", "costBand": "mid", "tags": ["bakery", "croissants", "pastries", "coffee", "brunch", "waterfront", "indoor"], "address": "255 Beach Dr NE, St. Petersburg, FL 33701", "query": "Café Clementine, 255 Beach Dr NE, St. Petersburg, FL", "source": "https://www.leclementinebakeshop.com/", "week": {"0": [9, 15], "1": null, "2": [9, 15], "3": [9, 15], "4": [9, 15], "5": [9, 15], "6": [9, 15]}, "hoursText": "OPEN 9 AM - 3 PM Tuesdays - Sundays Kitchen closes at 2PM Museum Admission not required", "hoursChecked": "2026-10-08", "hint": "No museum admission needed. Seating is first-come, first-served with no reservations, and the kitchen closes at 2pm.", "why": "A scratch bakery café inside the Museum of Fine Arts on Beach Drive, with waterfront views, indoor and outdoor seating, and no museum ticket needed."},
       {"id": "tbw-discovery-center", "name": "Tampa Bay Watch Discovery Center", "feel": "soft", "cost": "small", "tags": ["kids", "family", "indoor", "fish", "animals", "water", "pier", "rainy day"], "kids": true, "address": "700 2nd Ave NE, St. Petersburg, FL 33701", "query": "Tampa Bay Watch Discovery Center, 700 2nd Ave NE, St. Petersburg, FL", "source": "https://www.tbwdiscoverycenter.org/info", "week": {"0": [10, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-18", "2026-12-25"], "skipDates": ["2026-11-24", "2026-12-15", "2026-12-24"], "hoursText": "The Discovery Center is open 10 AM to 5 PM daily. Holiday Season Hours: November 24, 2025 - Open 3pm to 6pm November 26, 2026 - Closed December 15, 2026 - Open 10am to 3pm December 18, 2026 - Closed December 24, 2026 - Open 10am to 1pm December 25, 2026 - Closed", "hoursChecked": "2026-10-08", "hint": "Park in the Pier's Pelican lot; the Pier District trams stop at the Discovery Center.", "why": "An exhibit gallery on the St. Pete Pier with interactive displays, live animals, a touch tank and daily educational programs."},
       {"id": "st-pete-museum-of-history", "name": "St. Petersburg Museum of History", "feel": "soft", "cost": "ticket", "tags": ["history", "museum", "indoor", "baseball", "kids", "rainy day", "pier"], "kids": true, "gem": false, "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "St. Petersburg Museum of History, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://historystpete.org/visit/", "week": {"0": [12, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-03-28", "2027-11-25", "2027-12-25"], "hoursText": "Museum Hours: Monday – Saturday: 10 a.m. to 5 p.m. Sunday: Noon to 5 p.m. Museum is closed on Thanksgiving, Christmas, and Easter", "hoursChecked": "2026-10-08", "hint": "Parking is in the Pier's Dolphin lot next to the museum; Pier parking is metered by the hour.", "why": "An indoor museum at the entrance to the Pier District covering the world's first commercial airline, 150 years of baseball history and the city's tourism past."},
-      {"id": "james-museum", "name": "The James Museum of Western & Wildlife Art", "feel": "soft", "cost": "ticket", "tags": ["art", "museum", "western", "wildlife", "indoor", "kids", "rainy day"], "kids": true, "gem": false, "address": "150 Central Ave, St. Petersburg, FL 33701", "query": "The James Museum of Western & Wildlife Art, 150 Central Ave, St. Petersburg, FL", "source": "https://thejamesmuseum.org/hours-parking/", "week": {"0": [10, 17], "1": [10, 17], "2": [10, 20], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "hoursText": "Open Daily: 10 AM – 5 PM. Open Tuesdays: 10 AM – 8 PM. Closed Thanksgiving & Christmas Days. Last admission ticket sold at 4:30 PM Wednesday-Monday and 7:30 PM on Tuesday.", "hoursChecked": "2026-10-08", "hint": "Tuesdays are $10 for adults ($5 youth) with hours until 8 PM; museum parking is on levels 3-4 of the South Core garage behind the building.", "why": "A downtown Central Ave museum of Western and wildlife art with a cafe and strollers allowed in the galleries."},
+      {"id": "james-museum", "name": "The James Museum of Western & Wildlife Art", "feel": "soft", "cost": "ticket", "tags": ["art", "museum", "western", "wildlife", "indoor", "kids", "rainy day"], "kids": true, "gem": false, "address": "150 Central Ave, St. Petersburg, FL 33701", "query": "The James Museum of Western & Wildlife Art, 150 Central Ave, St. Petersburg, FL", "source": "https://thejamesmuseum.org/hours-parking/", "week": {"0": [10, 17], "1": [10, 17], "2": [10, 20], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "lastEntry": {"0": 16.5, "1": 16.5, "2": 19.5, "3": 16.5, "4": 16.5, "5": 16.5, "6": 16.5}, "hoursText": "Open Daily: 10 AM – 5 PM. Open Tuesdays: 10 AM – 8 PM. Closed Thanksgiving & Christmas Days. Last admission ticket sold at 4:30 PM Wednesday-Monday and 7:30 PM on Tuesday.", "hoursChecked": "2026-10-08", "hint": "Tuesdays are $10 for adults ($5 youth) with hours until 8 PM; museum parking is on levels 3-4 of the South Core garage behind the building.", "why": "A downtown Central Ave museum of Western and wildlife art with a cafe and strollers allowed in the galleries."},
       {"id": "woodson-museum", "name": "The Woodson African American Museum of Florida", "feel": "soft", "tags": ["history", "museum", "free", "indoor", "black history", "garden"], "address": "2240 9th Ave S, St. Petersburg, FL 33712", "query": "The Woodson African American Museum of Florida, 2240 9th Ave S, St. Petersburg, FL", "source": "https://woodsonmuseum.org/", "week": {"0": null, "1": null, "2": [12, 17], "3": [12, 17], "4": [12, 17], "5": [12, 17], "6": [12, 17]}, "hoursText": "Hours: Tuesday-Saturday from 12-5 PM. (Admission: Free Admission during hours of Tuesday-Saturday from 12-5 PM)", "hoursChecked": "2026-10-08", "hint": "Free admission, open Tuesday through Saturday afternoons only (12-5 PM).", "why": "A free museum in Midtown. Through January 2027 it has a Smithsonian-linked exhibition connecting St. Petersburg's history to the American story, and an outdoor Underground Railroad installation in its Legacy Garden."},
       {"id": "chihuly-collection", "name": "Chihuly Collection", "feel": "soft", "cost": "ticket", "tags": ["art", "glass", "chihuly", "museum", "indoor", "rainy day"], "gem": false, "address": "720 Central Ave, St. Petersburg, FL 33701", "query": "Chihuly Collection, 720 Central Ave, St. Petersburg, FL", "source": "https://moreanartscenter.org/chihuly-collection-location/", "week": {"0": [12, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "skipDates": ["2026-12-24", "2026-12-31", "2027-03-28", "2027-05-31", "2027-07-04", "2027-09-06"], "hoursText": "Open Daily: Monday-Saturday 10AM – 5PM, Sundays: 12PM – 5PM. Closed on Christmas and Thanksgiving Days. Closes at 3pm on Christmas Eve, New Year's Eve, Easter, Memorial Day, July 4th, and Labor Day.", "hoursChecked": "2026-10-08", "hint": "Admission includes a live glass demonstration at the Morean Glass Studio; buying tickets ahead is recommended.", "why": "A permanent collection of large-scale Dale Chihuly glass installations in a Central Ave building designed specifically for them, a contained indoor visit."}
     ];
@@ -1571,6 +1576,23 @@
       return p.deck;
     }
 
+    // #29: how long a visit needs before the place closes, when it posts no last entry. Minutes.
+    var STAY_MIN = { museum: 60, meal: 45, treat: 20, other: 30 };
+    function stayFor(s) {
+      if (s.stay != null) return s.stay;
+      if (s.meal === "coffee" || s.meal === "dessert" || s.meal === "snack") return STAY_MIN.treat / 60;
+      if (s.meal) return STAY_MIN.meal / 60;
+      if (s.cost === "ticket" || s.cost === "small" || (s.tags || []).indexOf("museum") !== -1) return STAY_MIN.museum / 60;
+      return STAY_MIN.other / 60;
+    }
+
+    // The place's own last entry that day, from its page: one time, or one per weekday. Null if none.
+    function lastEntryOn(s, d, iso) {
+      var le = s.lastEntry;
+      if (le != null && typeof le === "object") le = le[String(d.getDay())];
+      return typeof le === "number" && le < s.end(d, iso) ? le : null;
+    }
+
     function stopView(id) {
       var s = STOP_BY_ID[id];
       var d = parseDate(plan.date);
@@ -1586,6 +1608,8 @@
         start: s.start(d, iso),
         end: s.end(d, iso),
         gap: s.gap ? s.gap(d) : null,
+        last: lastEntryOn(s, d, iso),
+        stay: stayFor(s),
         why: s.why({ iso: iso, day: d.getDay(), when: formatWhen(d), hours: hours, occ: occasionPhrase(plan), on: dayPhrase(iso) }),
         source: s.source,
         dated: s.dated,
@@ -1617,6 +1641,7 @@
       var a = anchorView();
       var sun = "Sunset is about " + fmtHour(sunsetHour(parseDate(plan.date))) + ".";
       if (!a) return sun;
+      if (mode === "play" && anchorLate() && !anchorDone()) return "Too late for the dinner spot now. " + sun;
       if (mode === "play" && !anchorOffered()) return (a.custom ? a.name : "Dinner") + ": done. " + sun;
       if (a.custom) return a.name + " at " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ". " + sun;
       return "Dinner around " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ". " + sun;
@@ -1928,27 +1953,63 @@
     }
 
     // The clock filters; the couple chooses. Off the plan's date, everything stays on offer.
-    function openNow(v) {
-      if (!isPlanDay()) return true;
-      var h = nowNY().hour;
-      // In a midday break, or its last half hour before: only if it reopens within the hour.
-      if (v.gap && h >= v.gap[0] - 0.5 && h < v.gap[1]) return h + 1 >= v.gap[1];
-      return v.start <= h + 1 && h < v.end - 0.5;
+    // There's no travel model, so every trip gets about a 15-minute walk or short ride.
+    var WALK = 0.25;
+    // "Go soon" shows in the last half hour a place is still offered.
+    var TIGHT = 0.5;
+
+    // The latest arrival that still leaves a real visit: before a midday break, or by the last entry or close.
+    function cutoffAt(v, h) {
+      if (v.gap && h < v.gap[0]) return v.gap[0] - v.stay;
+      return v.last != null ? v.last : v.end - v.stay;
     }
 
-    function offered(feel) {
+    // how: "inside" = open right now (Plan B); "held" = already revealed, so only still open.
+    function openNow(v, how) {
+      var h = planHour();
+      if (h === null) return true;
+      var at = h + WALK;
+      if (v.gap && h < v.gap[1] && (how === "held" ? h >= v.gap[0] : at > v.gap[0] - v.stay)) return !how && h + 1 >= v.gap[1];
+      if (how === "held") return h < v.end;
+      return v.start <= (how === "inside" ? h : h + 1) && at <= cutoffAt(v, h);
+    }
+
+    // Plain closing copy for a card on the day: "Closes at 5pm, go soon." Empty when there's time.
+    function closingLine(v) {
+      var h = planHour();
+      if (h === null || v.end == null || v.stay == null) return "";
+      var brk = v.gap && h < v.gap[0];
+      var close = brk ? v.gap[0] : v.end;
+      if (h >= close) return "";
+      var what = !brk && v.last != null ? "Last entry " + fmtHour(v.last) : "Closes at " + fmtHour(close);
+      var cut = cutoffAt(v, h);
+      if (h + WALK > cut) return what + ". Too late now.";
+      if (h + WALK > cut - TIGHT) return what + ", go soon.";
+      return "";
+    }
+
+    function offered(feel, how) {
       var deck = ensureDeck(plan);
       var visited = visitedIds();
       var skip = (plan.skip || []).concat(playState().skip);
       return (deck.pools[feel] || []).filter(function (id) {
-        return visited.indexOf(id) === -1 && skip.indexOf(id) === -1 && openNow(stopView(id));
+        return visited.indexOf(id) === -1 && skip.indexOf(id) === -1 && openNow(stopView(id), how);
       });
     }
 
-    function anchorOffered() {
+    function anchorDone() {
       var a = anchorView();
-      if (!a) return false;
-      return visitedIds().indexOf(a.id) === -1;
+      return !!a && visitedIds().indexOf(a.id) !== -1;
+    }
+
+    // A dinner the page picked stops being offered once it's too close to closing. A booking never does.
+    function anchorLate() {
+      var a = anchorView(), h = planHour();
+      return !!a && !a.custom && h !== null && h + WALK > cutoffAt(a, h);
+    }
+
+    function anchorOffered(held) {
+      return !!anchorView() && !anchorDone() && (held || !anchorLate());
     }
 
     function listPromoted() {
@@ -1989,10 +2050,10 @@
       savePlay();
     }
 
-    function cardStillGood(pending, feel) {
+    function cardStillGood(pending, feel, held) {
       if (!pending) return false;
-      if (pending === "anchor") return anchorOffered();
-      return offered(feel).indexOf(pending) !== -1;
+      if (pending === "anchor") return anchorOffered(held);
+      return offered(feel, held ? "held" : undefined).indexOf(pending) !== -1;
     }
 
     // The clock may have moved since the commit screen was drawn.
@@ -2249,12 +2310,14 @@
     function cardHtml(v, opts) {
       opts = opts || {};
       var wet = v.outdoor && forecastWet(plan.date);
+      var soon = closingLine(v);
       return (
         '<article class="stop">' +
           "<h2>" + esc(v.name) + "</h2>" +
           '<p class="why">' + esc(v.why) + "</p>" +
           (v.hint ? '<p class="hint">' + esc(v.hint) + "</p>" : "") +
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
+          (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
           (wet ? '<p class="meta">Only if it clears.</p>' : "") +
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
           (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
@@ -2373,6 +2436,7 @@
       var isAnchor = view.pending === "anchor";
       var v = isAnchor ? anchorView() : stopView(view.pending);
       var wet = !isAnchor && v.outdoor && forecastWet(plan.date);
+      var soon = closingLine(v);
       var kicker = isAnchor ? (v.custom ? "Main event" : "Dinner") : (FEELS[v.feel] ? FEELS[v.feel].label : "Next stop");
       return (
         pipsHtml() +
@@ -2383,6 +2447,7 @@
           '<p class="why">' + esc(v.why) + "</p>" +
           (v.hint ? '<p class="hint">' + esc(v.hint) + "</p>" : "") +
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
+          (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
           (wet ? '<p class="meta">Outdoors. Only if it clears.</p>' : "") +
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
           (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
@@ -2398,13 +2463,13 @@
       var visited = visitedIds();
       var ids = liveIds().filter(function (id) { return visited.indexOf(id) === -1; });
       var views = ids.map(stopView);
-      var now = views.filter(openNow), later = views.filter(function (v) { return !openNow(v); });
+      var now = views.filter(function (v) { return openNow(v); }), later = views.filter(function (v) { return !openNow(v); });
       var html = '<p class="kicker">Just show me</p><h1>' + (isPlanDay() ? "Open around now" : "The whole day") + "</h1>";
       html += '<p class="strip">' + esc(anchorLine()) + "</p>";
       if (!views.length) html += '<p class="note">You have been everywhere on the list. Wander. Or log what you found.</p>';
       html += now.map(function (v) { return cardHtml(v, { here: true, skip: true }); }).join("");
       if (later.length) {
-        html += "<h3>Later or closed right now</h3>" + later.map(function (v) { return cardHtml(v, { here: false, skip: false }); }).join("");
+        html += "<h3>Not right now</h3>" + later.map(function (v) { return cardHtml(v, { here: false, skip: false }); }).join("");
       }
       var a = anchorView();
       if (a && anchorOffered()) html += "<h3>Where the day lands</h3>" + cardHtml(a, { here: true });
@@ -2414,9 +2479,8 @@
 
     function iffyHtml() {
       var visited = visitedIds();
-      var h = nowNY().hour;
       var inside = liveIds().filter(function (id) { return visited.indexOf(id) === -1 && !STOP_BY_ID[id].outdoor; }).map(stopView)
-        .filter(function (v) { return !isPlanDay() || (v.start <= h && h < v.end - 0.25 && !(v.gap && h >= v.gap[0] - 0.25 && h < v.gap[1])); });
+        .filter(function (v) { return openNow(v, "inside"); });
       var html = '<div class="card reveal"><div class="stamp peach">Plan B</div><p class="place">Soft landing</p>' +
         '<p class="why">' + esc(weatherLine(plan.date)) + " Florida storms usually pass. Duck inside, then pick up where you left off.</p></div>";
       html += inside.length
@@ -2434,7 +2498,7 @@
       if (a && anchorOffered()) {
         html += '<p class="why">Head toward ' + esc(a.name) + " early. " + (a.custom ? "It's set for " + esc(fmtHour(a.time)) + "." : "Dinner around " + esc(fmtHour(a.time)) + ", earlier if they'll seat you.") + "</p>" + dirBtn(a, "Directions to " + a.name);
       } else if (a) {
-        html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : "Dinner's done.") + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
+        html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : anchorDone() ? "Dinner's done." : "Too late for the dinner spot now.") + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       } else {
         html += '<p class="why">No fixed point on this one, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       }
@@ -2495,7 +2559,7 @@
       var st = playState();
       if (!st.started) view.panel = "curtain";
       else if (view.panel === "curtain") {
-        if (st.panel && st.heldOn === nowNY().iso && cardStillGood(st.pending, st.feel)) {
+        if (st.panel && st.heldOn === nowNY().iso && cardStillGood(st.pending, st.feel, st.panel === "reveal")) {
           view.pending = st.pending;
           view.feel = st.feel;
           view.panel = st.panel;
