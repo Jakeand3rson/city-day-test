@@ -1,6 +1,5 @@
 name: Feature
 description: Something new for players or creators. Filed by the PM after Jake and the PM agree on it.
-title: "[Feature] "
 labels: ["type:feature", "status:needs-decision"]
 body:
   - type: markdown

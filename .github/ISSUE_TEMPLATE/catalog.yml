@@ -1,6 +1,5 @@
 name: Catalog place
 description: Add or fix a place, its hours, or a dated event in the catalog.
-title: "[Catalog] "
 labels: ["type:data", "area:catalog"]
 body:
   - type: markdown

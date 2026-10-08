@@ -1,6 +1,5 @@
 name: Bug
 description: Something is broken, or the day trusted the wrong signal.
-title: "[Bug] "
 labels: ["type:bug"]
 body:
   - type: markdown
