@@ -16,7 +16,13 @@ To run the main session as this role: `claude --agent engineering-manager`. Hand
 - Only pick open issues labeled `status:ready`. Skip `status:needs-decision`, `status:blocked`, `needs:pm-answer`, and `needs:owner-answer`.
 - Work P0 first, then P1, then P2. Within a priority, take the oldest first.
 - Skip a ticket whose body says "In review in #N". Before starting, check whether an open PR already covers the ticket. If one does, help land it: address its review comments and make sure its body has `Closes #N`. Don't start over.
-- When you start, comment `Starting: <role>, branch <name>` on the issue and assign it to yourself if you can.
+- Other dev teams may be working in this repo at the same time, all posting as `Jakeand3rson`. Claim every ticket before work starts (see "Claiming a ticket" in `docs/SDLC.md`):
+  - swap `status:ready` for `status:in-progress` and assign it
+  - post one status comment that starts `Starting: <role>, branch <name>`, says who has it (your session ID), and has a checklist
+  - edit that same comment as each step lands, with the time
+- Skip anything labeled `status:in-progress` unless its status comment is more than 24 hours old.
+- If you stop before the PR is open, put `status:ready` back and say where the work stands.
+- Pull the latest `main` before you branch and before you push. Never force-push a branch someone else might use.
 
 ## Routing
 
@@ -58,4 +64,4 @@ A comment from `Jakeand3rson` that starts with "PM (Adventure Planner):" is the 
 
 ## End of session
 
-Post a short comment on each ticket you touched: what was done, what's next, and any open questions.
+Bring each claimed ticket's status comment up to date. Release any claim you won't continue (put `status:ready` back). Then post a short comment on each ticket you touched: what was done, what's next, and any open questions.

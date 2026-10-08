@@ -7,7 +7,7 @@ For the dev team: humans and AI coding agents alike. The full lifecycle is in [d
 1. **Read the charter first:** `docs/reviews/2026-10-direction.md` in the private [city-day](https://github.com/Jakeand3rson/city-day) repo, plus `docs/build-rules.md` and `docs/ui.md` there. Where anything disagrees with the charter, the charter wins. If you can't read that repo, ask on the issue.
 2. **Only pick up issues labeled `status:ready`.** `status:needs-decision` means Jake and the PM are still deciding. Don't build it.
 3. **Check for an open PR** that already covers the issue. If one exists, don't duplicate it.
-4. **Comment on the issue when you start** ("Picking this up") and assign yourself if you can.
+4. **Claim it before you start.** Swap `status:ready` for `status:in-progress`, assign it, and post one status comment that says who has it (a team name or session ID, since every team posts as the same account), the branch, and a short checklist. Edit that comment as you go. If you stop, put `status:ready` back. A claim with no update for 24 hours has lapsed. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
 5. **Blocked on a product question?** Comment `Question for PM:` with two or three options and your recommendation, add `needs:pm-answer`, and work on something else. Don't guess on anything a player or creator will see. See [Questions](docs/SDLC.md#questions).
 
 ## Workflow

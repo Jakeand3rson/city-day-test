@@ -33,7 +33,7 @@ City Day nudges people into a good day out in St. Petersburg, FL. Pick a feeling
 
 ## The flow
 
-1. Pick only `status:ready` issues, P0 first, oldest first. Check that no open PR already covers it.
+1. Pick only `status:ready` issues, P0 first, oldest first. Check that no open PR already covers it. Claim it: swap `status:ready` for `status:in-progress` and keep one status comment current (who has it, the branch, a checklist). Other dev teams may be working in this repo too. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
 2. Plan: the Tech Lead posts a plan for `size:L`, `type:spike`, or anything touching the play loop, the share-link format, or the catalog schema.
 3. Build on the ticket's branch.
 4. Test: checks in `qa-verify.mjs`, `npm test` and CI green, screenshots at 390×844.
