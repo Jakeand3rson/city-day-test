@@ -270,6 +270,45 @@ check("link: junk in the deck is dropped", () => {
   assert(back.deck.anchor.type === "none", "pier is not a dinner anchor");
 });
 
+// --- old links ---
+
+// Real share links made by earlier versions of this page, kept as text so no later change can
+// quietly re-encode them. Every one must still open and play. When a change touches the play
+// flow or the link format, add a link built by the current main here first.
+const OLD_LINKS = [
+  { built: "8240ac1, before the play loop: a list-style day with no frozen deck", hash: "#play/eyJpZCI6Im9sZGxpbmswIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiQW5uaXZlcnNhcnkiLCJraW5kIjoiZWFzeSIsImN1c3RvbSI6IiIsImRhdGUiOiIyMDI2LTEwLTEwIiwiY2l0eSI6IlN0LiBQZXRlcnNidXJnIiwiZHJpbmsiOiJubyIsInN0eWxlIjoicGxhbiIsImxlYW4iOiJtdXN0IiwiYnVkZ2V0IjoiIiwiYnVkZ2V0QW1vdW50IjoiMTUwIiwibXVzdCI6ImNvZmZlZSwgd2Fsa2luZywgdGFjb3MiLCJza2lwIjpbXX0" },
+  { built: "8240ac1, the same day as a bare hash, the oldest link shape", hash: "#eyJpZCI6Im9sZGxpbmswIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiQW5uaXZlcnNhcnkiLCJraW5kIjoiZWFzeSIsImN1c3RvbSI6IiIsImRhdGUiOiIyMDI2LTEwLTEwIiwiY2l0eSI6IlN0LiBQZXRlcnNidXJnIiwiZHJpbmsiOiJubyIsInN0eWxlIjoicGxhbiIsImxlYW4iOiJtdXN0IiwiYnVkZ2V0IjoiIiwiYnVkZ2V0QW1vdW50IjoiMTUwIiwibXVzdCI6ImNvZmZlZSwgd2Fsa2luZywgdGFjb3MiLCJza2lwIjpbXX0" },
+  { built: "607190a, a frozen deck with a dinner reservation", hash: "#play/eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJhbmNob3IiOnsibmFtZSI6IkRpbm5lciByZXNlcnZhdGlvbiIsInRpbWUiOiIxODozMCIsIndoZXJlIjoiODAwIDJuZCBBdmUgTkUifSwiZGVjayI6eyJ2IjoxLCJhbmNob3IiOnsidHlwZSI6ImN1c3RvbSIsInRpbWUiOjE4LjUsImxlYXZlIjoxOH0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImthaHdhIiwic3RpbGx3YXRlcnMiXSwiZHJpZnQiOlsiZmVzdGl2YWwiXSwiZGlnIjpbInB1bXBraW4iLCJhcnRwb29sIl0sInNvZnQiOlsicGFsZWhvcnNlIiwiZGFsaSIsIm1mYSJdfSwicGFyayI6ZmFsc2V9fQ" },
+  { built: "607190a, a frozen deck with a dinner the page picked", hash: "#play/eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoic3RpbGx3YXRlcnMiLCJ0aW1lIjoxOCwibGVhdmUiOjE3LjV9LCJwb29scyI6eyJ0YXN0ZSI6WyJtYXJrZXQiLCJrYWh3YSIsImJvZGVnYSJdLCJkcmlmdCI6WyJmZXN0aXZhbCJdLCJkaWciOlsicHVtcGtpbiIsImFydHBvb2wiXSwic29mdCI6WyJwYWxlaG9yc2UiLCJkYWxpIiwibWZhIl19LCJwYXJrIjpmYWxzZX19" }
+];
+
+check("standard: old #play/ links still play (open, reveal, We're here)", () => {
+  OLD_LINKS.forEach((link) => {
+    resetPhone();
+    sunny("2026-10-10");
+    openLink(link.hash);
+    assert(g.mode === "play" && g.plan && g.plan.date === "2026-10-10", link.built + ": didn't open: " + playText().slice(0, 80));
+    assert(g.view.panel === "curtain" && /Alex and Riley/.test(playText()), link.built + ": no curtain: " + playText().slice(0, 80));
+    g.act("begin");
+    const pools = g.plan.deck.pools;
+    const feel = Object.keys(pools).find((f) => pools[f].length);
+    assert(feel, link.built + ": no places to reveal");
+    g.act("feel", feel);
+    g.act("reveal");
+    const id = g.view.pending;
+    assert(id && g.STOP_BY_ID[id], link.built + ": nothing revealed");
+    g.act("here", id);
+    const trail = g.playState().trail;
+    assert(trail.length === 1 && trail[0].id === id, link.built + ": We're here didn't log the stop");
+  });
+  // The reservation in a frozen deck is still the day's fixed point.
+  resetPhone();
+  sunny("2026-10-10");
+  openLink(OLD_LINKS[2].hash);
+  g.act("begin");
+  assert(/Dinner reservation/.test(playText()), "the booking was lost");
+});
+
 // --- the play loop ---
 
 check("play: curtain, then feelings, then one hidden pick, then one reveal", () => {

@@ -4,6 +4,20 @@ Closes #
 
 <!-- Plain English, one line per change. What a player or creator will notice. -->
 
+## Acceptance criteria proof
+
+<!-- Required. One row per acceptance criterion in the linked issue, in the issue's order. Proof is one of:
+     - an automated check in qa-verify.mjs that passes in CI (give its exact name)
+     - a 390×844 screenshot (link it below)
+     - a source URL, for catalog data
+     Status is Met or Not met. Explain any "Not met" under the table. A PR without this table gets `needs:changes`.
+     If the PR touches the play flow or the share format, keep the old-links row. -->
+
+| Criterion | Proof type | Proof | Status |
+|---|---|---|---|
+| Example: a past date is refused | Automated check | `form: a past date and a half-filled fixed point are refused` | Met |
+| Old `#play/` links still play | Automated check | `standard: old #play/ links still play (open, reveal, We're here)` | |
+
 ## How tested
 
 - **`npm test`:** <!-- e.g. "92 passed, 0 failed". Name the checks you added. -->
