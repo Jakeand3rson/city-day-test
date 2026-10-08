@@ -630,15 +630,24 @@
       return h12 + (mm ? ":" + (mm < 10 ? "0" : "") + mm : "") + suffix;
     }
 
+    // Sunrise over downtown St. Pete (NOAA approximation), as a local hour.
+    function sunriseHour(d) {
+      return sunEvent(d, -1);
+    }
+
     // Sunset over downtown St. Pete (NOAA approximation), as a local hour.
     function sunsetHour(d) {
+      return sunEvent(d, 1);
+    }
+
+    function sunEvent(d, which) {
       var rad = Math.PI / 180, lat = 27.7706, lng = -82.6403;
       var n = Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000);
       var g = 2 * Math.PI / 365 * (n - 1);
       var eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
       var decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
       var ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl)) / rad;
-      var utcMin = 720 - 4 * (lng - ha) - eq;
+      var utcMin = 720 - 4 * (lng - which * ha) - eq;
       var at = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) + utcMin * 60000);
       return nyParts(at).hour;
     }
@@ -929,7 +938,7 @@
         id: "dali",
         name: "The Dalí Museum",
         feel: "soft",
-        tags: ["art", "museum", "must-see"],
+        tags: ["art", "museum", "must-see", "dali", "dalí", "surrealism"],
         cost: "ticket",
         address: "One Dali Blvd, St. Petersburg",
         query: "The Dalí Museum, One Dali Blvd, St. Petersburg, FL",
@@ -1103,6 +1112,96 @@
         }
       }
     ];
+
+    // Places kept as plain data: weekly hours copied from each place's own site, the dates it says
+    // it is closed, and the day the hours were checked. weekStop() turns each one into the same
+    // shape as the entries above. week[0] is Sunday; [open, close] in 24h hours, null when closed.
+    var PLACES = [
+      {"id": "sunken-gardens", "name": "Sunken Gardens", "feel": "drift", "cost": "ticket", "tags": ["garden", "plants", "flamingos", "kids", "family", "walking", "history"], "outdoor": true, "kids": true, "gem": false, "address": "1825 4th St N, St. Petersburg, FL 33704", "query": "Sunken Gardens, 1825 4th St N, St. Petersburg, FL", "source": "https://sunkengardens.org/plan-your-visit/", "week": {"0": [12, 16.5], "1": [10, 16.5], "2": [10, 16.5], "3": [10, 16.5], "4": [10, 16.5], "5": [10, 16.5], "6": [10, 16.5]}, "closedDates": ["2026-11-26", "2026-12-24", "2026-12-25", "2027-11-25", "2027-12-24", "2027-12-25"], "hoursText": "Monday - Saturday: 10 a.m. - 4:30 p.m. Sunday: 12 p.m. - 4:30 p.m. The last admission is sold at 4 p.m. daily. Gardens may close due to inclement weather. Sunken Gardens is open everyday except Thanksgiving, Christmas Eve, and Christmas Day.", "hoursChecked": "2026-10-08", "hint": "Pay in person on the day of your visit (admission can't be bought in advance), and the last admission is sold at 4 p.m.", "why": "St. Pete's oldest living museum: shady garden paths with flamingos, tropical birds and tortoises, and visitors tend to spend about 1.5 to 2 hours there."},
+      {"id": "crescent-lake-park", "name": "Crescent Lake Park", "feel": "drift", "tags": ["park", "lake", "walking", "playground", "kids", "banyans", "dogs"], "outdoor": true, "kids": true, "address": "1320 5th St N, St. Petersburg, FL 33701", "query": "Crescent Lake Park, 1320 5th St N, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/crescent_lake_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "Bring a blanket, as the city suggests; there's also a playground, recreation trails and a dog park.", "why": "A park surrounded by banyan trees, with recreation trails and a playground, a short walk from Sunken Gardens."},
+      {"id": "north-straub-park", "name": "North Straub Park", "feel": "drift", "tags": ["waterfront", "park", "walking", "bay", "views", "downtown"], "outdoor": true, "address": "400 Bayshore Dr NE, St. Petersburg, FL 33701", "query": "North Straub Park, 400 Bayshore Dr NE, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/north_straub_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "The recreation trails are open to walkers, runners and bikers.", "why": "A downtown bayfront park with views of the bay and recreation trails."},
+      {"id": "demens-landing-park", "name": "Demens Landing Park", "feel": "drift", "tags": ["waterfront", "park", "picnic", "bay", "boats"], "outdoor": true, "address": "Bayshore Dr SE & 2nd Ave SE, St. Petersburg, FL 33701", "query": "Demens Landing Park, Bayshore Dr SE & 2nd Ave SE, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/demens_landing_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "There are picnic shelters and restrooms; the shelters can be rented, so one may be booked.", "why": "A short stroll from downtown, with picnic areas and a view of the bay and boat ramps."},
+      {"id": "north-shore-park", "name": "North Shore Park", "feel": "drift", "tags": ["beach", "playground", "kids", "family", "waterfront", "walking", "dolphins"], "outdoor": true, "kids": true, "address": "901 North Shore Dr NE, St. Petersburg, FL 33701", "query": "North Shore Park, 901 North Shore Dr NE, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/north_shore_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "Check the city's water-quality results at stpete.org/RecWaterQuality before getting in the water.", "why": "A 33-acre bayfront park just steps from downtown with a sandy beach, a large playground and walking trails, and the city page says you can spot dolphins."},
+      {"id": "gizella-kopsick-arboretum", "name": "Gizella Kopsick Palm Arboretum", "feel": "drift", "tags": ["palms", "plants", "garden", "walking", "quiet"], "outdoor": true, "address": "North Shore Dr NE & 11th Ave NE, St. Petersburg, FL 33701", "query": "Gizella Kopsick Palm Arboretum, North Shore Dr NE, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/gizella_kopsick_arboretum.php", "week": {"0": [7, 19], "1": [7, 19], "2": [7, 19], "3": [7, 19], "4": [7, 19], "5": [7, 19], "6": [7, 19]}, "opensBeforeSunrise": 0.5, "closesAfterSunset": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes 30 minutes after sunset.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "Adjacent parking is free.", "why": "A peaceful 2-acre circle of red brick paths, wooden benches and a gazebo winding through more than 500 palms and cycads."},
+      {"id": "albert-whitted-park", "name": "Albert Whitted Park", "feel": "drift", "tags": ["playground", "kids", "sunset", "waterfront", "picnic"], "outdoor": true, "kids": true, "address": "480 Bayshore Dr SE, St. Petersburg, FL 33701", "query": "Albert Whitted Park, 480 Bayshore Dr SE, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/albert_whitted_park.php", "week": {"0": [7, 19], "1": [7, 19], "2": [7, 19], "3": [7, 19], "4": [7, 19], "5": [7, 19], "6": [7, 19]}, "opensBeforeSunrise": 0.5, "closesAfterSunset": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes 30 minutes after sunset.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "Come for sunset, but the park closes 30 minutes after.", "why": "At the southern tip of the downtown waterfront, next to the local airport, with a playground, picnic shelters and a walkway, and the city calls it a great spot to watch the sunset."},
+      {"id": "st-pete-shuffleboard-club", "name": "St. Petersburg Shuffleboard Club", "feel": "drift", "cost": "small", "tags": ["shuffleboard", "games", "kids", "family", "evening", "dogs"], "outdoor": true, "kids": true, "address": "559 Mirror Lake Dr N, St. Petersburg, FL 33701", "query": "St. Petersburg Shuffleboard Club, 559 Mirror Lake Dr N, St. Petersburg, FL", "source": "https://www.stpeteshuffle.com/", "week": {"0": [9, 12], "1": null, "2": [18, 21], "3": null, "4": [18, 21], "5": [19, 22], "6": null}, "closedDates": ["2026-11-26", "2026-12-24", "2026-12-25"], "skipDates": ["2026-11-05"], "hoursText": "Hours Tuesday & THURSDAY: 6 – 9 pm Friday: 7 - 10 pm Sunday: 9 am - noon Open hours are free for members, $10 per non-member (kids free)", "hoursChecked": "2026-10-08", "hint": "Open play is $10 per non-member (kids free) and weather permitting. Fridays are first come, first served, and volunteers show you how to play.", "why": "Outdoor shuffleboard courts in Mirror Lake Park that non-members can play during open hours; Friday night shuffle has been a St. Pete tradition since 2005."},
+      {"id": "tombolo-books", "name": "Tombolo Books", "feel": "dig", "tags": ["books", "bookstore", "indie", "indoor", "rainy day"], "address": "2153 1st Ave S, St. Petersburg, FL 33712", "query": "Tombolo Books, 2153 1st Ave S, St. Petersburg, FL", "source": "https://www.tombolobooks.com/contact-hours", "week": {"0": [10, 17.5], "1": [10, 19], "2": [10, 19], "3": [10, 19], "4": [10, 19], "5": [10, 19], "6": [10, 17.5]}, "hoursText": "We're Open 7 Days A Week! Monday 10:00 AM - 7:00 PM; Tuesday 10:00 AM - 7:00 PM; Wednesday 10:00 AM - 7:00 PM; Thursday 10:00 AM - 7:00 PM; Friday 10:00 AM - 7:00 PM; Saturday 10:00 AM - 5:30 PM; Sunday 10:00 AM - 5:30 PM", "hoursChecked": "2026-10-08", "hint": "Open 7 days a week, but it closes at 5:30pm on weekends.", "why": "An award-winning independent bookstore, an indoor stop for browsing."},
+      {"id": "florida-craftart", "name": "Florida CraftArt", "feel": "dig", "tags": ["art", "craft", "gallery", "shop", "free", "indoor", "rainy day"], "address": "501 Central Ave, St. Petersburg, FL 33701", "query": "Florida CraftArt, 501 Central Ave, St. Petersburg, FL", "source": "https://floridacraftart.org/about-us/", "week": {"0": [12, 17], "1": [10, 17.5], "2": [10, 17.5], "3": [10, 17.5], "4": [10, 17.5], "5": [10, 17.5], "6": [10, 17.5]}, "hoursText": "Florida CraftArt is open and free to the public from 10 a.m. to 5:30 p.m., Monday through Saturday, and Sunday from noon to 5 p.m.", "hoursChecked": "2026-10-08", "hint": "Admission to the galleries is free.", "why": "A free downtown gallery and shop of handmade Florida craft (ceramics, glass, jewelry, fiber, wood)."},
+      {"id": "duncan-mcclellan-gallery", "name": "Duncan McClellan Gallery", "feel": "dig", "tags": ["art", "glass", "gallery", "garden", "free", "indoor", "warehouse arts"], "address": "2342 Emerson Ave S, St. Petersburg, FL 33712", "query": "Duncan McClellan Gallery, 2342 Emerson Ave S, St. Petersburg, FL", "source": "https://dmglass.com/", "week": {"0": [12, 16], "1": [11, 18], "2": [11, 18], "3": [11, 18], "4": [11, 18], "5": [11, 18], "6": [11, 18]}, "hoursText": "GALLERY HOURS: Monday through Saturday from 11:00 a.m. until 6:00 p.m. Sundays from noon to 4:00 p.m. There is NO admission fee and NO appointment is necessary.", "hoursChecked": "2026-10-08", "hint": "No admission fee and no appointment needed.", "why": "A free glass-art gallery in a converted packing plant in the Warehouse Arts District, with planted sculpture gardens to wander."},
+      {"id": "the-merchant", "name": "The Merchant – Purveyor of Local Goods", "feel": "dig", "tags": ["shop", "local", "makers", "gifts", "art", "indoor", "rainy day"], "address": "645 Central Ave, Suite 8, St. Petersburg, FL 33701", "query": "The Merchant, 645 Central Ave, St. Petersburg, FL", "source": "https://www.merchantstpete.com/", "week": {"0": [10, 16], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 20], "6": [10, 20]}, "hoursText": "Mon - Thurs: 10am-5pm; Fri - Sat: 10am - 8pm; Sun: 10am-4pm", "hoursChecked": "2026-10-08", "hint": "Open until 8pm on Friday and Saturday.", "why": "A downtown general-store style shop with art, gifts and goods from over 80 Florida artisans and makers on Central Ave."},
+      {"id": "coastal-house-vintage", "name": "Coastal House Vintage", "feel": "dig", "tags": ["vintage", "secondhand", "handmade", "home decor", "crafts", "indoor"], "address": "2820 1st Ave N, St. Petersburg, FL", "query": "Coastal House Vintage, 2820 1st Ave N, St. Petersburg, FL", "source": "https://www.coastalhousevintage.com/", "week": {"0": [12, 17], "1": [10, 18], "2": [10, 18], "3": [10, 18], "4": [10, 18], "5": [10, 18], "6": [10, 18]}, "hoursText": "Shop Hours: Mondays - Saturdays 10am - 6pm, Sundays 12pm-5pm. *Open Crafting Available during Shop Hours*", "hoursChecked": "2026-10-08", "hint": "The Craft Cafe inside has drop-in DIY projects any time the shop is open, no reservations needed.", "why": "A shop of curated vintage, secondhand and handmade home goods on 1st Ave N, with a drop-in Craft Cafe."},
+      {"id": "floridarama", "name": "FloridaRAMA", "feel": "soft", "cost": "ticket", "tags": ["art", "immersive", "kids", "family", "indoor", "rainy day", "warehouse arts"], "kids": true, "address": "2606 Fairfield Ave S, St. Petersburg, FL 33712", "query": "FloridaRAMA, 2606 Fairfield Ave S, St. Petersburg, FL", "source": "https://www.floridarama.art/", "week": {"0": [10, 20], "1": [12, 20], "2": null, "3": null, "4": [12, 20], "5": [12, 20], "6": [10, 20]}, "hoursText": "Art Experience Hours: Monday 12 pm–8 pm; Tuesday Closed; Wednesday Closed; Thursday 12 pm–8 pm; Friday 12 pm–8 pm; Saturday 10 am–8 pm; Sunday 10 am–8 pm. We suggest arriving 1.5 hours prior to closing to maximize your experience!", "hoursChecked": "2026-10-08", "hint": "Last entry is 1.5 hours before closing; the entrance and ticket desk are inside The Factory Building 5. Through November 2, admission includes a PG-13 paranormal experience.", "why": "An indoor immersive art walk-through built on original Florida stories in the Warehouse Arts District, designed for all ages."},
+      {"id": "la-v-vietnamese", "name": "La V Vietnamese Fusion", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["vietnamese", "pho", "banh mi", "noodles", "vegetarian", "boba", "indoor"], "address": "441 Central Ave, St. Petersburg, FL 33701", "query": "La V Vietnamese Fusion, 441 Central Ave, St. Petersburg, FL", "source": "https://lavfusion.com/", "week": {"0": [11, 22], "1": [11, 22], "2": [11, 22], "3": [11, 22], "4": [11, 22], "5": [11, 22], "6": [11, 22]}, "hoursText": "Open 7 days a week 11:00a – 10:00p", "hoursChecked": "2026-10-08", "hint": "The $14.40 Lunch Box runs Tuesday to Friday, 11am to 2pm, dine-in only and not on holidays.", "why": "Vietnamese pho, banh mi and vermicelli bowls on downtown Central Ave, with a separate vegetarian menu."},
+      {"id": "pin-wok-bowl", "name": "Pin Wok & Bowl", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["thai", "sushi", "poke", "japanese", "curry", "noodles", "indoor"], "address": "445 Central Avenue, St. Petersburg, FL 33701", "query": "Pin Wok & Bowl, 445 Central Avenue, St. Petersburg, FL", "source": "https://pinwokandbowl.com/", "week": {"0": [12, 21], "1": null, "2": [11.5, 21], "3": [11.5, 21], "4": [11.5, 21], "5": [11.5, 22], "6": [12, 22]}, "split": {"2": [15, 16], "3": [15, 16], "4": [15, 16], "5": [15, 16]}, "hoursText": "Monday Closed; Tuesday-Thursday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 9:00 PM; Friday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 10:00 PM; Saturday 12:00 PM - 10:00 PM; Sunday 12:00 PM - 9:00 PM", "hoursChecked": "2026-10-08", "hint": "The site recommends making a reservation ahead of time.", "why": "Thai curries, pad thai, sushi rolls and poke bowls in one downtown Central Ave stop."},
+      {"id": "perrys-porch", "name": "Perry's Porch", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["american", "seafood", "sandwiches", "burgers", "waterfront", "pier", "patio", "family"], "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "Perry's Porch, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://www.perrysporch.com/", "week": {"0": [7, 21], "1": [7, 22], "2": [7, 22], "3": [7, 22], "4": [7, 22], "5": [7, 22], "6": [7, 22]}, "hoursText": "Monday -Saturday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-10pm | Dinner; Sunday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-9pm | Dinner", "hoursChecked": "2026-10-08", "hint": "Perry's Porch is cashless: debit or credit cards only.", "why": "Lunch or dinner with park and waterfront views at the entrance to the St. Pete Pier."},
+      {"id": "joey-brooklyns-pizza", "name": "Joey Brooklyn's Famous Pizza Kitchen", "feel": "taste", "meal": "lunch", "costBand": "cheap", "tags": ["pizza", "slices", "italian", "sandwiches", "wings", "late night"], "address": "210 1st Ave N, St. Petersburg, FL 33701", "query": "Joey Brooklyn's Famous Pizza Kitchen, 210 1st Ave N, St. Petersburg, FL", "source": "https://joeybrooklynsfamouspizzakitchen.com/", "week": {"0": [11, 25], "1": [11, 25], "2": [11, 25], "3": [11, 25], "4": [11, 27], "5": [11, 27], "6": [11, 27]}, "hoursText": "Mon 11:00 am – 01:00 am; Tue 11:00 am – 01:00 am; Wed 11:00 am – 01:00 am; Thu 11:00 am – 03:00 am; Fri 11:00 am – 03:00 am; Sat 11:00 am – 03:00 am; Sun 11:00 am – 01:00 am", "hoursChecked": "2026-10-08", "hint": "Pizza is sold by the slice; a cheese slice is $4 plus $1 per topping.", "why": "Cheap pizza by the slice downtown by Jannus Live, open late every night."},
+      {"id": "pacific-counter-downtown", "name": "Pacific Counter (Downtown St. Pete)", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "cheap", "tags": ["poke", "hawaiian", "sushi burrito", "bowls", "boba", "hot dogs", "indoor"], "address": "660 Central Avenue, St. Petersburg, FL 33701", "query": "Pacific Counter, 660 Central Avenue, St. Petersburg, FL", "source": "https://pacificcounter.com/", "week": {"0": [11, 21], "1": [11, 21], "2": [11, 21], "3": [11, 21], "4": [11, 21], "5": [11, 21], "6": [11, 21]}, "hoursText": "Downtown St. Pete, 660 Central Avenue: Hours Mon - Sun: 11am - 9pm", "hoursChecked": "2026-10-08", "hint": "You build your own bowl or burrito, and the protein you pick costs extra.", "why": "Build-your-own poke bowls and sushi burritos on Central Ave, with quick counter service."},
+      {"id": "cassis-pizza-market", "name": "Cassis Pizza & Market", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["pizza", "sandwiches", "cuban", "coffee", "pastries", "ice cream"], "address": "162 Beach Dr NE, St. Petersburg, FL 33701", "query": "Cassis Market, 162 Beach Dr NE, St. Petersburg, FL", "source": "https://cassisstpete.com/market/", "week": {"0": [7.5, 22], "1": null, "2": [7.5, 22], "3": [7.5, 22], "4": [7.5, 22], "5": [7.5, 23], "6": [7.5, 23]}, "hoursText": "Monday – Closed; Tuesday – Thursday 7:30am – 10pm; Friday & Saturday 7:30am – 11pm; Sunday 7:30am – 10:00pm. Hours are subject to change, please call to confirm hours as needed.", "hoursChecked": "2026-10-08", "hint": "Pizza and sandwiches are served after 11am.", "why": "Sicilian pizza slices, Cubanos and pastries from a market cafe on Beach Drive."},
+      {"id": "baba-on-central", "name": "Baba on Central", "feel": "taste", "meal": "dinner", "dinner": true, "costBand": "mid", "tags": ["mediterranean", "greek", "lebanese", "falafel", "vegetarian", "kenwood", "indoor"], "address": "2701 Central Ave, St. Petersburg, FL", "query": "Baba on Central, 2701 Central Ave, St. Petersburg, FL", "source": "https://www.eatatbaba.com/contact/", "week": {"0": [17, 22], "1": null, "2": [17, 22], "3": [17, 22], "4": [17, 22], "5": [17, 22], "6": [17, 22]}, "hoursText": "Restaurant Hours Tue - Sun: 5pm - 10pm. Happy Hour @ the Bar: Tue - Thur 5-7pm", "hoursChecked": "2026-10-08", "hint": "Book on Resy; the restaurant asks parties larger than 6 to call.", "why": "Greek and Lebanese mezze, falafel and grilled plates for a shared dinner in Kenwood."},
+      {"id": "bandit-coffee", "name": "Bandit Coffee Co.", "feel": "taste", "meal": "coffee", "costBand": "cheap", "tags": ["coffee", "bakery", "breakfast", "roaster", "vegan", "indoor", "patio"], "address": "2662 Central Ave, St. Petersburg, FL 33712", "query": "Bandit Coffee Co., 2662 Central Ave, St. Petersburg, FL", "source": "https://banditcoffee.co/pages/visit", "week": {"0": [7, 15], "1": [7, 15], "2": [7, 15], "3": [7, 15], "4": [7, 15], "5": [7, 15], "6": [7, 15]}, "hoursText": "café hours: 7am - 3pm daily kitchen all day", "hoursChecked": "2026-10-08", "hint": "Counter service with seating indoors and outdoors. On-site parking is for customers during business hours, and there's no wifi.", "why": "A locally owned café and coffee roaster on Central Avenue that makes all its bread and pastries in-house and serves coffee every day from 7am."},
+      {"id": "bean-wandering-downtown", "name": "Bean Wandering Coffee (Downtown)", "feel": "taste", "meal": "coffee", "costBand": "cheap", "tags": ["coffee", "lattes", "matcha", "sandwiches", "downtown", "indoor"], "address": "100 2nd Ave S, St. Petersburg, FL 33701", "query": "Bean Wandering Coffee, 100 2nd Ave S, St. Petersburg, FL", "source": "https://www.beanwandering.com/menu", "week": {"0": null, "1": [7, 16], "2": [7, 16], "3": [7, 16], "4": [7, 16], "5": [7, 16], "6": [7, 16]}, "hoursText": "Hours: Mon-Sat: 7am - 4pm Sun: CLOSED", "hoursChecked": "2026-10-08", "hint": "It's inside the lobby of the Northern Trust Building (City Center building). Closed Sundays.", "why": "A downtown coffee counter that calls itself the home of the original canned latte, with espresso drinks, matcha and sandwiches for a quick stop."},
+      {"id": "hyppo-mayday-central", "name": "The Hyppo & Mayday Ice Cream", "feel": "taste", "meal": "dessert", "costBand": "cheap", "tags": ["popsicles", "ice cream", "dessert"], "address": "627 Central Ave, St. Petersburg, FL 33701", "query": "The Hyppo, 627 Central Ave, St. Petersburg, FL", "source": "https://www.thehyppo.com/find-us", "week": {"0": [11, 22], "1": [11, 22], "2": [11, 22], "3": [11, 22], "4": [11, 22], "5": [11, 23], "6": [11, 23]}, "hoursText": "HOURS: SUN - THURS 11am - 10pm FRI - SAT 11am - 11pm", "hoursChecked": "2026-10-08", "hint": "Mayday Ice Cream lists the same address, phone and hours as The Hyppo, so there is ice cream as well as ice pops.", "why": "Gourmet ice pops and ice cream on Central Avenue, open until 10pm or later, so it works as an afternoon or after-dinner treat."},
+      {"id": "cafe-clementine", "name": "Café Clementine (Le Clementine Bakeshop)", "feel": "taste", "meal": "snack", "costBand": "mid", "tags": ["bakery", "croissants", "pastries", "coffee", "brunch", "waterfront", "indoor"], "address": "255 Beach Dr NE, St. Petersburg, FL 33701", "query": "Café Clementine, 255 Beach Dr NE, St. Petersburg, FL", "source": "https://www.leclementinebakeshop.com/", "week": {"0": [9, 15], "1": null, "2": [9, 15], "3": [9, 15], "4": [9, 15], "5": [9, 15], "6": [9, 15]}, "hoursText": "OPEN 9 AM - 3 PM Tuesdays - Sundays Kitchen closes at 2PM Museum Admission not required", "hoursChecked": "2026-10-08", "hint": "No museum admission needed. Seating is first-come, first-served with no reservations, and the kitchen closes at 2pm.", "why": "A scratch bakery café inside the Museum of Fine Arts on Beach Drive, with waterfront views, indoor and outdoor seating, and no museum ticket needed."},
+      {"id": "tbw-discovery-center", "name": "Tampa Bay Watch Discovery Center", "feel": "soft", "cost": "small", "tags": ["kids", "family", "indoor", "fish", "animals", "water", "pier", "rainy day"], "kids": true, "address": "700 2nd Ave NE, St. Petersburg, FL 33701", "query": "Tampa Bay Watch Discovery Center, 700 2nd Ave NE, St. Petersburg, FL", "source": "https://www.tbwdiscoverycenter.org/info", "week": {"0": [10, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-18", "2026-12-25"], "skipDates": ["2026-11-24", "2026-12-15", "2026-12-24"], "hoursText": "The Discovery Center is open 10 AM to 5 PM daily. Holiday Season Hours: November 24, 2025 - Open 3pm to 6pm November 26, 2026 - Closed December 15, 2026 - Open 10am to 3pm December 18, 2026 - Closed December 24, 2026 - Open 10am to 1pm December 25, 2026 - Closed", "hoursChecked": "2026-10-08", "hint": "Park in the Pier's Pelican lot; the Pier District trams stop at the Discovery Center.", "why": "An exhibit gallery on the St. Pete Pier with interactive displays, live animals, a touch tank and daily educational programs."},
+      {"id": "st-pete-museum-of-history", "name": "St. Petersburg Museum of History", "feel": "soft", "cost": "ticket", "tags": ["history", "museum", "indoor", "baseball", "kids", "rainy day", "pier"], "kids": true, "gem": false, "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "St. Petersburg Museum of History, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://historystpete.org/visit/", "week": {"0": [12, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-03-28", "2027-11-25", "2027-12-25"], "hoursText": "Museum Hours: Monday – Saturday: 10 a.m. to 5 p.m. Sunday: Noon to 5 p.m. Museum is closed on Thanksgiving, Christmas, and Easter", "hoursChecked": "2026-10-08", "hint": "Parking is in the Pier's Dolphin lot next to the museum; Pier parking is metered by the hour.", "why": "An indoor museum at the entrance to the Pier District covering the world's first commercial airline, 150 years of baseball history and the city's tourism past."},
+      {"id": "james-museum", "name": "The James Museum of Western & Wildlife Art", "feel": "soft", "cost": "ticket", "tags": ["art", "museum", "western", "wildlife", "indoor", "kids", "rainy day"], "kids": true, "gem": false, "address": "150 Central Ave, St. Petersburg, FL 33701", "query": "The James Museum of Western & Wildlife Art, 150 Central Ave, St. Petersburg, FL", "source": "https://thejamesmuseum.org/hours-parking/", "week": {"0": [10, 17], "1": [10, 17], "2": [10, 20], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "hoursText": "Open Daily: 10 AM – 5 PM. Open Tuesdays: 10 AM – 8 PM. Closed Thanksgiving & Christmas Days. Last admission ticket sold at 4:30 PM Wednesday-Monday and 7:30 PM on Tuesday.", "hoursChecked": "2026-10-08", "hint": "Tuesdays are $10 for adults ($5 youth) with hours until 8 PM; museum parking is on levels 3-4 of the South Core garage behind the building.", "why": "A downtown Central Ave museum of Western and wildlife art with a cafe and strollers allowed in the galleries."},
+      {"id": "woodson-museum", "name": "The Woodson African American Museum of Florida", "feel": "soft", "tags": ["history", "museum", "free", "indoor", "black history", "garden"], "address": "2240 9th Ave S, St. Petersburg, FL 33712", "query": "The Woodson African American Museum of Florida, 2240 9th Ave S, St. Petersburg, FL", "source": "https://woodsonmuseum.org/", "week": {"0": null, "1": null, "2": [12, 17], "3": [12, 17], "4": [12, 17], "5": [12, 17], "6": [12, 17]}, "hoursText": "Hours: Tuesday-Saturday from 12-5 PM. (Admission: Free Admission during hours of Tuesday-Saturday from 12-5 PM)", "hoursChecked": "2026-10-08", "hint": "Free admission, open Tuesday through Saturday afternoons only (12-5 PM).", "why": "A free museum in Midtown. Through January 2027 it has a Smithsonian-linked exhibition connecting St. Petersburg's history to the American story, and an outdoor Underground Railroad installation in its Legacy Garden."},
+      {"id": "chihuly-collection", "name": "Chihuly Collection", "feel": "soft", "cost": "ticket", "tags": ["art", "glass", "chihuly", "museum", "indoor", "rainy day"], "gem": false, "address": "720 Central Ave, St. Petersburg, FL 33701", "query": "Chihuly Collection, 720 Central Ave, St. Petersburg, FL", "source": "https://moreanartscenter.org/chihuly-collection-location/", "week": {"0": [12, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "skipDates": ["2026-12-24", "2026-12-31", "2027-03-28", "2027-05-31", "2027-07-04", "2027-09-06"], "hoursText": "Open Daily: Monday-Saturday 10AM – 5PM, Sundays: 12PM – 5PM. Closed on Christmas and Thanksgiving Days. Closes at 3pm on Christmas Eve, New Year's Eve, Easter, Memorial Day, July 4th, and Labor Day.", "hoursChecked": "2026-10-08", "hint": "Admission includes a live glass demonstration at the Morean Glass Studio; buying tickets ahead is recommended.", "why": "A permanent collection of large-scale Dale Chihuly glass installations in a Central Ave building designed specifically for them, a contained indoor visit."}
+    ];
+
+    function hoursRange(w) {
+      return fmtHour(w[0]) + "–" + fmtHour(w[1]);
+    }
+
+    // Parks open and close by the sun ("30 minutes before sunrise"), so those times are worked
+    // out for the date rather than guessed. Closing times past midnight are written as 25, 27...
+    function weekStop(e) {
+      // skipDates: days the source lists shorter hours or an event that this schema can't hold.
+      // The place isn't offered then, so nobody is sent somewhere that has already closed.
+      var closed = (e.closedDates || []).concat(e.skipDates || []);
+      function day(d) { return e.week[String(d.getDay())] || null; }
+      function opens(d) {
+        var w = day(d);
+        if (!w) return 0;
+        return e.opensBeforeSunrise != null ? Math.round((sunriseHour(d) - e.opensBeforeSunrise) * 12) / 12 : w[0];
+      }
+      function closes(d) {
+        var w = day(d);
+        if (!w) return 0;
+        return e.closesAfterSunset != null ? Math.round((sunsetHour(d) + e.closesAfterSunset) * 12) / 12 : w[1];
+      }
+      e.isOpen = function (d, iso) { return !!day(d) && closed.indexOf(iso) === -1; };
+      e.hours = function (d) {
+        var w = day(d);
+        if (!w) return "Closed";
+        var gap = e.split && e.split[String(d.getDay())];
+        var range = gap
+          ? fmtHour(opens(d)) + "–" + fmtHour(gap[0]) + ", " + fmtHour(gap[1]) + "–" + fmtHour(closes(d))
+          : fmtHour(opens(d)) + "–" + fmtHour(closes(d));
+        if (e.opensBeforeSunrise != null || e.closesAfterSunset != null) {
+          return range + " (" + (e.opensBeforeSunrise != null ? "opens 30 min before sunrise" : "") +
+            (e.opensBeforeSunrise != null && e.closesAfterSunset != null ? ", " : "") +
+            (e.closesAfterSunset != null ? "closes 30 min after sunset" : "") + ")";
+        }
+        return range;
+      };
+      e.start = function (d) { return opens(d); };
+      e.end = function (d) { return closes(d); };
+      e.gap = function (d) { return (e.split && e.split[String(d.getDay())]) || null; };
+      e.order = e.order || 20;
+      e.bar = false;
+      e.dated = false;
+      e.covers = null;
+      e.gem = e.gem !== false;
+      var line = e.why;
+      var lister = e.lister || "Its own site lists";
+      e.why = function (ctx) {
+        return line + " " + lister + " " + ctx.hours + " " + ctx.on + ".";
+      };
+      return e;
+    }
+
+    PLACES.forEach(function (e) { STOPS.push(weekStop(e)); });
 
     var STOP_BY_ID = {};
     STOPS.forEach(function (s) { STOP_BY_ID[s.id] = s; });
@@ -1303,6 +1402,8 @@
       var terms = avoidTerms(p);
       if (!terms.length) return false;
       return (s.tags || []).some(function (tag) {
+        // "no kids, just us" says who's coming. It isn't a veto on places that welcome kids.
+        if (/^(?:kids|family)$/.test(tag)) return false;
         // "can't eat spicy food" or "a late dinner" shouldn't veto everything tagged food or dinner.
         var generic = /^(?:food|dinner|lunch)$/.test(tag);
         return terms.some(function (ph) { return ph === tag || (!generic && hasWord(ph, tag)); });
@@ -1357,11 +1458,24 @@
     }
 
     function tagScore(s, text) {
-      var score = 0;
+      var score = 0, generic = 0;
       (s.tags || []).forEach(function (tag) {
-        if (hasWord(text, tag)) score += 2;
+        // "dinner" or "food" in a note says less about a place than "vietnamese" or "pizza" does,
+        // and counts once however many of them a place carries.
+        if (!hasWord(text, tag)) return;
+        if (/^(?:food|dinner|lunch)$/.test(tag)) generic = 1;
+        else score += 2;
       });
-      return score;
+      return score + generic;
+    }
+
+    // Tags that say who a place suits or when, not what it is. A note that mentions kids or rain
+    // isn't asking for a ticketed museum, so these don't lift the budget limit.
+    var SITUATION_TAGS = /^(?:food|dinner|lunch|kids|family|indoor|outdoor|rainy day|walking|evening|pier|water|waterfront|downtown|free)$/;
+
+    function asksFor(s, text) {
+      return (s.tags || []).some(function (tag) { return !SITUATION_TAGS.test(tag) && hasWord(text, tag); }) ||
+        hasWord(text, s.name.toLowerCase().replace(/^the /, ""));
     }
 
     function fitsBudget(s, cap) {
@@ -1387,7 +1501,7 @@
       if (p.kind === "away" && s.id === "pumpkin") return false;
       if (s.bar && effectiveDrink(p) !== "yes") return false;
       if (s.meal && !fitsBudget(s, cap)) return false;
-      if (cap !== null && cap < 150 && pricey(s, iso) && !wants.art && !(wants.music && s.id === "folk")) return false;
+      if (cap !== null && cap < 150 && pricey(s, iso) && !wants.art && !(wants.music && s.id === "folk") && !asksFor(s, positiveText(p))) return false;
       return s.isOpen(d, iso);
     }
 
@@ -1471,6 +1585,7 @@
         hint: s.hint || "",
         start: s.start(d, iso),
         end: s.end(d, iso),
+        gap: s.gap ? s.gap(d) : null,
         why: s.why({ iso: iso, day: d.getDay(), when: formatWhen(d), hours: hours, occ: occasionPhrase(plan), on: dayPhrase(iso) }),
         source: s.source,
         dated: s.dated,
@@ -1816,6 +1931,8 @@
     function openNow(v) {
       if (!isPlanDay()) return true;
       var h = nowNY().hour;
+      // In a midday break, or its last half hour before: only if it reopens within the hour.
+      if (v.gap && h >= v.gap[0] - 0.5 && h < v.gap[1]) return h + 1 >= v.gap[1];
       return v.start <= h + 1 && h < v.end - 0.5;
     }
 
@@ -2299,7 +2416,7 @@
       var visited = visitedIds();
       var h = nowNY().hour;
       var inside = liveIds().filter(function (id) { return visited.indexOf(id) === -1 && !STOP_BY_ID[id].outdoor; }).map(stopView)
-        .filter(function (v) { return !isPlanDay() || (v.start <= h && h < v.end - 0.25); });
+        .filter(function (v) { return !isPlanDay() || (v.start <= h && h < v.end - 0.25 && !(v.gap && h >= v.gap[0] - 0.25 && h < v.gap[1])); });
       var html = '<div class="card reveal"><div class="stamp peach">Plan B</div><p class="place">Soft landing</p>' +
         '<p class="why">' + esc(weatherLine(plan.date)) + " Florida storms usually pass. Duck inside, then pick up where you left off.</p></div>";
       html += inside.length
