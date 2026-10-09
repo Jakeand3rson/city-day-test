@@ -1825,6 +1825,14 @@
       return a && !a.custom && !STOP_BY_ID[a.id].isOpen(d, isoDate(d)) ? "The dinner spot is closed today." : "Too late for the dinner spot now.";
     }
 
+    // On the plan date, before the dinner place opens, a check-in is not "dinner's done".
+    function opensLine(v) {
+      if (!v || v.custom || v.start == null) return "";
+      var h = viewHour(v);
+      if (h === null || h >= v.start) return "";
+      return "Opens at " + fmtHour(v.start) + ".";
+    }
+
     function anchorLine() {
       var a = anchorView();
       var sun = "Sunset is about " + fmtHour(sunsetHour(parseDate(plan.date))) + ".";
@@ -2280,6 +2288,8 @@
 
     function markHere(id) {
       if (beforePlanDay()) return go(view.panel === "list" ? "list" : "reveal");
+      var a0 = anchorView();
+      if (a0 && a0.id === id && opensLine(a0)) return go(view.panel === "list" ? "list" : "reveal");
       var st = playState();
       var a = anchorView();
       var name = a && a.id === id ? a.name : (STOP_BY_ID[id] ? STOP_BY_ID[id].name : "");
@@ -2541,6 +2551,7 @@
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
           (untilLine(v) ? '<p class="meta">' + esc(untilLine(v)) + "</p>" : "") +
           (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
+          (opensLine(v) && anchorView() && anchorView().id === v.id ? '<p class="strip">' + esc(opensLine(v)) + "</p>" : "") +
           (wet ? '<p class="meta">Only if it clears.</p>' : "") +
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
           (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
@@ -2683,6 +2694,7 @@
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
           (untilLine(v) ? '<p class="meta">' + esc(untilLine(v)) + "</p>" : "") +
           (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
+          (isAnchor && opensLine(v) ? '<p class="strip">' + esc(opensLine(v)) + "</p>" : "") +
           (wet ? '<p class="meta">Outdoors. Only if it clears.</p>' : "") +
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
           (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
