@@ -117,6 +117,29 @@ function allIds(deck) {
   return Object.values(deck.pools).flat();
 }
 
+// A stand-in seafood-centric dinner. Pacific Counter is the real one. This copy of BellaBrava
+// sorts first, so it would be the celebration dinner unless a note keeps it off.
+function withSeafoodPlace(fn) {
+  const base = g.STOP_BY_ID["bellabrava"];
+  const fake = Object.assign({}, base, { id: "qa-oyster-bar", name: "QA Oyster Bar", feel: "taste", tags: base.tags.concat(["oysters", "raw bar"]), menuFocus: "seafood-centric", order: -1 });
+  g.STOPS.push(fake);
+  g.STOP_BY_ID[fake.id] = fake;
+  try {
+    return fn(fake);
+  } finally {
+    g.STOPS.splice(g.STOPS.indexOf(fake), 1);
+    delete g.STOP_BY_ID[fake.id];
+  }
+}
+
+// The note is read as a no: a seafood-centric place is off the whole deck, and a mixed menu stays allowed.
+function keepsSeafoodCentricOff(must, extra) {
+  return withSeafoodPlace((fake) => {
+    const deck = deckOf(Object.assign({ must, kind: "celebrate", budgetAmount: "300" }, extra || {}));
+    return deck.anchor.id !== fake.id && !allIds(deck).includes(fake.id);
+  });
+}
+
 function sunny(iso) {
   g.weatherByDate[iso] = { status: "ready", name: "Saturday", temp: "78°F", wind: "10 mph E", short: "Sunny", wet: false };
 }
@@ -176,9 +199,15 @@ check("deck: a plain Tuesday still offers several feelings", () => {
   assert(feels >= 3, "feelings with options: " + feels + " " + JSON.stringify(deck.pools));
 });
 
-check("note: 'no seafood' keeps Stillwaters off the day", () => {
-  const deck = deckOf({ must: "pasta, no seafood", kind: "celebrate", budgetAmount: "300" });
-  assert(!allIds(deck).includes("stillwaters") && deck.anchor.id !== "stillwaters", JSON.stringify(deck));
+check("note: 'no seafood' keeps a seafood-centric place off, and a mixed menu on", () => {
+  withSeafoodPlace((fake) => {
+    assert(deckOf({ must: "pasta, dinner", kind: "celebrate", budgetAmount: "300" }).anchor.id === fake.id, "the stand-in would be the dinner");
+    assert(deckOf({ must: "pasta for lunch", budgetAmount: "300" }).pools.taste.includes(fake.id), "the stand-in would be a tasty pick");
+    assert(!deckOf({ must: "pasta for lunch, no seafood", budgetAmount: "300" }).pools.taste.includes(fake.id), "kept as a tasty pick");
+  });
+  assert(keepsSeafoodCentricOff("pasta, no seafood"), "seafood-centric place kept");
+  // Stillwaters has schnitzel and jerk chicken next to its seafood, so it can stay.
+  assert(!g.avoidsStop(makePlan({ must: "pasta, no seafood" }), g.STOP_BY_ID["stillwaters"]), "mixed menu vetoed");
 });
 
 check("note: 'no museums' keeps the Dalí and MFA off, even in the rain", () => {
@@ -280,7 +309,8 @@ const OLD_LINKS = [
   { built: "8240ac1, the same day as a bare hash, the oldest link shape", hash: "#eyJpZCI6Im9sZGxpbmswIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiQW5uaXZlcnNhcnkiLCJraW5kIjoiZWFzeSIsImN1c3RvbSI6IiIsImRhdGUiOiIyMDI2LTEwLTEwIiwiY2l0eSI6IlN0LiBQZXRlcnNidXJnIiwiZHJpbmsiOiJubyIsInN0eWxlIjoicGxhbiIsImxlYW4iOiJtdXN0IiwiYnVkZ2V0IjoiIiwiYnVkZ2V0QW1vdW50IjoiMTUwIiwibXVzdCI6ImNvZmZlZSwgd2Fsa2luZywgdGFjb3MiLCJza2lwIjpbXX0" },
   { built: "607190a, a frozen deck with a dinner reservation", hash: "#play/eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJhbmNob3IiOnsibmFtZSI6IkRpbm5lciByZXNlcnZhdGlvbiIsInRpbWUiOiIxODozMCIsIndoZXJlIjoiODAwIDJuZCBBdmUgTkUifSwiZGVjayI6eyJ2IjoxLCJhbmNob3IiOnsidHlwZSI6ImN1c3RvbSIsInRpbWUiOjE4LjUsImxlYXZlIjoxOH0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImthaHdhIiwic3RpbGx3YXRlcnMiXSwiZHJpZnQiOlsiZmVzdGl2YWwiXSwiZGlnIjpbInB1bXBraW4iLCJhcnRwb29sIl0sInNvZnQiOlsicGFsZWhvcnNlIiwiZGFsaSIsIm1mYSJdfSwicGFyayI6ZmFsc2V9fQ" },
   { built: "607190a, a frozen deck with a dinner the page picked", hash: "#play/eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoic3RpbGx3YXRlcnMiLCJ0aW1lIjoxOCwibGVhdmUiOjE3LjV9LCJwb29scyI6eyJ0YXN0ZSI6WyJtYXJrZXQiLCJrYWh3YSIsImJvZGVnYSJdLCJkcmlmdCI6WyJmZXN0aXZhbCJdLCJkaWciOlsicHVtcGtpbiIsImFydHBvb2wiXSwic29mdCI6WyJwYWxlaG9yc2UiLCJkYWxpIiwibWZhIl19LCJwYXJrIjpmYWxzZX19" },
-  { built: "76b45ea, a Saturday with a late-night pizza place open until 3am (#30)", hash: "#play/eyJpZCI6Im9sZGxpbmszMCIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNX0sInBvb2xzIjp7InRhc3RlIjpbImpvZXktYnJvb2tseW5zLXBpenphIiwiY2Fzc2lzLXBpenphLW1hcmtldCIsIm1hcmtldCJdLCJkcmlmdCI6WyJmZXN0aXZhbCIsInN1bmtlbi1nYXJkZW5zIiwiY3Jlc2NlbnQtbGFrZS1wYXJrIl0sImRpZyI6WyJwdW1wa2luIiwidGhlLW1lcmNoYW50IiwiYXJ0cG9vbCJdLCJzb2Z0IjpbInBhbGVob3JzZSIsInN0LXBldGUtbXVzZXVtLW9mLWhpc3RvcnkiLCJkYWxpIl19LCJwYXJrIjpmYWxzZX19" }
+  { built: "76b45ea, a Saturday with a late-night pizza place open until 3am (#30)", hash: "#play/eyJpZCI6Im9sZGxpbmszMCIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNX0sInBvb2xzIjp7InRhc3RlIjpbImpvZXktYnJvb2tseW5zLXBpenphIiwiY2Fzc2lzLXBpenphLW1hcmtldCIsIm1hcmtldCJdLCJkcmlmdCI6WyJmZXN0aXZhbCIsInN1bmtlbi1nYXJkZW5zIiwiY3Jlc2NlbnQtbGFrZS1wYXJrIl0sImRpZyI6WyJwdW1wa2luIiwidGhlLW1lcmNoYW50IiwiYXJ0cG9vbCJdLCJzb2Z0IjpbInBhbGVob3JzZSIsInN0LXBldGUtbXVzZXVtLW9mLWhpc3RvcnkiLCJkYWxpIl19LCJwYXJrIjpmYWxzZX19" },
+  { built: "9e0a8a4, a frozen deck with a picked dinner, from an allergy note (no dinner alternates, no allergy flag)", hash: "#play/eyJpZCI6Im9sZGxpbmszMSIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNX0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImNhZmUtY2xlbWVudGluZSIsInBhY2l1Z28iXSwiZHJpZnQiOlsiZmVzdGl2YWwiLCJzdW5rZW4tZ2FyZGVucyIsIm5vcnRoLXN0cmF1Yi1wYXJrIl0sImRpZyI6WyJwdW1wa2luIiwiZmxvcmlkYS1jcmFmdGFydCIsImNvYXN0YWwtaG91c2UtdmludGFnZSJdLCJzb2Z0IjpbInBhbGVob3JzZSIsImphbWVzLW11c2V1bSIsInN0LXBldGUtbXVzZXVtLW9mLWhpc3RvcnkiXX0sInBhcmsiOmZhbHNlfX0" }
 ];
 
 check("standard: old #play/ links still play (open, reveal, We're here)", () => {
@@ -698,8 +728,7 @@ check("review: a second tab does not wipe the first tab's stops", () => {
 
 check("review: hates, doesn't eat, allergic to and can't stand all count as no", () => {
   for (const must of ["he doesn't eat seafood. dinner somewhere nice", "she hates seafood but loves pasta", "allergic to seafood. pasta, art", "can't stand seafood. dinner"]) {
-    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "250" });
-    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+    assert(keepsSeafoodCentricOff(must, { budgetAmount: "250" }), must);
   }
   const deck = deckOf({ must: "she hates museums. walking", date: "2026-10-13", budgetAmount: "300" });
   assert(!allIds(deck).includes("dali") && !allIds(deck).includes("mfa"), JSON.stringify(deck.pools));
@@ -1197,16 +1226,17 @@ check("friends: cards say today only on the day, and the weekday otherwise", () 
 
 check("friends: allergies and 'no fish' keep seafood off", () => {
   for (const must of ["dinner, allergic to shellfish", "dinner, no fish", "dinner. shrimp allergy", "dinner, he can't eat crab or lobster", "dinner, no sushi"]) {
-    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "300" });
-    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+    assert(keepsSeafoodCentricOff(must), must);
   }
+  // A dish is still a dish: "no sushi" keeps the sushi-and-Thai place off.
+  assert(g.avoidsStop(makePlan({ must: "dinner, no sushi" }), g.STOP_BY_ID["pin-wok-bowl"]), "no sushi");
   const terms = g.avoidTerms(makePlan({ must: "nut allergy, she's gluten-free, no dairy" }));
   assert(terms.includes("nuts") && terms.includes("gluten") && terms.includes("dairy"), JSON.stringify(terms));
   // Still the same as before:
   assert(!allIds(deckOf({ must: "she hates museums. walking", date: "2026-10-13" })).includes("dali"), "hates museums");
   assert(deckOf({ must: "She's never been to the Dali, so that's a must.", kind: "celebrate", budgetAmount: "250" }).pools.soft.includes("dali"), "never been");
   assert(deckOf({ must: "He doesn't eat seafood so let's do tacos", date: "2026-10-13", budgetAmount: "120" }).anchor.id === "bodega", "so tacos");
-  assert(deckOf({ must: "no seafood, dinner", kind: "celebrate", budgetAmount: "300" }).anchor.id !== "stillwaters", "no seafood");
+  assert(keepsSeafoodCentricOff("no seafood, dinner"), "no seafood");
 });
 
 check("friends: a note that says no drinking beats Drinking: yes", () => {
@@ -1263,8 +1293,7 @@ check("review: a second veto in the same clause still counts ('can't have dairy 
 check("review: allergy lists block every allergen, written any common way", () => {
   for (const must of ["dinner, she's allergic to nuts and shellfish", "dinner, allergic to peanuts, shellfish", "dinner, shellfish and peanut allergies",
     "dinner, she has an allergy to shellfish", "dinner. Allergies: shellfish", "dinner, she has food allergies (shellfish)", "dinner, no nuts and no shellfish"]) {
-    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "300" });
-    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+    assert(keepsSeafoodCentricOff(must), must);
   }
   const both = g.avoidTerms(makePlan({ must: "allergic to nuts and dairy" }));
   assert(both.includes("nuts") && both.includes("dairy"), JSON.stringify(both));
@@ -1776,6 +1805,268 @@ check("closing: old #play/ links still play on the day", () => {
     g.act("here", id);
     assert(g.playState().trail.length === 1, link.built + ": We're here");
   });
+  g.clockOverride = PINNED;
+});
+
+// --- #31: food stops leave room to choose ---
+
+check("food: every food place has a menu focus from its own menu", () => {
+  const food = g.STOPS.filter((s) => s.meal);
+  assert(food.length >= 16, "food places: " + food.length);
+  for (const s of food) {
+    assert(["seafood-centric", "mixed"].includes(s.menuFocus), s.id + " menuFocus " + s.menuFocus);
+    assert(/^https:\/\//.test(s.menuSource || "") && /^2026-\d\d-\d\d$/.test(s.menuChecked || ""), s.id + " menu source or date");
+  }
+});
+
+function deckPlaceIds(deck) {
+  const ids = allIds(deck);
+  if (deck.anchor && deck.anchor.type === "stop") ids.push(deck.anchor.id, ...(deck.anchor.alts || []));
+  return ids;
+}
+
+check("food: 'no seafood', 'no fish' and shellfish allergies keep a seafood-centric place off but allow mixed menus", () => {
+  const pc = g.STOP_BY_ID["pacific-counter-downtown"];
+  assert(pc.menuFocus === "seafood-centric" && pc.menuSource === "https://pacificcounter.com/build-your-own/", "Pacific Counter menu focus");
+  for (const must of ["no seafood, dinner", "dinner, no fish", "dinner, allergic to shellfish", "Allergies: shellfish. Dinner somewhere nice."]) {
+    assert(keepsSeafoodCentricOff(must), must);
+    const p = makePlan({ must });
+    assert(g.avoidsStop(p, pc), must + " left Pacific Counter on");
+    for (const id of ["stillwaters", "perrys-porch", "pin-wok-bowl"]) assert(!g.avoidsStop(p, g.STOP_BY_ID[id]), must + " vetoed the mixed menu at " + id);
+  }
+  // Real catalog, including Shuffle alternates. The reported day is easy, $40, Tuesday 2026-10-13.
+  for (const must of ["no seafood. lunch and dinner", "no fish. lunch and dinner", "allergic to shellfish. lunch and dinner"]) {
+    const deck = deckOf({ must, kind: "easy", budgetAmount: "40", date: "2026-10-13" });
+    const ids = deckPlaceIds(deck);
+    assert(!ids.includes("pacific-counter-downtown"), must + " offered Pacific Counter in " + ids.join(","));
+    const p = makePlan({ must, kind: "easy", budgetAmount: "40", date: "2026-10-13" });
+    for (const id of ["stillwaters", "perrys-porch", "pin-wok-bowl"]) assert(!g.avoidsStop(p, g.STOP_BY_ID[id]), must + " vetoed the mixed menu at " + id);
+  }
+  assert(deckOf({ date: "2026-10-13", must: "dinner, no seafood, thai please", budgetAmount: "100" }).anchor.id === "pin-wok-bowl", "a mixed sushi-and-Thai place can still be dinner");
+});
+
+check("food: naming an allergen doesn't count as asking for it", () => {
+  for (const must of ["she has a seafood allergy. dinner", "Allergies: shellfish, seafood. Dinner", "seafood allergy, pasta"]) {
+    const text = g.positiveText(makePlan({ must }));
+    assert(!/seafood|shellfish/.test(text), must + " -> " + text);
+    const s = g.STOP_BY_ID["stillwaters"];
+    assert(g.tagScore(s, text) === g.tagScore(s, g.positiveText(makePlan({ must: must.replace(/[a-z]*\s*(seafood|shellfish)[a-z,]*/g, "") })) ), must);
+  }
+  assert(/tacos/.test(g.positiveText(makePlan({ must: "He doesn't eat seafood so let's do tacos" }))), "a wish after the no stays");
+});
+
+function fillEasyDay(note) {
+  resetPhone();
+  g.clockOverride = PINNED;
+  g.setMode("create");
+  g.plan = null;
+  g.fillForm(null);
+  $("you").value = "Alex";
+  $("them").value = "Riley";
+  g.applyPills({ occasion: "Date", drink: "no", lean: "must" });
+  g.renderKinds("Date", "easy");
+  $("budget-amount").value = "120";
+  $("date").value = "2026-10-10";
+  $("must").value = note;
+}
+
+check("food: checking the allergy box puts the flag in the link and the line on every food card", () => {
+  const notes = ["she's allergic to shellfish, coffee", "nut allergy, coffee", "Allergies: shellfish. coffee", "he's celiac, coffee", "allergen: peanuts, coffee", "no seafood, coffee"];
+  for (const must of notes) assert(!("allergy" in deckOf({ must })), "the note still guessed an allergy: " + must);
+  fillEasyDay("she's allergic to shellfish. coffee and art");
+  assert($("food-allergy").checked === false, "checkbox should start unchecked");
+  assert(g.submitForm() === true, "unchecked form");
+  assert(g.plan.allergy !== true && !("allergy" in g.plan.deck), "unchecked day still flagged the link");
+  click($("edit"));
+  assert($("food-allergy").checked === false, "Change the day should keep the box unchecked");
+  $("food-allergy").checked = true;
+  assert(g.submitForm() === true, "checked form");
+  assert(g.plan.allergy === true && g.plan.deck.allergy === true, "checkbox did not flag the day");
+  const carried = g.linkPlan(g.plan);
+  assert(carried.deck.allergy === true && !("must" in carried) && !("allergy" in carried), "the link should carry the yes/no on the deck only");
+  const linked = g.decodePlan(g.encodePlan(carried));
+  assert(linked.deck.allergy === true && !/shellfish/.test(JSON.stringify(linked)), "the link carried the note");
+  // Play that link: every food card has one line, and a museum card has none.
+  resetPhone();
+  sunny("2026-10-10");
+  at("2026-10-10", "12:00");
+  openLink("#play/" + g.encodePlan(carried));
+  g.act("begin");
+  g.act("list");
+  const cards = [...$("play").querySelectorAll("article.stop")];
+  let food = 0;
+  cards.forEach((card) => {
+    const name = card.querySelector("h2").textContent;
+    const stop = g.STOPS.find((s) => s.name === name);
+    assert(stop, "unknown card " + name);
+    if (!(stop.feel === "taste" || stop.dinner)) {
+      assert(!/allerg/i.test(card.textContent), name + " is not a food card");
+      return;
+    }
+    food++;
+    const line = stop.meal ? "Check the menu for allergies." : "Ask about allergies before you order.";
+    assert(card.textContent.includes(line), name + " missing the allergy line");
+    assert(!/allergy-safe|safe for allerg/i.test(card.textContent), name + " claims to be safe");
+  });
+  assert(food >= 2, "expected several food cards, saw " + food);
+  const page = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
+  assert(!/allerg\w*[- ](?:safe|friendly)|safe for (?:allerg|celiac)|nut[- ]free (?:kitchen|facility)/i.test(page), "something claims to be allergy-safe");
+  g.clockOverride = PINNED;
+});
+
+check("food: an old link without the allergy flag still plays, with no allergy line", () => {
+  const p = makePlan({ must: "she's allergic to shellfish. coffee, art", date: "2026-10-10" });
+  p.deck = { v: 1, anchor: { type: "stop", id: "bellabrava", time: 18, leave: 17.5 }, pools: { taste: ["kahwa", "market"], drift: [], dig: [], soft: ["mfa"] }, park: false };
+  resetPhone();
+  sunny(p.date);
+  at(p.date, "15:30");
+  openLink("#play/" + g.encodePlan(g.linkPlan(p)));
+  assert(!("allergy" in g.ensureDeck(g.plan)), "old link grew an allergy flag");
+  g.act("begin");
+  const feel = ["taste", "drift", "dig", "soft"].find((f) => g.offered(f).length);
+  g.act("feel", feel);
+  g.act("reveal");
+  const id = g.view.pending;
+  assert(id && g.STOP_BY_ID[id], "nothing revealed");
+  assert(!/allerg/i.test(playText()), "allergy line on an old link");
+  g.act("here", id);
+  assert(g.playState().trail.length === 1, "We're here");
+  g.clockOverride = PINNED;
+});
+
+check("food: at a food stop, Shuffle shows when another place fits, and a plain line when none does", () => {
+  const briefs = [
+    { must: "cheap eats, coffee", budgetAmount: "40" },
+    { must: "coffee, gelato, walking", budgetAmount: "120" },
+    { must: "brunch, pastries, art", budgetAmount: "300", kind: "celebrate" },
+  ];
+  let shown = 0;
+  for (const b of briefs) {
+    for (const t of ["10:00", "13:00"]) {
+      const p = startPlay(Object.assign({ date: "2026-10-10" }, b));
+      at("2026-10-10", t);
+      const n = g.offered("taste").length;
+      g.act("begin");
+      if (!n) continue;
+      g.act("feel", "taste");
+      const btn = $("play").querySelector('[data-act="shuffle"]');
+      if (n > 1) { assert(btn, JSON.stringify(b) + " " + t + ": no Shuffle with " + n + " options"); shown++; }
+      else assert(!btn && /nothing to shuffle/.test(playText()), JSON.stringify(b) + " " + t + ": no plain line");
+    }
+  }
+  assert(shown >= 4, "Shuffle shown on " + shown + " food stops");
+  dayWith("2026-10-10", { taste: ["kahwa"] });
+  at("2026-10-10", "10:00");
+  g.act("begin"); g.act("feel", "taste");
+  assert(!$("play").querySelector('[data-act="shuffle"]') && /Only one tasty stop fits right now, so there's nothing to shuffle\./.test(playText()), "one tasty place");
+  g.clockOverride = PINNED;
+});
+
+check("food: the dinner the page picks comes with up to two alternates, never one of the day's picks", () => {
+  let withAlts = 0;
+  for (const b of [{ must: "dinner somewhere nice", kind: "celebrate", budgetAmount: "300" }, { must: "dinner, art", budgetAmount: "120" },
+    { must: "pho for lunch, dinner later", budgetAmount: "120", date: "2026-10-13" }, { must: "cheap eats, dinner", budgetAmount: "40" }]) {
+    const deck = deckOf(b);
+    if (deck.anchor.type !== "stop") continue;
+    const alts = deck.anchor.alts || [];
+    if (alts.length) withAlts++;
+    assert(alts.length <= 2 && !alts.includes(deck.anchor.id), JSON.stringify(deck.anchor));
+    for (const id of alts) {
+      assert(g.STOP_BY_ID[id].dinner && !allIds(deck).includes(id), id + " in the pools or not a dinner");
+      const rank = { cheap: 0, mid: 1, nice: 2 }, step = rank[g.STOP_BY_ID[deck.anchor.id].costBand] - rank[g.STOP_BY_ID[id].costBand];
+      assert(step === 0 || step === 1, id + " isn't the same band or one down from " + deck.anchor.id);
+    }
+    // The link keeps them exactly.
+    const back = g.decodePlan(g.encodePlan(g.linkPlan(Object.assign(makePlan(b), { deck }))));
+    assert(JSON.stringify(back.deck) === JSON.stringify(deck), "round trip");
+  }
+  assert(withAlts >= 2, "alternates on " + withAlts + " briefs");
+  // A celebration's one nice dinner can swap to a mid one, never down to a cheap one.
+  const celebrate = deckOf({ must: "dinner somewhere nice", kind: "celebrate", budgetAmount: "300" }).anchor;
+  assert(celebrate.id === "bellabrava" && (celebrate.alts || []).length && celebrate.alts.every((id) => g.STOP_BY_ID[id].costBand === "mid"), JSON.stringify(celebrate));
+  // cleanDeck drops anything that isn't a fitting dinner outside the pools.
+  const raw = { v: 1, anchor: { type: "stop", id: "bellabrava", time: 18, leave: 17.5, alts: ["bellabrava", "nope", "mfa", "kahwa", "stillwaters", "stillwaters", "baba-on-central", "la-v-vietnamese"] },
+    pools: { taste: ["kahwa", "stillwaters"], drift: [], dig: [], soft: [] }, park: false };
+  assert(JSON.stringify(g.cleanDeck(raw).anchor.alts) === JSON.stringify(["baba-on-central", "la-v-vietnamese"]), JSON.stringify(g.cleanDeck(raw).anchor));
+});
+
+check("food: on the day, Shuffle swaps the dinner and the choice survives a reload", () => {
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5, alts: ["stillwaters", "baba-on-central"] });
+  at("2026-10-13", "17:00");
+  g.act("begin"); g.act("feel", "anchor");
+  assert(/Shuffle another dinner/.test(playText()), "no dinner Shuffle");
+  const first = g.anchorView().id;
+  g.act("shuffle");
+  const second = g.anchorView().id;
+  assert(first === "bellabrava" && ["stillwaters", "baba-on-central"].includes(second), first + " -> " + second);
+  g.act("reveal");
+  assert(new RegExp(g.STOP_BY_ID[second].name).test(playText()), "reveal shows the shuffled dinner");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.anchorView().id === second && g.view.pending === "anchor", "lost the shuffled dinner on reload");
+  g.act("here", second);
+  assert(g.anchorDone() && g.visitedIds().includes(second), "We're here logged " + g.visitedIds());
+  // Too late for an alternate: it isn't swapped in. On Tuesdays Pin Wok closes at 9pm, Stillwaters at 10pm.
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "stillwaters", time: 18, leave: 17.5, alts: ["pin-wok-bowl"] });
+  at("2026-10-13", "17:00");
+  g.act("begin"); g.act("feel", "anchor");
+  assert(/Shuffle another dinner/.test(playText()), "Pin Wok offered at 5pm");
+  at("2026-10-13", "20:30");
+  assert(!g.anchorLate(), "Stillwaters still fits at 8:30pm");
+  g.act("back"); g.act("feel", "anchor");
+  assert(!/Shuffle another dinner/.test(playText()) && /No other dinner fits right now/.test(playText()), "late alternate offered at 8:30pm");
+  // An old link without alternates: no Shuffle, one plain line.
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5 });
+  at("2026-10-13", "17:00");
+  g.act("begin"); g.act("feel", "anchor");
+  assert(!/Shuffle another dinner/.test(playText()) && /Only one dinner was lined up for today, so there's nothing to shuffle\./.test(playText()), "old link");
+  g.clockOverride = PINNED;
+});
+
+check("food: the desk names the dinner alternates, and Surprise us too hides them", () => {
+  const p = creatorDesk({ must: "dinner, art", budgetAmount: "120" });
+  const alts = g.ensureDeck(p).anchor.alts || [];
+  assert(alts.length, "no alternates to show");
+  for (const id of alts) assert(new RegExp("On the day, Shuffle can swap in " + g.STOP_BY_ID[id].name).test($("desk-top").textContent), id);
+  p.surprise = true;
+  g.renderDesk();
+  assert(!/swap in/.test($("desk-top").textContent), "alternates shown under Surprise us too");
+});
+
+check("food: a 'no' or an allergy only drops what it names; the rest of the note still counts", () => {
+  assert(g.noteWants(makePlan({ must: "no dairy but we love ice cream" })).dessert, "ice cream after 'no dairy'");
+  assert(/ice cream/.test(g.positiveText(makePlan({ must: "no dairy but we love ice cream" }))), "ice cream dropped");
+  assert(/seafood/.test(g.positiveText(makePlan({ must: "no sushi, but we love seafood" }))), "seafood after 'no sushi' dropped");
+  assert(/tacos/.test(g.positiveText(makePlan({ must: "we want tacos with a seafood allergy" }))), "tacos dropped");
+  assert(/sushi/.test(g.positiveText(makePlan({ must: "shellfish allergy but she loves sushi" }))), "sushi dropped");
+  for (const must of ["no constructor", "avoid __proto__", "skip constructor, coffee"]) deckOf({ must });
+});
+
+check("food: a dinner that's too late hands over to an alternate that still fits", () => {
+  // Tuesday: Pin Wok closes at 9pm, Stillwaters at 10pm.
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "pin-wok-bowl", time: 18, leave: 17.5, alts: ["stillwaters"] });
+  at("2026-10-13", "20:30");
+  g.act("begin");
+  assert(g.anchorOffered() && /Real dinner/.test(playText()) && !/Too late for the dinner spot/.test(playText()), "dinner hidden while an alternate fits");
+  assert(g.anchorView().id === "stillwaters", "handed to " + g.anchorView().id);
+  // Shuffled early to the place that closes first, then back later.
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "stillwaters", time: 18, leave: 17.5, alts: ["pin-wok-bowl", "baba-on-central"] });
+  g.playState().dinner = "pin-wok-bowl";
+  at("2026-10-13", "20:30");
+  g.act("begin");
+  assert(g.anchorOffered() && g.anchorView().id !== "pin-wok-bowl", "stuck on the late pick: " + g.anchorView().id);
+  // A dinner already revealed stays put after a reload, even once it's tight.
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "pin-wok-bowl", time: 18, leave: 17.5, alts: ["stillwaters"] });
+  at("2026-10-13", "20:00");
+  g.act("begin"); g.act("feel", "anchor"); g.act("reveal");
+  at("2026-10-13", "20:30");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.pending === "anchor" && g.anchorView().id === "pin-wok-bowl", "the revealed dinner changed: " + g.anchorView().id);
+  // The creator's desk always shows the dinner the page picked.
+  const p = g.plan;
+  g.playState().dinner = "stillwaters";
+  g.savePlay();
+  g.openDay(p, { mode: "create" });
+  assert(g.anchorView().id === "pin-wok-bowl", "desk shows " + g.anchorView().id);
   g.clockOverride = PINNED;
 });
 

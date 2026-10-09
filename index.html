@@ -188,6 +188,13 @@
       opacity: 0.72;
       font-size: 0.92rem;
     }
+    .mini .skip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      margin: 0;
+      padding: 0 0.5rem;
+    }
     .quiet {
       display: inline-block;
       opacity: 0.75;
@@ -379,8 +386,8 @@
     }
     .rate { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.45rem 0 0; }
     .ask { margin: 0 0 1.1rem; padding: 0.8rem 0.9rem; border-radius: 0.9rem; background: rgba(245, 167, 145, 0.16); }
-    .check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 0.4rem 0 0.9rem; cursor: pointer; }
-    .check input { margin-top: 0.3rem; width: 1.1rem; height: 1.1rem; }
+    .check { display: flex; gap: 0.75rem; align-items: center; margin: 0.4rem 0 0.9rem; cursor: pointer; min-height: 44px; }
+    .check input { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
     .desk-tip {
       margin: 0 0 0.6rem;
       padding: 0.85rem 0.95rem;
@@ -503,6 +510,10 @@
             <p class="meta">This is what shapes the day. Add food likes, pace, and anything to avoid. Different notes make different days.</p>
             <button type="button" class="learn" id="learn-context">Learn more</button>
           </div>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="food-allergy" name="foodAllergy" />
+          <span>Someone has a food allergy</span>
         </label>
         <button type="submit" class="btn btn-primary" id="make">Make the day</button>
       </form>
@@ -747,6 +758,9 @@
         name: "Kahwa Coffee (Downtown South)",
         feel: "taste",
         meal: "coffee",
+        menuFocus: "mixed",
+        menuSource: "https://kahwacoffee.com/pages/cafe-st-petersburg-downtown-south",
+        menuChecked: "2026-10-08",
         tags: ["coffee", "cafe", "café", "breakfast", "pastry"],
         costBand: "cheap",
         address: "204 2nd Ave S, St. Petersburg",
@@ -767,6 +781,9 @@
         name: "Bodega",
         feel: "taste",
         meal: "lunch",
+        menuFocus: "mixed",
+        menuSource: "https://eatatbodega.com/wp-content/uploads/BODEGAS-FOOD-MENU-for-MARCH-2024-2.pdf",
+        menuChecked: "2026-10-08",
         dinner: true,
         tags: ["taco", "tacos", "cuban", "mexican", "latin", "sandwich", "casual", "cheap lunch"],
         costBand: "cheap",
@@ -791,6 +808,9 @@
         name: "Stillwaters Tavern",
         feel: "taste",
         meal: "lunch",
+        menuFocus: "mixed",
+        menuSource: "https://stillwaterstavern.com/menu/all-day-menu?location_id=3433",
+        menuChecked: "2026-10-08",
         dinner: true,
         tags: ["seafood", "american", "waterfront", "sit-down", "sit down", "lunch", "dinner"],
         costBand: "mid",
@@ -817,6 +837,9 @@
         id: "bellabrava",
         name: "BellaBrava",
         meal: "dinner",
+        menuFocus: "mixed",
+        menuSource: "https://bellabrava.com/menu/dinner?location_id=3445",
+        menuChecked: "2026-10-08",
         dinner: true,
         tags: ["italian", "pasta", "pizza", "nice dinner", "nicer dinner", "fancy", "dinner"],
         costBand: "nice",
@@ -844,6 +867,9 @@
         name: "Paciugo Gelato & Caffè",
         feel: "taste",
         meal: "dessert",
+        menuFocus: "mixed",
+        menuSource: "https://paciugostpete.com/menu%2Fflavors",
+        menuChecked: "2026-10-08",
         tags: ["gelato", "dessert", "ice cream", "sweet", "treat"],
         costBand: "cheap",
         address: "300 Beach Dr NE, St. Petersburg",
@@ -1142,6 +1168,9 @@
     // shape as the entries above. week[0] is Sunday; [open, close] in 24h hours, null when closed.
     // lastEntry (optional) is the place's own last entry or admission time: one hour, or one per
     // weekday like week. lastEntryText holds the source's exact sentence when hoursText doesn't.
+    // menuFocus (food places) says what the kitchen centers on, from its own menu (menuSource,
+    // menuChecked): "seafood-centric" or "mixed". Only a seafood-centric place is kept off for
+    // "no seafood"; a mixed menu has other things to order.
     var PLACES = [
       {"id": "sunken-gardens", "name": "Sunken Gardens", "feel": "drift", "cost": "ticket", "tags": ["garden", "plants", "flamingos", "kids", "family", "walking", "history"], "outdoor": true, "kids": true, "gem": false, "address": "1825 4th St N, St. Petersburg, FL 33704", "query": "Sunken Gardens, 1825 4th St N, St. Petersburg, FL", "source": "https://sunkengardens.org/plan-your-visit/", "week": {"0": [12, 16.5], "1": [10, 16.5], "2": [10, 16.5], "3": [10, 16.5], "4": [10, 16.5], "5": [10, 16.5], "6": [10, 16.5]}, "closedDates": ["2026-11-26", "2026-12-24", "2026-12-25", "2027-11-25", "2027-12-24", "2027-12-25"], "lastEntry": 16, "hoursText": "Monday - Saturday: 10 a.m. - 4:30 p.m. Sunday: 12 p.m. - 4:30 p.m. The last admission is sold at 4 p.m. daily. Gardens may close due to inclement weather. Sunken Gardens is open everyday except Thanksgiving, Christmas Eve, and Christmas Day.", "hoursChecked": "2026-10-08", "hint": "Pay in person on the day of your visit (admission can't be bought in advance), and the last admission is sold at 4 p.m.", "why": "St. Pete's oldest living museum: shady garden paths with flamingos, tropical birds and tortoises, and visitors tend to spend about 1.5 to 2 hours there."},
       {"id": "crescent-lake-park", "name": "Crescent Lake Park", "feel": "drift", "tags": ["park", "lake", "walking", "playground", "kids", "banyans", "dogs"], "outdoor": true, "kids": true, "address": "1320 5th St N, St. Petersburg, FL 33701", "query": "Crescent Lake Park, 1320 5th St N, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/crescent_lake_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "Bring a blanket, as the city suggests; there's also a playground, recreation trails and a dog park.", "why": "A park surrounded by banyan trees, with recreation trails and a playground, a short walk from Sunken Gardens."},
@@ -1157,17 +1186,17 @@
       {"id": "the-merchant", "name": "The Merchant – Purveyor of Local Goods", "feel": "dig", "tags": ["shop", "local", "makers", "gifts", "art", "indoor", "rainy day"], "address": "645 Central Ave, Suite 8, St. Petersburg, FL 33701", "query": "The Merchant, 645 Central Ave, St. Petersburg, FL", "source": "https://www.merchantstpete.com/", "week": {"0": [10, 16], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 20], "6": [10, 20]}, "hoursText": "Mon - Thurs: 10am-5pm; Fri - Sat: 10am - 8pm; Sun: 10am-4pm", "hoursChecked": "2026-10-08", "hint": "Open until 8pm on Friday and Saturday.", "why": "A downtown general-store style shop with art, gifts and goods from over 80 Florida artisans and makers on Central Ave."},
       {"id": "coastal-house-vintage", "name": "Coastal House Vintage", "feel": "dig", "tags": ["vintage", "secondhand", "handmade", "home decor", "crafts", "indoor"], "address": "2820 1st Ave N, St. Petersburg, FL", "query": "Coastal House Vintage, 2820 1st Ave N, St. Petersburg, FL", "source": "https://www.coastalhousevintage.com/", "week": {"0": [12, 17], "1": [10, 18], "2": [10, 18], "3": [10, 18], "4": [10, 18], "5": [10, 18], "6": [10, 18]}, "hoursText": "Shop Hours: Mondays - Saturdays 10am - 6pm, Sundays 12pm-5pm. *Open Crafting Available during Shop Hours*", "hoursChecked": "2026-10-08", "hint": "The Craft Cafe inside has drop-in DIY projects any time the shop is open, no reservations needed.", "why": "A shop of curated vintage, secondhand and handmade home goods on 1st Ave N, with a drop-in Craft Cafe."},
       {"id": "floridarama", "name": "FloridaRAMA", "feel": "soft", "cost": "ticket", "tags": ["art", "immersive", "kids", "family", "indoor", "rainy day", "warehouse arts"], "kids": true, "address": "2606 Fairfield Ave S, St. Petersburg, FL 33712", "query": "FloridaRAMA, 2606 Fairfield Ave S, St. Petersburg, FL", "source": "https://www.floridarama.art/", "week": {"0": [10, 20], "1": [12, 20], "2": null, "3": null, "4": [12, 20], "5": [12, 20], "6": [10, 20]}, "hoursText": "Art Experience Hours: Monday 12 pm–8 pm; Tuesday Closed; Wednesday Closed; Thursday 12 pm–8 pm; Friday 12 pm–8 pm; Saturday 10 am–8 pm; Sunday 10 am–8 pm. We suggest arriving 1.5 hours prior to closing to maximize your experience!", "lastEntry": 18.5, "lastEntryText": "Last entry occurs 1.5 hours prior to closing. (https://www.floridarama.art/information/)", "hoursChecked": "2026-10-08", "hint": "Last entry is 1.5 hours before closing; the entrance and ticket desk are inside The Factory Building 5. Through November 2, admission includes a PG-13 paranormal experience.", "why": "An indoor immersive art walk-through built on original Florida stories in the Warehouse Arts District, designed for all ages."},
-      {"id": "la-v-vietnamese", "name": "La V Vietnamese Fusion", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["vietnamese", "pho", "banh mi", "noodles", "vegetarian", "boba", "indoor"], "address": "441 Central Ave, St. Petersburg, FL 33701", "query": "La V Vietnamese Fusion, 441 Central Ave, St. Petersburg, FL", "source": "https://lavfusion.com/", "week": {"0": [11, 22], "1": [11, 22], "2": [11, 22], "3": [11, 22], "4": [11, 22], "5": [11, 22], "6": [11, 22]}, "hoursText": "Open 7 days a week 11:00a – 10:00p", "hoursChecked": "2026-10-08", "hint": "The $14.40 Lunch Box runs Tuesday to Friday, 11am to 2pm, dine-in only and not on holidays.", "why": "Vietnamese pho, banh mi and vermicelli bowls on downtown Central Ave, with a separate vegetarian menu."},
-      {"id": "pin-wok-bowl", "name": "Pin Wok & Bowl", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["thai", "sushi", "poke", "japanese", "curry", "noodles", "indoor"], "address": "445 Central Avenue, St. Petersburg, FL 33701", "query": "Pin Wok & Bowl, 445 Central Avenue, St. Petersburg, FL", "source": "https://pinwokandbowl.com/", "week": {"0": [12, 21], "1": null, "2": [11.5, 21], "3": [11.5, 21], "4": [11.5, 21], "5": [11.5, 22], "6": [12, 22]}, "split": {"2": [15, 16], "3": [15, 16], "4": [15, 16], "5": [15, 16]}, "hoursText": "Monday Closed; Tuesday-Thursday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 9:00 PM; Friday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 10:00 PM; Saturday 12:00 PM - 10:00 PM; Sunday 12:00 PM - 9:00 PM", "hoursChecked": "2026-10-08", "hint": "The site recommends making a reservation ahead of time.", "why": "Thai curries, pad thai, sushi rolls and poke bowls in one downtown Central Ave stop."},
-      {"id": "perrys-porch", "name": "Perry's Porch", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["american", "seafood", "sandwiches", "burgers", "waterfront", "pier", "patio", "family"], "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "Perry's Porch, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://www.perrysporch.com/", "week": {"0": [7, 21], "1": [7, 22], "2": [7, 22], "3": [7, 22], "4": [7, 22], "5": [7, 22], "6": [7, 22]}, "hoursText": "Monday -Saturday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-10pm | Dinner; Sunday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-9pm | Dinner", "hoursChecked": "2026-10-08", "hint": "Perry's Porch is cashless: debit or credit cards only.", "why": "Lunch or dinner with park and waterfront views at the entrance to the St. Pete Pier."},
-      {"id": "joey-brooklyns-pizza", "name": "Joey Brooklyn's Famous Pizza Kitchen", "feel": "taste", "meal": "lunch", "costBand": "cheap", "tags": ["pizza", "slices", "italian", "sandwiches", "wings", "late night"], "address": "210 1st Ave N, St. Petersburg, FL 33701", "query": "Joey Brooklyn's Famous Pizza Kitchen, 210 1st Ave N, St. Petersburg, FL", "source": "https://joeybrooklynsfamouspizzakitchen.com/", "week": {"0": [11, 25], "1": [11, 25], "2": [11, 25], "3": [11, 25], "4": [11, 27], "5": [11, 27], "6": [11, 27]}, "hoursText": "Mon 11:00 am – 01:00 am; Tue 11:00 am – 01:00 am; Wed 11:00 am – 01:00 am; Thu 11:00 am – 03:00 am; Fri 11:00 am – 03:00 am; Sat 11:00 am – 03:00 am; Sun 11:00 am – 01:00 am", "hoursChecked": "2026-10-08", "hint": "Pizza is sold by the slice; a cheese slice is $4 plus $1 per topping.", "why": "Cheap pizza by the slice downtown by Jannus Live, open late every night."},
-      {"id": "pacific-counter-downtown", "name": "Pacific Counter (Downtown St. Pete)", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "cheap", "tags": ["poke", "hawaiian", "sushi burrito", "bowls", "boba", "hot dogs", "indoor"], "address": "660 Central Avenue, St. Petersburg, FL 33701", "query": "Pacific Counter, 660 Central Avenue, St. Petersburg, FL", "source": "https://pacificcounter.com/", "week": {"0": [11, 21], "1": [11, 21], "2": [11, 21], "3": [11, 21], "4": [11, 21], "5": [11, 21], "6": [11, 21]}, "hoursText": "Downtown St. Pete, 660 Central Avenue: Hours Mon - Sun: 11am - 9pm", "hoursChecked": "2026-10-08", "hint": "You build your own bowl or burrito, and the protein you pick costs extra.", "why": "Build-your-own poke bowls and sushi burritos on Central Ave, with quick counter service."},
-      {"id": "cassis-pizza-market", "name": "Cassis Pizza & Market", "feel": "taste", "meal": "lunch", "dinner": true, "costBand": "mid", "tags": ["pizza", "sandwiches", "cuban", "coffee", "pastries", "ice cream"], "address": "162 Beach Dr NE, St. Petersburg, FL 33701", "query": "Cassis Market, 162 Beach Dr NE, St. Petersburg, FL", "source": "https://cassisstpete.com/market/", "week": {"0": [7.5, 22], "1": null, "2": [7.5, 22], "3": [7.5, 22], "4": [7.5, 22], "5": [7.5, 23], "6": [7.5, 23]}, "hoursText": "Monday – Closed; Tuesday – Thursday 7:30am – 10pm; Friday & Saturday 7:30am – 11pm; Sunday 7:30am – 10:00pm. Hours are subject to change, please call to confirm hours as needed.", "hoursChecked": "2026-10-08", "hint": "Pizza and sandwiches are served after 11am.", "why": "Sicilian pizza slices, Cubanos and pastries from a market cafe on Beach Drive."},
-      {"id": "baba-on-central", "name": "Baba on Central", "feel": "taste", "meal": "dinner", "dinner": true, "costBand": "mid", "tags": ["mediterranean", "greek", "lebanese", "falafel", "vegetarian", "kenwood", "indoor"], "address": "2701 Central Ave, St. Petersburg, FL", "query": "Baba on Central, 2701 Central Ave, St. Petersburg, FL", "source": "https://www.eatatbaba.com/contact/", "week": {"0": [17, 22], "1": null, "2": [17, 22], "3": [17, 22], "4": [17, 22], "5": [17, 22], "6": [17, 22]}, "hoursText": "Restaurant Hours Tue - Sun: 5pm - 10pm. Happy Hour @ the Bar: Tue - Thur 5-7pm", "hoursChecked": "2026-10-08", "hint": "Book on Resy; the restaurant asks parties larger than 6 to call.", "why": "Greek and Lebanese mezze, falafel and grilled plates for a shared dinner in Kenwood."},
-      {"id": "bandit-coffee", "name": "Bandit Coffee Co.", "feel": "taste", "meal": "coffee", "costBand": "cheap", "tags": ["coffee", "bakery", "breakfast", "roaster", "vegan", "indoor", "patio"], "address": "2662 Central Ave, St. Petersburg, FL 33712", "query": "Bandit Coffee Co., 2662 Central Ave, St. Petersburg, FL", "source": "https://banditcoffee.co/pages/visit", "week": {"0": [7, 15], "1": [7, 15], "2": [7, 15], "3": [7, 15], "4": [7, 15], "5": [7, 15], "6": [7, 15]}, "hoursText": "café hours: 7am - 3pm daily kitchen all day", "hoursChecked": "2026-10-08", "hint": "Counter service with seating indoors and outdoors. On-site parking is for customers during business hours, and there's no wifi.", "why": "A locally owned café and coffee roaster on Central Avenue that makes all its bread and pastries in-house and serves coffee every day from 7am."},
-      {"id": "bean-wandering-downtown", "name": "Bean Wandering Coffee (Downtown)", "feel": "taste", "meal": "coffee", "costBand": "cheap", "tags": ["coffee", "lattes", "matcha", "sandwiches", "downtown", "indoor"], "address": "100 2nd Ave S, St. Petersburg, FL 33701", "query": "Bean Wandering Coffee, 100 2nd Ave S, St. Petersburg, FL", "source": "https://www.beanwandering.com/menu", "week": {"0": null, "1": [7, 16], "2": [7, 16], "3": [7, 16], "4": [7, 16], "5": [7, 16], "6": [7, 16]}, "hoursText": "Hours: Mon-Sat: 7am - 4pm Sun: CLOSED", "hoursChecked": "2026-10-08", "hint": "It's inside the lobby of the Northern Trust Building (City Center building). Closed Sundays.", "why": "A downtown coffee counter that calls itself the home of the original canned latte, with espresso drinks, matcha and sandwiches for a quick stop."},
-      {"id": "hyppo-mayday-central", "name": "The Hyppo & Mayday Ice Cream", "feel": "taste", "meal": "dessert", "costBand": "cheap", "tags": ["popsicles", "ice cream", "dessert"], "address": "627 Central Ave, St. Petersburg, FL 33701", "query": "The Hyppo, 627 Central Ave, St. Petersburg, FL", "source": "https://www.thehyppo.com/find-us", "week": {"0": [11, 22], "1": [11, 22], "2": [11, 22], "3": [11, 22], "4": [11, 22], "5": [11, 23], "6": [11, 23]}, "hoursText": "HOURS: SUN - THURS 11am - 10pm FRI - SAT 11am - 11pm", "hoursChecked": "2026-10-08", "hint": "Mayday Ice Cream lists the same address, phone and hours as The Hyppo, so there is ice cream as well as ice pops.", "why": "Gourmet ice pops and ice cream on Central Avenue, open until 10pm or later, so it works as an afternoon or after-dinner treat."},
-      {"id": "cafe-clementine", "name": "Café Clementine (Le Clementine Bakeshop)", "feel": "taste", "meal": "snack", "costBand": "mid", "tags": ["bakery", "croissants", "pastries", "coffee", "brunch", "waterfront", "indoor"], "address": "255 Beach Dr NE, St. Petersburg, FL 33701", "query": "Café Clementine, 255 Beach Dr NE, St. Petersburg, FL", "source": "https://www.leclementinebakeshop.com/", "week": {"0": [9, 15], "1": null, "2": [9, 15], "3": [9, 15], "4": [9, 15], "5": [9, 15], "6": [9, 15]}, "hoursText": "OPEN 9 AM - 3 PM Tuesdays - Sundays Kitchen closes at 2PM Museum Admission not required", "hoursChecked": "2026-10-08", "hint": "No museum admission needed. Seating is first-come, first-served with no reservations, and the kitchen closes at 2pm.", "why": "A scratch bakery café inside the Museum of Fine Arts on Beach Drive, with waterfront views, indoor and outdoor seating, and no museum ticket needed."},
+      {"id": "la-v-vietnamese", "name": "La V Vietnamese Fusion", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://lavfusion.com/wp-content/uploads/2026/08/LaV-Main-Menu.pdf", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["vietnamese", "pho", "banh mi", "noodles", "vegetarian", "boba", "indoor"], "address": "441 Central Ave, St. Petersburg, FL 33701", "query": "La V Vietnamese Fusion, 441 Central Ave, St. Petersburg, FL", "source": "https://lavfusion.com/", "week": {"0": [11, 22], "1": [11, 22], "2": [11, 22], "3": [11, 22], "4": [11, 22], "5": [11, 22], "6": [11, 22]}, "hoursText": "Open 7 days a week 11:00a – 10:00p", "hoursChecked": "2026-10-08", "hint": "The $14.40 Lunch Box runs Tuesday to Friday, 11am to 2pm, dine-in only and not on holidays.", "why": "Vietnamese pho, banh mi and vermicelli bowls on downtown Central Ave, with a separate vegetarian menu."},
+      {"id": "pin-wok-bowl", "name": "Pin Wok & Bowl", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://pinwokandbowl.com/food-menu", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["thai", "sushi", "poke", "japanese", "curry", "noodles", "indoor"], "address": "445 Central Avenue, St. Petersburg, FL 33701", "query": "Pin Wok & Bowl, 445 Central Avenue, St. Petersburg, FL", "source": "https://pinwokandbowl.com/", "week": {"0": [12, 21], "1": null, "2": [11.5, 21], "3": [11.5, 21], "4": [11.5, 21], "5": [11.5, 22], "6": [12, 22]}, "split": {"2": [15, 16], "3": [15, 16], "4": [15, 16], "5": [15, 16]}, "hoursText": "Monday Closed; Tuesday-Thursday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 9:00 PM; Friday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 10:00 PM; Saturday 12:00 PM - 10:00 PM; Sunday 12:00 PM - 9:00 PM", "hoursChecked": "2026-10-08", "hint": "The site recommends making a reservation ahead of time.", "why": "Thai curries, pad thai, sushi rolls and poke bowls in one downtown Central Ave stop."},
+      {"id": "perrys-porch", "name": "Perry's Porch", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://cdn.prod.website-files.com/66327710640914aa1aff6ace/687a766b6b77f3e636923561_Perry%27s%20Porch%20Dinner%20Menu.pdf", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["american", "seafood", "sandwiches", "burgers", "waterfront", "pier", "patio", "family"], "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "Perry's Porch, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://www.perrysporch.com/", "week": {"0": [7, 21], "1": [7, 22], "2": [7, 22], "3": [7, 22], "4": [7, 22], "5": [7, 22], "6": [7, 22]}, "hoursText": "Monday -Saturday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-10pm | Dinner; Sunday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-9pm | Dinner", "hoursChecked": "2026-10-08", "hint": "Perry's Porch is cashless: debit or credit cards only.", "why": "Lunch or dinner with park and waterfront views at the entrance to the St. Pete Pier."},
+      {"id": "joey-brooklyns-pizza", "name": "Joey Brooklyn's Famous Pizza Kitchen", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://joeybrooklynsfamouspizzakitchen.com/", "menuChecked": "2026-10-08", "costBand": "cheap", "tags": ["pizza", "slices", "italian", "sandwiches", "wings", "late night"], "address": "210 1st Ave N, St. Petersburg, FL 33701", "query": "Joey Brooklyn's Famous Pizza Kitchen, 210 1st Ave N, St. Petersburg, FL", "source": "https://joeybrooklynsfamouspizzakitchen.com/", "week": {"0": [11, 25], "1": [11, 25], "2": [11, 25], "3": [11, 25], "4": [11, 27], "5": [11, 27], "6": [11, 27]}, "hoursText": "Mon 11:00 am – 01:00 am; Tue 11:00 am – 01:00 am; Wed 11:00 am – 01:00 am; Thu 11:00 am – 03:00 am; Fri 11:00 am – 03:00 am; Sat 11:00 am – 03:00 am; Sun 11:00 am – 01:00 am", "hoursChecked": "2026-10-08", "hint": "Pizza is sold by the slice; a cheese slice is $4 plus $1 per topping.", "why": "Cheap pizza by the slice downtown by Jannus Live, open late every night."},
+      {"id": "pacific-counter-downtown", "name": "Pacific Counter (Downtown St. Pete)", "feel": "taste", "meal": "lunch", "menuFocus": "seafood-centric", "menuSource": "https://pacificcounter.com/build-your-own/", "menuChecked": "2026-10-09", "dinner": true, "costBand": "cheap", "tags": ["poke", "hawaiian", "sushi burrito", "bowls", "boba", "hot dogs", "indoor"], "address": "660 Central Avenue, St. Petersburg, FL 33701", "query": "Pacific Counter, 660 Central Avenue, St. Petersburg, FL", "source": "https://pacificcounter.com/", "week": {"0": [11, 21], "1": [11, 21], "2": [11, 21], "3": [11, 21], "4": [11, 21], "5": [11, 21], "6": [11, 21]}, "hoursText": "Downtown St. Pete, 660 Central Avenue: Hours Mon - Sun: 11am - 9pm", "hoursChecked": "2026-10-08", "hint": "You build your own bowl or burrito. That page lists tuna, salmon, shrimp, calamari and krab beside baked or BBQ chicken, tofu and mushrooms. The protein you pick costs extra.", "why": "Build-your-own poke bowls and sushi burritos on Central Ave, with quick counter service."},
+      {"id": "cassis-pizza-market", "name": "Cassis Pizza & Market", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://cassisstpete.com/market/", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["pizza", "sandwiches", "cuban", "coffee", "pastries", "ice cream"], "address": "162 Beach Dr NE, St. Petersburg, FL 33701", "query": "Cassis Market, 162 Beach Dr NE, St. Petersburg, FL", "source": "https://cassisstpete.com/market/", "week": {"0": [7.5, 22], "1": null, "2": [7.5, 22], "3": [7.5, 22], "4": [7.5, 22], "5": [7.5, 23], "6": [7.5, 23]}, "hoursText": "Monday – Closed; Tuesday – Thursday 7:30am – 10pm; Friday & Saturday 7:30am – 11pm; Sunday 7:30am – 10:00pm. Hours are subject to change, please call to confirm hours as needed.", "hoursChecked": "2026-10-08", "hint": "Pizza and sandwiches are served after 11am.", "why": "Sicilian pizza slices, Cubanos and pastries from a market cafe on Beach Drive."},
+      {"id": "baba-on-central", "name": "Baba on Central", "feel": "taste", "meal": "dinner", "menuFocus": "mixed", "menuSource": "https://www.eatatbaba.com/restaurant", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["mediterranean", "greek", "lebanese", "falafel", "vegetarian", "kenwood", "indoor"], "address": "2701 Central Ave, St. Petersburg, FL", "query": "Baba on Central, 2701 Central Ave, St. Petersburg, FL", "source": "https://www.eatatbaba.com/contact/", "week": {"0": [17, 22], "1": null, "2": [17, 22], "3": [17, 22], "4": [17, 22], "5": [17, 22], "6": [17, 22]}, "hoursText": "Restaurant Hours Tue - Sun: 5pm - 10pm. Happy Hour @ the Bar: Tue - Thur 5-7pm", "hoursChecked": "2026-10-08", "hint": "Book on Resy; the restaurant asks parties larger than 6 to call.", "why": "Greek and Lebanese mezze, falafel and grilled plates for a shared dinner in Kenwood."},
+      {"id": "bandit-coffee", "name": "Bandit Coffee Co.", "feel": "taste", "meal": "coffee", "menuFocus": "mixed", "menuSource": "https://cdn.shopify.com/s/files/1/1382/7135/files/CURRENT-BANDIT-MENU-2-11-25-kitchen.pdf", "menuChecked": "2026-10-08", "costBand": "cheap", "tags": ["coffee", "bakery", "breakfast", "roaster", "vegan", "indoor", "patio"], "address": "2662 Central Ave, St. Petersburg, FL 33712", "query": "Bandit Coffee Co., 2662 Central Ave, St. Petersburg, FL", "source": "https://banditcoffee.co/pages/visit", "week": {"0": [7, 15], "1": [7, 15], "2": [7, 15], "3": [7, 15], "4": [7, 15], "5": [7, 15], "6": [7, 15]}, "hoursText": "café hours: 7am - 3pm daily kitchen all day", "hoursChecked": "2026-10-08", "hint": "Counter service with seating indoors and outdoors. On-site parking is for customers during business hours, and there's no wifi.", "why": "A locally owned café and coffee roaster on Central Avenue that makes all its bread and pastries in-house and serves coffee every day from 7am."},
+      {"id": "bean-wandering-downtown", "name": "Bean Wandering Coffee (Downtown)", "feel": "taste", "meal": "coffee", "menuFocus": "mixed", "menuSource": "https://www.beanwandering.com/menu", "menuChecked": "2026-10-08", "costBand": "cheap", "tags": ["coffee", "lattes", "matcha", "sandwiches", "downtown", "indoor"], "address": "100 2nd Ave S, St. Petersburg, FL 33701", "query": "Bean Wandering Coffee, 100 2nd Ave S, St. Petersburg, FL", "source": "https://www.beanwandering.com/menu", "week": {"0": null, "1": [7, 16], "2": [7, 16], "3": [7, 16], "4": [7, 16], "5": [7, 16], "6": [7, 16]}, "hoursText": "Hours: Mon-Sat: 7am - 4pm Sun: CLOSED", "hoursChecked": "2026-10-08", "hint": "It's inside the lobby of the Northern Trust Building (City Center building). Closed Sundays.", "why": "A downtown coffee counter that calls itself the home of the original canned latte, with espresso drinks, matcha and sandwiches for a quick stop."},
+      {"id": "hyppo-mayday-central", "name": "The Hyppo & Mayday Ice Cream", "feel": "taste", "meal": "dessert", "menuFocus": "mixed", "menuSource": "https://www.maydayicecream.com/flavors", "menuChecked": "2026-10-08", "costBand": "cheap", "tags": ["popsicles", "ice cream", "dessert"], "address": "627 Central Ave, St. Petersburg, FL 33701", "query": "The Hyppo, 627 Central Ave, St. Petersburg, FL", "source": "https://www.thehyppo.com/find-us", "week": {"0": [11, 22], "1": [11, 22], "2": [11, 22], "3": [11, 22], "4": [11, 22], "5": [11, 23], "6": [11, 23]}, "hoursText": "HOURS: SUN - THURS 11am - 10pm FRI - SAT 11am - 11pm", "hoursChecked": "2026-10-08", "hint": "Mayday Ice Cream lists the same address, phone and hours as The Hyppo, so there is ice cream as well as ice pops.", "why": "Gourmet ice pops and ice cream on Central Avenue, open until 10pm or later, so it works as an afternoon or after-dinner treat."},
+      {"id": "cafe-clementine", "name": "Café Clementine (Le Clementine Bakeshop)", "feel": "taste", "meal": "snack", "menuFocus": "mixed", "menuSource": "https://www.cafeclementinestpete.com/bakery-menu", "menuChecked": "2026-10-08", "costBand": "mid", "tags": ["bakery", "croissants", "pastries", "coffee", "brunch", "waterfront", "indoor"], "address": "255 Beach Dr NE, St. Petersburg, FL 33701", "query": "Café Clementine, 255 Beach Dr NE, St. Petersburg, FL", "source": "https://www.leclementinebakeshop.com/", "week": {"0": [9, 15], "1": null, "2": [9, 15], "3": [9, 15], "4": [9, 15], "5": [9, 15], "6": [9, 15]}, "hoursText": "OPEN 9 AM - 3 PM Tuesdays - Sundays Kitchen closes at 2PM Museum Admission not required", "hoursChecked": "2026-10-08", "hint": "No museum admission needed. Seating is first-come, first-served with no reservations, and the kitchen closes at 2pm.", "why": "A scratch bakery café inside the Museum of Fine Arts on Beach Drive, with waterfront views, indoor and outdoor seating, and no museum ticket needed."},
       {"id": "tbw-discovery-center", "name": "Tampa Bay Watch Discovery Center", "feel": "soft", "cost": "small", "tags": ["kids", "family", "indoor", "fish", "animals", "water", "pier", "rainy day"], "kids": true, "address": "700 2nd Ave NE, St. Petersburg, FL 33701", "query": "Tampa Bay Watch Discovery Center, 700 2nd Ave NE, St. Petersburg, FL", "source": "https://www.tbwdiscoverycenter.org/info", "week": {"0": [10, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-18", "2026-12-25"], "skipDates": ["2026-11-24", "2026-12-15", "2026-12-24"], "hoursText": "The Discovery Center is open 10 AM to 5 PM daily. Holiday Season Hours: November 24, 2025 - Open 3pm to 6pm November 26, 2026 - Closed December 15, 2026 - Open 10am to 3pm December 18, 2026 - Closed December 24, 2026 - Open 10am to 1pm December 25, 2026 - Closed", "hoursChecked": "2026-10-08", "hint": "Park in the Pier's Pelican lot; the Pier District trams stop at the Discovery Center.", "why": "An exhibit gallery on the St. Pete Pier with interactive displays, live animals, a touch tank and daily educational programs."},
       {"id": "st-pete-museum-of-history", "name": "St. Petersburg Museum of History", "feel": "soft", "cost": "ticket", "tags": ["history", "museum", "indoor", "baseball", "kids", "rainy day", "pier"], "kids": true, "gem": false, "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "St. Petersburg Museum of History, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://historystpete.org/visit/", "week": {"0": [12, 17], "1": [10, 17], "2": [10, 17], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-03-28", "2027-11-25", "2027-12-25"], "hoursText": "Museum Hours: Monday – Saturday: 10 a.m. to 5 p.m. Sunday: Noon to 5 p.m. Museum is closed on Thanksgiving, Christmas, and Easter", "hoursChecked": "2026-10-08", "hint": "Parking is in the Pier's Dolphin lot next to the museum; Pier parking is metered by the hour.", "why": "An indoor museum at the entrance to the Pier District covering the world's first commercial airline, 150 years of baseball history and the city's tourism past."},
       {"id": "james-museum", "name": "The James Museum of Western & Wildlife Art", "feel": "soft", "cost": "ticket", "tags": ["art", "museum", "western", "wildlife", "indoor", "kids", "rainy day"], "kids": true, "gem": false, "address": "150 Central Ave, St. Petersburg, FL 33701", "query": "The James Museum of Western & Wildlife Art, 150 Central Ave, St. Petersburg, FL", "source": "https://thejamesmuseum.org/hours-parking/", "week": {"0": [10, 17], "1": [10, 17], "2": [10, 20], "3": [10, 17], "4": [10, 17], "5": [10, 17], "6": [10, 17]}, "closedDates": ["2026-11-26", "2026-12-25", "2027-11-25", "2027-12-25"], "lastEntry": {"0": 16.5, "1": 16.5, "2": 19.5, "3": 16.5, "4": 16.5, "5": 16.5, "6": 16.5}, "hoursText": "Open Daily: 10 AM – 5 PM. Open Tuesdays: 10 AM – 8 PM. Closed Thanksgiving & Christmas Days. Last admission ticket sold at 4:30 PM Wednesday-Monday and 7:30 PM on Tuesday.", "hoursChecked": "2026-10-08", "hint": "Tuesdays are $10 for adults ($5 youth) with hours until 8 PM; museum parking is on levels 3-4 of the South Core garage behind the building.", "why": "A downtown Central Ave museum of Western and wildlife art with a cafe and strollers allowed in the galleries."},
@@ -1353,6 +1382,11 @@
     function positiveText(p) {
       var text = noteText(p);
       negatedPhrases(text).forEach(function (ph) { text = text.split(ph).join(" "); });
+      // "seafood allergy" names seafood, but it isn't asking for it. Only the allergens the
+      // allergy phrase names are dropped, so "no dairy but we love ice cream" keeps the ice cream.
+      allergyWords(text).forEach(function (w) {
+        text = text.replace(new RegExp("(^|[^a-z])" + w + "(?:s|es)?(?![a-z])", "g"), "$1 ");
+      });
       return text;
     }
 
@@ -1397,16 +1431,41 @@
 
     // Walk a list of foods ("nuts, shellfish and dairy") and stop at the first item that isn't one,
     // so "allergic to shellfish and we want tacos" doesn't veto the tacos.
-    function walkAllergens(text, backwards) {
+    function walkAllergenItems(text, backwards) {
       var items = text.split(/\s*(?:,|&|\/|\(|\)|\band\b|\bor\b)\s*/).filter(function (x) { return x.trim(); });
       if (backwards) items.reverse();
-      var groups = [];
+      var found = [];
       for (var i = 0; i < items.length; i++) {
-        var hit = allergenGroups(items[i]);
-        if (!hit.length) break;
-        hit.forEach(function (g) { if (groups.indexOf(g) === -1) groups.push(g); });
+        if (!allergenGroups(items[i]).length) break;
+        found.push(items[i].trim());
       }
+      return found;
+    }
+
+    function walkAllergens(text, backwards) {
+      var groups = [];
+      walkAllergenItems(text, backwards).forEach(function (item) {
+        allergenGroups(item).forEach(function (g) { if (groups.indexOf(g) === -1) groups.push(g); });
+      });
       return groups;
+    }
+
+    // The food words an allergy phrase names: "seafood" in "seafood allergy", and "gluten" in
+    // "gluten-free". Only those words, so "we want tacos with a seafood allergy" keeps the tacos.
+    function allergyWords(text) {
+      var items = [], m, re = new RegExp(ALLERGY_BEFORE_RE.source, "g");
+      while ((m = re.exec(text))) items = items.concat(walkAllergenItems(m[1], true));
+      re = new RegExp(ALLERGY_AFTER_RE.source, "g");
+      while ((m = re.exec(text))) items = items.concat(walkAllergenItems(m[1], false));
+      re = new RegExp(FREE_FROM_RE.source, "g");
+      while ((m = re.exec(text))) items.push(m[0]);
+      var words = [];
+      items.forEach(function (item) {
+        allergenGroups(item).forEach(function (g) {
+          AVOID_GROUPS[g].forEach(function (w) { if (hasWord(item, w) && words.indexOf(w) === -1) words.push(w); });
+        });
+      });
+      return words;
     }
 
     function avoidTerms(p) {
@@ -1427,9 +1486,13 @@
     function avoidsStop(p, s) {
       var terms = avoidTerms(p);
       if (!terms.length) return false;
+      // A kitchen centered on seafood is off for "no seafood", "no fish" or a shellfish allergy.
+      if (s.meal && s.menuFocus === "seafood-centric" && terms.indexOf("seafood") !== -1) return true;
       return (s.tags || []).some(function (tag) {
         // "no kids, just us" says who's coming. It isn't a veto on places that welcome kids.
         if (/^(?:kids|family)$/.test(tag)) return false;
+        // On a mixed menu, seafood is one section, not the whole kitchen: people can order around it.
+        if (s.meal && s.menuFocus !== "seafood-centric" && /^(?:seafood|fish|shellfish)$/.test(tag)) return false;
         // "can't eat spicy food" or "a late dinner" shouldn't veto everything tagged food or dinner.
         var generic = /^(?:food|dinner|lunch)$/.test(tag);
         return terms.some(function (ph) { return ph === tag || (!generic && hasWord(ph, tag)); });
@@ -1548,9 +1611,16 @@
         (wants.food && !/\b(?:lunch|brunch|breakfast|noon)\b/.test(text));
       if (!wantsDinner) return { type: "none", reason: "not_asked" };
       // The note wins first, then the dinner that fits the budget and the kind of day.
+      var pool = dinnerPool(p, d, iso, cap, wants, avoids, text);
+      if (!pool.length) return { type: "none", reason: "none_fit" };
+      return { type: "stop", id: pool[0].id, time: 18, leave: 17.5 };
+    }
+
+    // Dinners that fit the day, best first: the note, then the budget and the kind of day.
+    function dinnerPool(p, d, iso, cap, wants, avoids, text) {
       var tier = cap === null || cap >= 150 ? "nice" : cap >= 80 ? "mid" : "cheap";
       if (p.kind === "easy" && tier === "nice") tier = "mid";
-      var pool = STOPS.filter(function (s) {
+      return STOPS.filter(function (s) {
         return s.dinner && stopAllowed(p, s, d, iso, cap, wants, avoids) && s.end(d, iso) >= 20;
       }).sort(function (a, b) {
         var sa = tagScore(b, text) - tagScore(a, text);
@@ -1558,8 +1628,6 @@
         var ta = (a.costBand === tier ? 0 : 1), tb = (b.costBand === tier ? 0 : 1);
         return (ta - tb) || (a.order - b.order);
       });
-      if (!pool.length) return { type: "none", reason: "none_fit" };
-      return { type: "stop", id: pool[0].id, time: 18, leave: 17.5 };
     }
 
     // The deck: one fixed point, up to three places per feeling, and parking if needed.
@@ -1589,7 +1657,24 @@
             (hashOf(seed + a.id) % 97) - (hashOf(seed + b.id) % 97);
         }).slice(0, 3).map(function (s) { return s.id; });
       });
-      return { v: 1, anchor: anchor, pools: pools, park: !!wants.parking };
+      if (anchor.type === "stop") {
+        // Up to two other dinners for Shuffle on the day: the same price band first, then one band
+        // down (a celebration's one nice dinner can swap to a mid one), never one of the day's picks.
+        var picked = FEEL_ORDER.reduce(function (all, f) { return all.concat(pools[f]); }, []);
+        var rank = { cheap: 0, mid: 1, nice: 2 }, band = rank[STOP_BY_ID[anchor.id].costBand];
+        var alts = dinnerPool(p, d, iso, cap, wants, avoids, text).filter(function (s) {
+          var step = band - rank[s.costBand];
+          return s.id !== anchor.id && picked.indexOf(s.id) === -1 && (step === 0 || step === 1);
+        }).sort(function (a, b) {
+          return (band - rank[a.costBand]) - (band - rank[b.costBand]);
+        }).slice(0, 2).map(function (s) { return s.id; });
+        if (alts.length) anchor.alts = alts;
+      }
+      var deck = { v: 1, anchor: anchor, pools: pools, park: !!wants.parking };
+      // Jake's decision, 2026-10-08: the create-screen checkbox is the only allergy trigger.
+      // The share link carries that yes/no. It does not carry the note or which allergen.
+      if (p.allergy === true) deck.allergy = true;
+      return deck;
     }
 
     function ensureDeck(p) {
@@ -1661,6 +1746,44 @@
       };
     }
 
+    // The dinner the page picked, or one of its frozen alternates after a Shuffle on the day.
+    function dinnerIds() {
+      var a = ensureDeck(plan).anchor;
+      return a && a.type === "stop" ? [a.id].concat(a.alts || []) : [];
+    }
+
+    // Is there still time for dinner here? Only the evening close counts, not a lunch break.
+    function dinnerFits(id, h) {
+      if (h === null) return true;
+      var v = stopView(id);
+      v.gap = null;
+      return h + WALK <= cutoffAt(v, h);
+    }
+
+    // On the day, a pick that's too late hands over to an alternate that still fits, so there's
+    // still a dinner to choose. A revealed dinner, or one they've had, stays put.
+    function dinnerPick() {
+      var ids = dinnerIds();
+      if (mode !== "play" || !ids.length) return ids[0];
+      var st = playState(), h = planHour(), visited = visitedIds();
+      var pick = ids.indexOf(st.dinner) !== -1 ? st.dinner : ids[0];
+      if ((st.panel === "reveal" && st.pending === "anchor") || visited.indexOf(pick) !== -1 || dinnerFits(pick, h)) return pick;
+      for (var i = 0; i < ids.length; i++) {
+        if (visited.indexOf(ids[i]) === -1 && dinnerFits(ids[i], h)) {
+          st.dinner = ids[i];
+          savePlay();
+          return ids[i];
+        }
+      }
+      return pick;
+    }
+
+    // Other dinners Shuffle can swap in now: still time to go.
+    function otherDinners() {
+      var pick = dinnerPick(), h = planHour();
+      return dinnerIds().filter(function (id) { return id !== pick && dinnerFits(id, h); });
+    }
+
     function anchorView() {
       var a = ensureDeck(plan).anchor;
       if (!a || a.type === "none") return null;
@@ -1673,7 +1796,7 @@
           why: "The one fixed point of the day."
         };
       }
-      var v = stopView(a.id);
+      var v = stopView(dinnerPick());
       v.gap = null; // dinner is about the evening close, not a lunch break
       v.time = a.time;
       v.leave = a.leave;
@@ -1833,10 +1956,17 @@
       var t = Number(a.time), leave = Number(a.leave);
       if (a.type === "stop" && STOP_BY_ID[a.id] && STOP_BY_ID[a.id].dinner && t >= 0 && t < 24) {
         anchor = { type: "stop", id: a.id, time: t, leave: isFinite(leave) ? leave : t - 0.5 };
+        var inPools = FEEL_ORDER.reduce(function (all, f) { return all.concat(pools[f]); }, []);
+        var alts = (Array.isArray(a.alts) ? a.alts : []).map(String).filter(function (id, i, all) {
+          return id !== a.id && all.indexOf(id) === i && STOP_BY_ID[id] && STOP_BY_ID[id].dinner && inPools.indexOf(id) === -1;
+        }).slice(0, 2);
+        if (alts.length) anchor.alts = alts;
       } else if (a.type === "custom" && t >= 0 && t < 24) {
         anchor = { type: "custom", time: t, leave: isFinite(leave) ? leave : t - 0.5 };
       }
-      return { v: 1, anchor: anchor, pools: pools, park: !!raw.park };
+      var out = { v: 1, anchor: anchor, pools: pools, park: !!raw.park };
+      if (raw.allergy === true) out.allergy = true;
+      return out;
     }
 
     function decodePlan(raw) {
@@ -1954,6 +2084,7 @@
       st.feel = typeof st.feel === "string" ? st.feel : "";
       st.panel = st.panel === "commit" || st.panel === "reveal" ? st.panel : "";
       st.heldOn = typeof st.heldOn === "string" ? st.heldOn : "";
+      st.dinner = typeof st.dinner === "string" ? st.dinner : "";
       playCache = { key: playKey(), state: st };
       return st;
     }
@@ -2099,6 +2230,13 @@
       go("commit");
     }
 
+    function shuffleDinner() {
+      var next = pickRandom(otherDinners());
+      if (next) playState().dinner = next;
+      holdCard("commit");
+      go("commit");
+    }
+
     function holdCard(panel) {
       var st = playState();
       st.pending = view.pending || "";
@@ -2197,7 +2335,7 @@
       if (name === "parked") { st.parked = true; savePlay(); return go("feel"); }
       if (name === "feel") return chooseFeel(arg);
       if (name === "reveal") return revealNow();
-      if (name === "shuffle") return chooseFeel(view.feel);
+      if (name === "shuffle") return view.feel === "anchor" ? shuffleDinner() : chooseFeel(view.feel);
       if (name === "back") {
         if (view.panel === "commit" || view.panel === "reveal") { view.pending = null; holdCard(""); }
         return go("feel");
@@ -2365,6 +2503,14 @@
       return '<a class="btn btn-ink" href="' + esc(mapsUrl(v.query)) + '" target="_blank" rel="noopener">' + esc(label || "Get directions") + "</a>";
     }
 
+    // One plain line on food cards when the creator checked "Someone has a food allergy."
+    // Nothing says a place is safe.
+    function allergyHtml(v) {
+      var s = v && !v.custom && STOP_BY_ID[v.id];
+      if (!s || !ensureDeck(plan).allergy || !(s.feel === "taste" || s.dinner)) return "";
+      return '<p class="meta">' + (s.meal ? "Check the menu for allergies." : "Ask about allergies before you order.") + "</p>";
+    }
+
     function cardHtml(v, opts) {
       opts = opts || {};
       var wet = v.outdoor && forecastWet(plan.date);
@@ -2374,6 +2520,7 @@
           "<h2>" + esc(v.name) + "</h2>" +
           '<p class="why">' + esc(v.why) + "</p>" +
           (v.hint ? '<p class="hint">' + esc(v.hint) + "</p>" : "") +
+          allergyHtml(v) +
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
           (untilLine(v) ? '<p class="meta">' + esc(untilLine(v)) + "</p>" : "") +
           (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
@@ -2473,11 +2620,20 @@
       return html;
     }
 
+    // At a food stop with nothing to shuffle, say so instead of hiding Shuffle without a word.
+    function noShuffleHtml(a) {
+      var line = view.feel === "taste" ? "Only one tasty stop fits right now" :
+        a && !a.custom ? (dinnerIds().length > 1 ? "No other dinner fits right now" : "Only one dinner was lined up for today") : "";
+      return line ? '<p class="meta" style="margin:0.7rem 0.2rem 0.2rem">' + line + ", so there\'s nothing to shuffle.</p>" : "";
+      return "";
+    }
+
     function commitHtml() {
       var c = FEELS[view.feel] || FEELS.taste;
       var a = view.feel === "anchor" ? anchorView() : null;
       var title = a && a.custom ? "The fixed point of the day." : c.title;
-      var canShuffle = view.feel !== "anchor" && offered(view.feel).length > 1;
+      var dinner = view.feel === "anchor" && a && !a.custom;
+      var canShuffle = view.feel === "anchor" ? dinner && otherDinners().length > 0 : offered(view.feel).length > 1;
       return (
         pipsHtml() +
         '<div class="card">' +
@@ -2485,7 +2641,7 @@
           "<h1>" + esc(title) + "</h1>" +
           '<p class="lede">' + esc(c.lede) + "</p>" +
           '<button type="button" class="btn btn-primary" data-act="reveal">Reveal the stop</button>' +
-          (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">Shuffle another for this feeling</button>' : "") +
+          (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">' + (dinner ? "Shuffle another dinner" : "Shuffle another for this feeling") + "</button>" : noShuffleHtml(a)) +
           '<button type="button" class="btn btn-ghost" data-act="back">Different feeling</button>' +
         "</div>"
       );
@@ -2505,6 +2661,7 @@
           '<p class="place">' + esc(v.name) + "</p>" +
           '<p class="why">' + esc(v.why) + "</p>" +
           (v.hint ? '<p class="hint">' + esc(v.hint) + "</p>" : "") +
+          allergyHtml(v) +
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
           (untilLine(v) ? '<p class="meta">' + esc(untilLine(v)) + "</p>" : "") +
           (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
@@ -2682,7 +2839,11 @@
         ? '<div class="mini"><p><strong>' + esc(hideDinner ? "Dinner, hidden" : a.name) + "</strong></p><p class=\"meta\">" + esc(anchorLine()) + "</p>" +
           (a.custom ? "" : hideDinner
             ? '<p class="meta">Not booked. Untick Surprise us too to see where, if you want to call ahead.</p>'
-            : '<p class="meta">Not booked. If you want a sure table, call ' + esc(a.name) + ".</p>") + "</div>"
+            : '<p class="meta">Not booked. If you want a sure table, call ' + esc(a.name) + ".</p>") + "</div>" +
+          (a.custom || hideDinner ? "" : dinnerIds().slice(1).map(function (id) {
+            return '<div class="mini"><p>On the day, Shuffle can swap in ' + esc(STOP_BY_ID[id].name) + '.</p><p class="meta">' + esc(stopView(id).hours) +
+              ' · <button type="button" class="skip" data-desk-skip="' + esc(id) + '" aria-label="Not for us: ' + esc(STOP_BY_ID[id].name) + '">Not for us</button></p></div>';
+          }).join(""))
         : '<p class="meta">No fixed point. ' + (noneFit ? "No dinner here fit your note and budget." : "Your note did not ask for dinner.") + " " + esc(anchorLine()) +
           " Add a reservation under \"Anything already set?\" to anchor the day.</p>";
       html += '<label class="check"><input type="checkbox" id="surprise"' + (plan.surprise ? " checked" : "") + ' /><span><strong>Surprise us too.</strong> Hide the places from me, so I can play the day without spoilers.</span></label>';
@@ -2699,7 +2860,7 @@
           html += list.map(function (id) {
             var v = stopView(id);
             return '<div class="mini"><p>' + esc(v.name) + (v.dated ? " · " + (STOP_BY_ID[id].only || "only this day") : "") + '</p><p class="meta">' + esc(v.hours) +
-              ' · <button type="button" class="skip" style="display:inline;margin:0" data-desk-skip="' + esc(id) + '">Not for us</button></p></div>';
+              ' · <button type="button" class="skip" data-desk-skip="' + esc(id) + '" aria-label="Not for us: ' + esc(v.name) + '">Not for us</button></p></div>';
           }).join("");
         });
         if (!ids.length) html += '<p class="note">Nothing verified is open for this date. Edit the note or the date and rebuild.</p>';
@@ -2824,6 +2985,7 @@
       document.getElementById("anchor-time").value = an ? an.time : "";
       document.getElementById("anchor-where").value = an ? an.where : "";
       if (an) document.getElementById("set-box").setAttribute("open", "");
+      document.getElementById("food-allergy").checked = !!(p && p.allergy);
       applyPills(p || {});
       renderKinds(p && p.occasion, p && p.kind);
       document.getElementById("form-err").classList.add("hidden");
@@ -2881,6 +3043,7 @@
         budget: "",
         budgetAmount: String(Math.round(Number(amount))),
         must: document.getElementById("must").value.trim().slice(0, 400),
+        allergy: document.getElementById("food-allergy").checked === true,
         anchor: anName ? { name: anName.slice(0, 80), time: anTime, where: anWhere.slice(0, 120) } : null,
         skip: plan && plan.date === date ? (plan.skip || []) : [],
         rebuild: plan ? (Number(plan.rebuild) || 0) : 0,
