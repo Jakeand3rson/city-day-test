@@ -76,6 +76,19 @@ const $ = (id) => document.getElementById(id);
 const PINNED = new Date("2026-10-07T12:00:00-04:00");
 g.clockOverride = PINNED;
 
+// The suite clock is the Wednesday before the default Saturday, so older checks can
+// reveal a place without the hours filter. "We're here" and "Not this" only write on
+// the plan date (#42). Those older taps are played as if they happened on the plan date.
+// A check about the day before sets g.keepEarlyClock.
+const rawAct = g.act.bind(g);
+g.act = function (name, arg) {
+  const early = (name === "here" || name === "skip") && g.plan && !g.keepEarlyClock && g.nowNY().iso < g.plan.date;
+  const prev = g.clockOverride;
+  if (early) g.clockOverride = new Date(g.plan.date + "T12:00:00-04:00");
+  try { return rawAct(name, arg); }
+  finally { if (early) g.clockOverride = prev; }
+};
+
 function click(el) {
   assert(el, "nothing to click");
   el.dispatchEvent(new window.Event("click", { bubbles: true }));
@@ -153,6 +166,7 @@ function resetPhone() {
   locationState.hash = "";
   locationState.search = "";
   g.clockOverride = PINNED;
+  g.keepEarlyClock = false;
 }
 
 function startPlay(overrides) {
@@ -388,6 +402,37 @@ check("play: We're here logs the stop, fills a pip, and asks how it was", () => 
   assert(g.playState().trail[0].rating === "love", "rating saved");
   assert(!/How was/.test(playText()), "prompt gone");
   assert(!g.offered("taste").includes(id), "visited place not offered again");
+});
+
+check("play: a day-early We're here or Not this waits until the plan date", () => {
+  try {
+    startPlay({ date: "2026-10-10", must: "coffee, walking" });
+    g.keepEarlyClock = true;
+    g.clockOverride = new Date("2026-10-09T18:00:00-04:00");
+    g.act("begin");
+    g.act("feel", "taste");
+    g.act("reveal");
+    const id = g.view.pending;
+    assert(id && /This day starts on Saturday, October 10\./.test(playText()), playText().slice(0, 500));
+    g.act("here", id);
+    assert(g.playState().trail.length === 0 && g.view.panel === "reveal" && g.view.pending === id, "early We're here wrote " + JSON.stringify(g.playState().trail));
+    g.act("skip", id);
+    assert(g.playState().skip.length === 0 && g.view.pending === id, "early Not this skipped " + g.playState().skip);
+    g.clockOverride = new Date("2026-10-10T09:00:00-04:00");
+    g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+    assert(g.playState().trail.length === 0 && g.playState().skip.length === 0, "the early taps carried onto Saturday");
+    assert(!/This day starts/.test(playText()), "Saturday still says the day hasn't started");
+    g.keepEarlyClock = false;
+    g.act("begin");
+    g.act("feel", "taste");
+    g.act("reveal");
+    const onDay = g.view.pending;
+    g.act("here", onDay);
+    assert(g.playState().trail.length === 1 && g.playState().trail[0].id === onDay, "Saturday We're here");
+  } finally {
+    g.keepEarlyClock = false;
+    g.clockOverride = PINNED;
+  }
 });
 
 check("play: Not this, try again swaps in another from the same feeling", () => {
