@@ -45,6 +45,10 @@ The dev team is a set of Claude Code subagents in [`.claude/agents/`](.claude/ag
 
 When a role starts a ticket, it comments `Starting: <role>, branch <name>` on the issue.
 
+### Cursor team
+
+A second dev team can run in Cursor. Its roles live in [`.cursor/agents/`](.cursor/agents/) with the same names as the Claude files (Cursor prefers `.cursor/` when both exist). Models: Engineering Manager and QA on Composer 2.5 (standard), Tech Lead on Claude Opus 5.5 (high), Developer and Data & Catalog on Claude Sonnet 5.5, Code Reviewer on GPT-5.6 Terra, UX & Accessibility on Gemini 3.1 Pro, and Security & Privacy, DevOps, and Tech Writer on Claude Haiku 5.5. Cursor teams name themselves `cursor-<id>` (e.g. `cursor-7f3a`) in every status comment and PR. Both teams share the same claim process in [docs/SDLC.md](docs/SDLC.md#claiming-a-ticket).
+
 ### Questions for the PM
 
 If something blocks the acceptance criteria (an ambiguity, a conflict with the charter, a missing decision, or a real tradeoff):

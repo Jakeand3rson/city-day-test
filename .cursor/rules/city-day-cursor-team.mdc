@@ -1,0 +1,16 @@
+---
+description: Cursor-specific team identity and GitHub write rules for City Day
+alwaysApply: true
+---
+
+# Cursor team (City Day)
+
+Shared product rules, flow, and claiming live in `CLAUDE.md`, `CONTRIBUTING.md`, and `docs/SDLC.md`. Do not restate them here.
+
+## Cursor-only
+
+- At session start, generate a team ID: `cursor-<4 hex chars>` (e.g. `echo cursor-$(openssl rand -hex 2)`). Put it in every status comment, summary, `Question for PM:`, and PR body.
+- Roles live in `.cursor/agents/` (same names as `.claude/agents/`; Cursor prefers `.cursor/`).
+- Only the Engineering Manager writes to GitHub (labels, assignees, status comments, questions, PR open/edit). Other roles return results to the EM.
+- Leave `.claude/` and `CLAUDE.md` alone unless a ticket says otherwise.
+- Claim tickets per [docs/SDLC.md#claiming-a-ticket](docs/SDLC.md#claiming-a-ticket).
