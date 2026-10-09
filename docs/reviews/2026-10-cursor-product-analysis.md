@@ -4,14 +4,7 @@ Reviewed `main` at `76b45eaba484a8133e8e9f907e8cb342715464a4`. On 2026-10-09 the
 
 The charter file `docs/reviews/2026-10-direction.md` is not in this repo. Gaps below use the seven product rules in `CLAUDE.md` and the guardrails in `docs/SDLC.md`. Charter-only questions are marked as such.
 
-**Question for PM:** Claude Fable is not in this session's model list. The issue says to ask before substituting. This doc does not include a Fable section and does not rename another Claude model as Fable.
-
-Options:
-1. Accept the three sections below (Claude Opus 5.5, GPT-5.6 Terra, Gemini 3.8 Flash) as this review, and add a Fable section later if the model appears.
-2. Hold this PR until Fable is in the picker, then add that section on the same branch.
-3. Name a substitute and label it as a substitute in the doc.
-
-Recommendation: option 1. The three sections were written independently, and the weekend read can use them. A Fable section can be a follow-up commit if you want that model by name.
+The owner accepted the three model sections below (Claude Opus 5.5, GPT-5.6 Terra, and Gemini 3.8 Flash) on 2026-10-09. A Claude Fable section will be added if Fable appears in Cursor's model list. This doc does not rename another Claude model as Fable.
 
 Gemini 3.1 Pro, named in an older setup note, is also absent. The Gemini section uses Gemini 3.8 Flash and says so.
 
@@ -21,7 +14,7 @@ Three analysts ran at the same time, each with the same brief: the `main` SHA, t
 
 | Section | Model | Cursor slug |
 |---|---|---|
-| Missing, pending the question above | Claude Fable | not in this session's model list |
+| Later, if it appears in Cursor's model list | Claude Fable | not in this session's model list |
 | Below | Claude Opus 5.5 (high) | `claude-opus-5-5-high` |
 | Below | GPT-5.6 Terra (high) | `gpt-5.6-terra-high` |
 | Below | Gemini 3.8 Flash (high) | `gemini-3.8-flash-high` |
