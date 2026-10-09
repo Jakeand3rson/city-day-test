@@ -232,6 +232,23 @@ check("note: 'no museums' keeps the Dalí and MFA off, even in the rain", () => 
   assert(g.noteWants(makePlan({ must: "no museums please" })).art === false, "art should be off");
 });
 
+check("note: 'no museums' on Oct 10 drops every museum-tagged stop", () => {
+  const deck = deckOf({ date: "2026-10-10", kind: "easy", budgetAmount: "200", must: "easy walking, coffee, tacos, no museums" });
+  const ids = allIds(deck);
+  const named = ["dali", "mfa", "james-museum", "woodson-museum", "st-pete-museum-of-history", "chihuly-collection", "tbw-discovery-center"];
+  named.forEach((id) => {
+    assert((g.STOP_BY_ID[id].tags || []).indexOf("museum") !== -1, id + " is not tagged museum");
+    assert(ids.indexOf(id) === -1, id + " stayed in " + ids.join(","));
+  });
+  g.STOPS.filter((s) => (s.tags || []).indexOf("museum") !== -1).forEach((s) => {
+    assert(ids.indexOf(s.id) === -1, "museum-tagged " + s.id + " stayed");
+  });
+  assert(ids.indexOf("bean-wandering-downtown") !== -1, "coffee stop missing: " + ids.join(","));
+  assert((g.STOP_BY_ID["bean-wandering-downtown"].tags || []).indexOf("museum") === -1, "coffee stop tagged museum");
+  assert(!/\b(?:dali|mfa|james-museum|tbw-discovery-center)\b/.test(g.noteAvoids.toString()), g.noteAvoids.toString());
+  assert(!/s\.id === "(?:dali|mfa)"/.test(g.stopAllowed.toString()), "place id still in the veto");
+});
+
 check("note: 'not a party' does not knock out art", () => {
   const deck = deckOf({ must: "art and galleries, not a party", budgetAmount: "300" });
   assert(allIds(deck).some((id) => ["mfa", "morean", "dali", "palehorse"].includes(id)), JSON.stringify(deck.pools));
