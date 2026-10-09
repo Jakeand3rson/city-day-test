@@ -30,7 +30,7 @@ If the plan changes the ticket's scope, stop and ask the PM (`Question for PM:` 
 
 ## Design rules you hold
 
-- The charter (`city-day/docs/reviews/2026-10-direction.md`) beats everything, including tickets.
+- The charter (`docs/reviews/2026-10-direction.md` in this repo) beats everything, including tickets.
 - Mystery first for everyone. The list is the escape hatch, never the home screen.
 - The clock filters, and the people playing choose. Time decides what's offered, never what's revealed.
 - Never invent hours, weather, events, prices, reviews, or vibes.

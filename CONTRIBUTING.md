@@ -2,9 +2,13 @@
 
 For the dev team: humans and AI coding agents alike. The full lifecycle is in [docs/SDLC.md](docs/SDLC.md).
 
+## Single repo
+
+`city-day-test` is the only maintained repo. All docs and code changes go here. The private `city-day` repo is archived, read-only reference that agents don't need.
+
 ## Before you start
 
-1. **Read the charter first:** `docs/reviews/2026-10-direction.md` in the private [city-day](https://github.com/Jakeand3rson/city-day) repo, plus `docs/build-rules.md` and `docs/ui.md` there. Where anything disagrees with the charter, the charter wins. If you can't read that repo, ask on the issue.
+1. **Read the charter first:** `docs/reviews/2026-10-direction.md` in this repo, plus `docs/build-rules.md` and `docs/ui.md` here. Where anything disagrees with the charter, the charter wins. If one of those files is not in the repo yet, ask on the issue. Do not guess its contents.
 2. **Only pick up issues labeled `status:ready`.** `status:needs-decision` means Jake and the PM are still deciding. Don't build it.
 3. **Check for an open PR** that already covers the issue. If one exists, don't duplicate it.
 4. **Claim it before you start.** Swap `status:ready` for `status:in-progress`, assign it, and post one status comment that says who has it (a team name or session ID, since every team posts as the same account), the branch, and a short checklist. Edit that comment as you go. If you stop, put `status:ready` back. A claim with no update for 24 hours has lapsed. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
@@ -44,6 +48,10 @@ The dev team is a set of Claude Code subagents in [`.claude/agents/`](.claude/ag
 | Tech Writer | `tech-writer` | haiku | Writes PR descriptions and keeps this file and `docs/SDLC.md` current, in plain English. |
 
 When a role starts a ticket, it comments `Starting: <role>, branch <name>` on the issue.
+
+### Cursor team
+
+A second dev team can run in Cursor. Its roles live in [`.cursor/agents/`](.cursor/agents/) with the same names as the Claude files (Cursor prefers `.cursor/` when both exist). Models: Engineering Manager and QA on Composer 2.5 (standard), Tech Lead on Claude Opus 5.5 (high), Developer and Data & Catalog on Claude Sonnet 5.5, Code Reviewer on GPT-5.6 Terra, UX & Accessibility on Gemini 3.1 Pro, and Security & Privacy, DevOps, and Tech Writer on Claude Haiku 5.5. Cursor teams name themselves `cursor-<id>` (e.g. `cursor-7f3a`) in every status comment and PR. Both teams share the same claim process in [docs/SDLC.md](docs/SDLC.md#claiming-a-ticket).
 
 ### Questions for the PM
 

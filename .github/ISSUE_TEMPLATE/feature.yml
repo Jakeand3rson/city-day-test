@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Read the charter first: `docs/reviews/2026-10-direction.md` in the private **city-day** repo. Where anything disagrees with it, the charter wins.
+        Read the charter first: `docs/reviews/2026-10-direction.md` in this repo. Where anything disagrees with it, the charter wins.
         This repo is public. Don't put names, phone numbers, emails, or other personal details in this issue.
         New issues start as `status:needs-decision`. Switch to `status:ready` only when the acceptance criteria are final.
   - type: textarea
