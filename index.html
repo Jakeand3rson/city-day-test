@@ -2310,6 +2310,7 @@
       var options = view.feel && view.feel !== "anchor" ? offered(view.feel) : [];
       if (options.length && view.panel === "reveal") {
         view.pending = pickRandom(options);
+        view.linedUp = true;
         holdCard("commit");
         go("commit");
       } else {
@@ -2356,6 +2357,7 @@
     function act(name, arg) {
       // Another tab may have played this day since this one last looked.
       // With storage blocked, the in-memory copy is the only copy, so keep it.
+      view.linedUp = false;
       if (storageOK) playCache = null;
       var st = playState();
       if (name === "begin") { st.started = true; savePlay(); return go(ensureDeck(plan).park && !st.parked ? "start" : "feel"); }
@@ -2660,7 +2662,8 @@
     function commitHtml() {
       var c = FEELS[view.feel] || FEELS.taste;
       var a = view.feel === "anchor" ? anchorView() : null;
-      var title = a && a.custom ? "The fixed point of the day." : c.title;
+      var title = view.linedUp ? "Another place is lined up." : (a && a.custom ? "The fixed point of the day." : c.title);
+      var lede = view.linedUp ? "Not this one. Reveal when you're both ready." : c.lede;
       var dinner = view.feel === "anchor" && a && !a.custom;
       var canShuffle = view.feel === "anchor" ? dinner && otherDinners().length > 0 : offered(view.feel).length > 1;
       return (
@@ -2668,7 +2671,7 @@
         '<div class="card">' +
           '<p class="kicker">' + esc(a && a.custom ? "Main event" : c.kicker) + "</p>" +
           "<h1>" + esc(title) + "</h1>" +
-          '<p class="lede">' + esc(c.lede) + "</p>" +
+          '<p class="lede">' + esc(lede) + "</p>" +
           '<button type="button" class="btn btn-primary" data-act="reveal">Reveal the stop</button>' +
           (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">' + (dinner ? "Shuffle another dinner" : "Shuffle another for this feeling") + "</button>" : noShuffleHtml(a)) +
           '<button type="button" class="btn btn-ghost" data-act="back">Different feeling</button>' +
