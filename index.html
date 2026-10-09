@@ -1639,11 +1639,17 @@
       return v;
     }
 
+    // A link sent before the catalog changed can carry a dinner that's closed that day.
+    function dinnerLateLine() {
+      var a = anchorView(), d = parseDate(plan.date);
+      return a && !a.custom && !STOP_BY_ID[a.id].isOpen(d, isoDate(d)) ? "The dinner spot is closed today." : "Too late for the dinner spot now.";
+    }
+
     function anchorLine() {
       var a = anchorView();
       var sun = "Sunset is about " + fmtHour(sunsetHour(parseDate(plan.date))) + ".";
       if (!a) return sun;
-      if (mode === "play" && anchorLate() && !anchorDone()) return "Too late for the dinner spot now. " + sun;
+      if (mode === "play" && anchorLate() && !anchorDone()) return dinnerLateLine() + " " + sun;
       if (mode === "play" && !anchorOffered()) return (a.custom ? a.name : "Dinner") + ": done. " + sun;
       if (a.custom) return a.name + " at " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ". " + sun;
       return "Dinner around " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ". " + sun;
@@ -2501,7 +2507,7 @@
       if (a && anchorOffered()) {
         html += '<p class="why">Head toward ' + esc(a.name) + " early. " + (a.custom ? "It's set for " + esc(fmtHour(a.time)) + "." : "Dinner around " + esc(fmtHour(a.time)) + ", earlier if they'll seat you.") + "</p>" + dirBtn(a, "Directions to " + a.name);
       } else if (a) {
-        html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : anchorDone() ? "Dinner's done." : "Too late for the dinner spot now.") + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
+        html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : anchorDone() ? "Dinner's done." : esc(dinnerLateLine())) + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       } else {
         html += '<p class="why">No fixed point on this one, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
       }
