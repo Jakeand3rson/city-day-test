@@ -385,6 +385,34 @@ check("play: Not this, try again swaps in another from the same feeling", () => 
   assert(g.plan.deck.pools.taste.includes(g.view.pending), "replacement from the same feeling");
 });
 
+check("play: Not this says another place is lined up, and that place stays off", () => {
+  startPlay({ date: "2026-10-10", must: "coffee, gelato, market" });
+  g.act("begin");
+  g.act("feel", "taste");
+  g.act("reveal");
+  const first = g.view.pending;
+  const before = playText();
+  g.act("skip", first);
+  assert(/Another place is lined up\./.test(playText()), playText().slice(0, 400));
+  assert(!/Another place is lined up\./.test(before), "the line was already there");
+  assert(g.view.panel === "commit" && g.view.pending !== first, "still veiled, new pending " + g.view.pending);
+  const seen = new Set([first]);
+  let guard = 0;
+  while (g.view.panel === "commit" && g.view.pending && !seen.has(g.view.pending) && guard < 8) {
+    const id = g.view.pending;
+    seen.add(id);
+    g.act("reveal");
+    assert(!/Another place is lined up\./.test(playText()), "reveal should name the place");
+    g.act("skip", id);
+    guard++;
+  }
+  assert(g.playState().skip.includes(first) && !g.offered("taste").includes(first), "offered again: " + g.offered("taste"));
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  g.act("begin");
+  g.act("feel", "taste");
+  assert(g.playState().skip.includes(first) && !g.offered("taste").includes(first), "came back after reload");
+});
+
 check("play: Chapter 0 parking when the note mentions driving", () => {
   startPlay({ must: "we are driving, need parking, coffee" });
   g.act("begin");
