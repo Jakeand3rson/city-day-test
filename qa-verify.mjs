@@ -1448,6 +1448,202 @@ check("catalog: a small budget still has real food choices, and Shuffle shows up
   assert(deck.pools.drift.length >= 2, "drift: " + deck.pools.drift);
 });
 
+// --- #29: last entry and closing buffer ---
+
+function dayWith(date, pools, anchor) {
+  return startPlay({ date, deck: { v: 1, anchor: anchor || { type: "none" }, pools: Object.assign({ taste: [], drift: [], dig: [], soft: [] }, pools), park: false } });
+}
+const at = (iso, t) => { g.clockOverride = new Date(iso + "T" + t + ":00-04:00"); };
+
+check("closing: last entries come from each place's own page", () => {
+  const sat = g.parseDate("2026-10-10"), tue = g.parseDate("2026-10-13");
+  const sg = g.STOP_BY_ID["sunken-gardens"], james = g.STOP_BY_ID["james-museum"], rama = g.STOP_BY_ID["floridarama"];
+  assert(g.lastEntryOn(sg, sat, "2026-10-10") === 16 && /last admission is sold at 4 p\.m\. daily/i.test(sg.hoursText), "Sunken Gardens");
+  assert(g.lastEntryOn(james, sat, "2026-10-10") === 16.5 && g.lastEntryOn(james, tue, "2026-10-13") === 19.5, "James");
+  assert(/Last admission ticket sold at 4:30 PM Wednesday-Monday and 7:30 PM on Tuesday/.test(james.hoursText), "James quote");
+  assert(g.lastEntryOn(rama, sat, "2026-10-10") === 18.5 && /Last entry occurs 1\.5 hours prior to closing/.test(rama.lastEntryText), "FloridaRAMA");
+  for (const s of g.STOPS) {
+    if (s.lastEntry == null) continue;
+    assert(/last (admission|entry|ticket|seating)|prior to closing/i.test(s.lastEntryText || s.hoursText || ""), s.id + " has no quote");
+    for (let i = 0; i < 14; i++) {
+      const iso = g.addDays("2026-10-10", i), d = g.parseDate(iso);
+      if (!s.isOpen(d, iso) || s.lastEntry == null) continue;
+      const last = g.lastEntryOn(s, d, iso);
+      assert(last != null && last > s.start(d, iso) && last < s.end(d, iso), s.id + " last entry " + last + " on " + iso);
+    }
+  }
+});
+
+check("closing: a museum near its last entry", () => {
+  dayWith("2026-10-10", { drift: ["sunken-gardens"], soft: ["james-museum"] });
+  at("2026-10-10", "15:30");
+  g.act("begin");
+  assert(g.offered("drift").includes("sunken-gardens"), "Sunken Gardens at 3:30");
+  g.act("feel", "drift"); g.act("reveal");
+  assert(g.view.pending === "sunken-gardens" && /Last entry 4pm, go soon\./.test(playText()), playText().slice(0, 300));
+  at("2026-10-10", "15:50");
+  assert(!g.offered("drift").includes("sunken-gardens"), "Sunken Gardens offered at 3:50 (last entry 4)");
+  g.act("back");
+  assert(!/Drift around/.test(playText()), "Drift still on offer");
+  g.act("list");
+  assert(/Not right now/.test(playText()) && /Last entry 4pm\. Not much time left\./.test(playText()), "list before the last entry");
+  at("2026-10-10", "16:05");
+  g.act("back");
+  g.act("list");
+  assert(/Last entry 4pm\. Too late now\./.test(playText()), "list after the last entry");
+  at("2026-10-10", "16:10");
+  assert(g.offered("soft").includes("james-museum") && /go soon/.test(g.closingLine(g.stopView("james-museum"))), "James at 4:10");
+  at("2026-10-10", "16:20");
+  assert(!g.offered("soft").includes("james-museum"), "James at 4:20 (last entry 4:30)");
+  dayWith("2026-10-13", { soft: ["james-museum", "chihuly-collection"] });
+  at("2026-10-13", "19:10");
+  assert(g.offered("soft").includes("james-museum"), "James Tuesday 7:10");
+  at("2026-10-13", "19:20");
+  assert(!g.offered("soft").includes("james-museum"), "James Tuesday 7:20");
+  at("2026-10-13", "15:40");
+  assert(g.offered("soft").includes("chihuly-collection") && g.closingLine(g.stopView("chihuly-collection")) === "Closes at 5pm, go soon.", "Chihuly 3:40 " + g.closingLine(g.stopView("chihuly-collection")));
+  at("2026-10-13", "15:50");
+  assert(!g.offered("soft").includes("chihuly-collection"), "Chihuly 3:50: under an hour after the walk");
+  g.clockOverride = PINNED;
+});
+
+check("closing: a restaurant near close, and the dinner it picked", () => {
+  dayWith("2026-10-10", { taste: ["la-v-vietnamese"] });
+  at("2026-10-10", "20:45");
+  g.act("begin"); g.act("feel", "taste"); g.act("reveal");
+  assert(g.view.pending === "la-v-vietnamese" && /Closes at 10pm, go soon\./.test(playText()), playText().slice(0, 300));
+  at("2026-10-10", "21:05");
+  assert(!g.offered("taste").includes("la-v-vietnamese"), "La V at 9:05");
+  dayWith("2026-10-13", { drift: ["north-straub-park"] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5 });
+  at("2026-10-13", "20:55");
+  g.act("begin");
+  assert(/Real dinner/.test(playText()), "dinner still on at 8:55");
+  at("2026-10-13", "21:05");
+  g.act("back");
+  assert(!/Real dinner/.test(playText()) && /Too late for the dinner spot now\./.test(playText()) && !/Dinner: done/.test(playText()), playText().slice(0, 300));
+  g.act("feel", "anchor");
+  assert(g.view.panel === "feel", "dinner revealed after its cutoff");
+  g.act("cool");
+  assert(/Too late for the dinner spot now\./.test(playText()) && !/Dinner's done/.test(playText()), "cool");
+  g.clockOverride = PINNED;
+});
+
+check("closing: a coffee shop near close", () => {
+  dayWith("2026-10-10", { taste: ["bandit-coffee"] });
+  at("2026-10-10", "14:15");
+  g.act("begin"); g.act("feel", "taste"); g.act("reveal");
+  assert(g.view.pending === "bandit-coffee" && /Closes at 3pm, go soon\./.test(playText()), playText().slice(0, 300));
+  at("2026-10-10", "14:30");
+  assert(!g.offered("taste").includes("bandit-coffee"), "Bandit at 2:30");
+  g.clockOverride = PINNED;
+});
+
+check("closing: a revealed card survives a reload on the way, until the place closes", () => {
+  dayWith("2026-10-10", { taste: ["bandit-coffee"] });
+  at("2026-10-10", "14:20");
+  g.act("begin"); g.act("feel", "taste"); g.act("reveal");
+  at("2026-10-10", "14:35");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel === "reveal" && g.view.pending === "bandit-coffee" && /Closes at 3pm\. Not much time left\./.test(playText()) && !/Too late/.test(playText()), "lost on the way: " + g.view.panel);
+  at("2026-10-10", "15:05");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel === "feel", "kept after close");
+  g.clockOverride = PINNED;
+});
+
+check("closing: Plan B uses the same cutoffs", () => {
+  dayWith("2026-10-10", { soft: ["james-museum", "chihuly-collection"] });
+  wet("2026-10-10");
+  at("2026-10-10", "16:10");
+  g.act("begin"); g.act("iffy");
+  assert(/James Museum/.test(playText()) && /Last entry 4:30pm, go soon/.test(playText()) && !/Chihuly/.test(playText()), playText().slice(0, 400));
+  g.clockOverride = PINNED;
+});
+
+check("closing: copy never says a place is open later than its hours", () => {
+  const ids = g.STOPS.filter((s) => s.feel || s.dinner).map((s) => s.id);
+  for (let i = 0; i < 7; i++) {
+    const iso = g.addDays("2026-10-10", i), d = g.parseDate(iso);
+    dayWith(iso, {});
+    for (const id of ids) {
+      const s = g.STOP_BY_ID[id];
+      if (!s.isOpen(d, iso)) continue;
+      const v = g.stopView(id);
+      for (let t = 7; t < 24; t += 0.25) {
+        g.clockOverride = new Date(iso + "T" + String(Math.floor(t)).padStart(2, "0") + ":" + String((t % 1) * 60).padStart(2, "0") + ":00-04:00");
+        const line = g.closingLine(v);
+        if (!line) continue;
+        const m = /^(Closes at|Last entry) ([^,.]+)/.exec(line);
+        assert(m, id + " " + line);
+        const h = g.nowNY().hour;
+        if (m[1] === "Closes at") assert(m[2] === g.fmtHour(v.gap && h < v.gap[0] ? v.gap[0] : v.end), id + " " + iso + " " + line);
+        else assert(v.last != null && m[2] === g.fmtHour(v.last) && v.last < v.end, id + " " + line);
+        // "Too late now" only once the place's own last entry has passed.
+        if (/Too late now/.test(line)) assert(v.last != null && h >= v.last, id + " " + iso + " " + line);
+        assert(v.hours.includes(m[1] === "Closes at" ? m[2] : g.fmtHour(v.end)), id + " hours " + v.hours + " vs " + line);
+      }
+    }
+  }
+  g.clockOverride = PINNED;
+});
+
+check("closing: a lunch break isn't a closing, and a picked dinner there stays on", () => {
+  // Pin Wok & Bowl: 11:30am-3pm and 4pm-9pm on Tuesdays.
+  dayWith("2026-10-13", { taste: ["la-v-vietnamese", "pin-wok-bowl"] }, { type: "stop", id: "pin-wok-bowl", time: 18, leave: 17.5 });
+  at("2026-10-13", "13:45");
+  assert(g.closingLine(g.stopView("pin-wok-bowl")) === "Closes at 3pm, go soon.", g.closingLine(g.stopView("pin-wok-bowl")));
+  at("2026-10-13", "14:40");
+  assert(g.closingLine(g.stopView("pin-wok-bowl")) === "Closes at 3pm. Back at 4pm.", g.closingLine(g.stopView("pin-wok-bowl")));
+  g.act("begin");
+  assert(g.anchorOffered() && /Real dinner/.test(playText()), "dinner offered at 2:40pm");
+  assert(!/Too late for the dinner spot/.test(playText()) && !/How did it go/.test(playText()), "dinner called too late at lunch");
+  assert(g.closingLine(g.anchorView()) === "", "the dinner card mentions the lunch break");
+  g.act("list");
+  assert(/Closes at 3pm\. Back at 4pm\./.test(playText()), "list in the break");
+  // A card revealed in the break, an hour before it reopens, survives a reload.
+  dayWith("2026-10-13", { taste: ["pin-wok-bowl"] });
+  at("2026-10-13", "15:10");
+  g.act("begin"); g.act("feel", "taste"); g.act("reveal");
+  assert(g.view.pending === "pin-wok-bowl", "revealed in the break");
+  at("2026-10-13", "15:30");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel === "reveal" && g.view.pending === "pin-wok-bowl", "lost on reload: " + g.view.panel);
+  g.clockOverride = PINNED;
+});
+
+check("closing: a revealed dinner survives a reload until the restaurant closes", () => {
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5 });
+  const end = g.anchorView().end;
+  at("2026-10-13", "19:00");
+  g.act("begin"); g.act("feel", "anchor"); g.act("reveal");
+  assert(g.view.pending === "anchor", "dinner revealed: " + g.view.pending);
+  g.clockOverride = new Date(new Date("2026-10-13T00:00:00-04:00").getTime() + (end - 0.25) * 3600000);
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel === "reveal" && g.view.pending === "anchor", "lost before close: " + g.view.panel);
+  g.clockOverride = new Date(new Date("2026-10-13T00:00:00-04:00").getTime() + (end + 0.25) * 3600000);
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel !== "reveal", "kept after the restaurant closed");
+  g.clockOverride = PINNED;
+});
+
+check("closing: old #play/ links still play on the day", () => {
+  OLD_LINKS.forEach((link) => {
+    resetPhone();
+    sunny("2026-10-10");
+    at("2026-10-10", "15:30");
+    openLink(link.hash);
+    g.act("begin");
+    const feel = ["taste", "drift", "dig", "soft"].find((f) => g.offered(f).length);
+    assert(feel, link.built + ": nothing on offer at 3:30");
+    g.act("feel", feel); g.act("reveal");
+    const id = g.view.pending;
+    assert(id && g.STOP_BY_ID[id], link.built + ": nothing revealed");
+    g.act("here", id);
+    assert(g.playState().trail.length === 1, link.built + ": We're here");
+  });
+  g.clockOverride = PINNED;
+});
+
 const failed = results.filter((r) => r.startsWith("FAIL"));
 console.log("\n--- summary ---");
 console.log(results.length - failed.length + " passed, " + failed.length + " failed");
