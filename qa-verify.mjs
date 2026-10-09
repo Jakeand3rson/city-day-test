@@ -1758,6 +1758,74 @@ check("food: at a food stop, Shuffle shows when another place fits, and a plain 
   g.clockOverride = PINNED;
 });
 
+check("food: the dinner the page picks comes with up to two alternates, never one of the day's picks", () => {
+  let withAlts = 0;
+  for (const b of [{ must: "dinner somewhere nice", kind: "celebrate", budgetAmount: "300" }, { must: "dinner, art", budgetAmount: "120" },
+    { must: "pho for lunch, dinner later", budgetAmount: "120", date: "2026-10-13" }, { must: "cheap eats, dinner", budgetAmount: "40" }]) {
+    const deck = deckOf(b);
+    if (deck.anchor.type !== "stop") continue;
+    const alts = deck.anchor.alts || [];
+    if (alts.length) withAlts++;
+    assert(alts.length <= 2 && !alts.includes(deck.anchor.id), JSON.stringify(deck.anchor));
+    for (const id of alts) {
+      assert(g.STOP_BY_ID[id].dinner && !allIds(deck).includes(id), id + " in the pools or not a dinner");
+      assert(g.STOP_BY_ID[id].costBand === g.STOP_BY_ID[deck.anchor.id].costBand, id + " is a different price band than " + deck.anchor.id);
+    }
+    // The link keeps them exactly.
+    const back = g.decodePlan(g.encodePlan(g.linkPlan(Object.assign(makePlan(b), { deck }))));
+    assert(JSON.stringify(back.deck) === JSON.stringify(deck), "round trip");
+  }
+  assert(withAlts >= 2, "alternates on " + withAlts + " briefs");
+  // A celebration's one nice dinner has no same-band alternate, so it gets none rather than a cheaper one.
+  assert(!deckOf({ must: "dinner somewhere nice", kind: "celebrate", budgetAmount: "300" }).anchor.alts, "a cheaper alternate for a celebration");
+  // cleanDeck drops anything that isn't a fitting dinner outside the pools.
+  const raw = { v: 1, anchor: { type: "stop", id: "bellabrava", time: 18, leave: 17.5, alts: ["bellabrava", "nope", "mfa", "kahwa", "stillwaters", "stillwaters", "baba-on-central", "la-v-vietnamese"] },
+    pools: { taste: ["kahwa"], drift: [], dig: [], soft: [] }, park: false };
+  assert(JSON.stringify(g.cleanDeck(raw).anchor.alts) === JSON.stringify(["stillwaters", "baba-on-central"]), JSON.stringify(g.cleanDeck(raw).anchor));
+});
+
+check("food: on the day, Shuffle swaps the dinner and the choice survives a reload", () => {
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5, alts: ["stillwaters", "baba-on-central"] });
+  at("2026-10-13", "17:00");
+  g.act("begin"); g.act("feel", "anchor");
+  assert(/Shuffle another dinner/.test(playText()), "no dinner Shuffle");
+  const first = g.anchorView().id;
+  g.act("shuffle");
+  const second = g.anchorView().id;
+  assert(first === "bellabrava" && ["stillwaters", "baba-on-central"].includes(second), first + " -> " + second);
+  g.act("reveal");
+  assert(new RegExp(g.STOP_BY_ID[second].name).test(playText()), "reveal shows the shuffled dinner");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.anchorView().id === second && g.view.pending === "anchor", "lost the shuffled dinner on reload");
+  g.act("here", second);
+  assert(g.anchorDone() && g.visitedIds().includes(second), "We're here logged " + g.visitedIds());
+  // Too late for an alternate: it isn't swapped in. On Tuesdays Pin Wok closes at 9pm, Stillwaters at 10pm.
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "stillwaters", time: 18, leave: 17.5, alts: ["pin-wok-bowl"] });
+  at("2026-10-13", "17:00");
+  g.act("begin"); g.act("feel", "anchor");
+  assert(/Shuffle another dinner/.test(playText()), "Pin Wok offered at 5pm");
+  at("2026-10-13", "20:30");
+  assert(!g.anchorLate(), "Stillwaters still fits at 8:30pm");
+  g.act("back"); g.act("feel", "anchor");
+  assert(!/Shuffle another dinner/.test(playText()) && /No other dinner fits right now/.test(playText()), "late alternate offered at 8:30pm");
+  // An old link without alternates: no Shuffle, one plain line.
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5 });
+  at("2026-10-13", "17:00");
+  g.act("begin"); g.act("feel", "anchor");
+  assert(!/Shuffle another dinner/.test(playText()) && /This dinner is the one set for today, so there's nothing to shuffle\./.test(playText()), "old link");
+  g.clockOverride = PINNED;
+});
+
+check("food: the desk names the dinner alternates, and Surprise us too hides them", () => {
+  const p = creatorDesk({ must: "dinner, art", budgetAmount: "120" });
+  const alts = g.ensureDeck(p).anchor.alts || [];
+  assert(alts.length, "no alternates to show");
+  for (const id of alts) assert(new RegExp("Shuffle on the day can swap in " + g.STOP_BY_ID[id].name).test($("desk-top").textContent), id);
+  p.surprise = true;
+  g.renderDesk();
+  assert(!/swap in/.test($("desk-top").textContent), "alternates shown under Surprise us too");
+});
+
 const failed = results.filter((r) => r.startsWith("FAIL"));
 console.log("\n--- summary ---");
 console.log(results.length - failed.length + " passed, " + failed.length + " failed");

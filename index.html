@@ -1563,9 +1563,16 @@
         (wants.food && !/\b(?:lunch|brunch|breakfast|noon)\b/.test(text));
       if (!wantsDinner) return { type: "none", reason: "not_asked" };
       // The note wins first, then the dinner that fits the budget and the kind of day.
+      var pool = dinnerPool(p, d, iso, cap, wants, avoids, text);
+      if (!pool.length) return { type: "none", reason: "none_fit" };
+      return { type: "stop", id: pool[0].id, time: 18, leave: 17.5 };
+    }
+
+    // Dinners that fit the day, best first: the note, then the budget and the kind of day.
+    function dinnerPool(p, d, iso, cap, wants, avoids, text) {
       var tier = cap === null || cap >= 150 ? "nice" : cap >= 80 ? "mid" : "cheap";
       if (p.kind === "easy" && tier === "nice") tier = "mid";
-      var pool = STOPS.filter(function (s) {
+      return STOPS.filter(function (s) {
         return s.dinner && stopAllowed(p, s, d, iso, cap, wants, avoids) && s.end(d, iso) >= 20;
       }).sort(function (a, b) {
         var sa = tagScore(b, text) - tagScore(a, text);
@@ -1573,8 +1580,6 @@
         var ta = (a.costBand === tier ? 0 : 1), tb = (b.costBand === tier ? 0 : 1);
         return (ta - tb) || (a.order - b.order);
       });
-      if (!pool.length) return { type: "none", reason: "none_fit" };
-      return { type: "stop", id: pool[0].id, time: 18, leave: 17.5 };
     }
 
     // The deck: one fixed point, up to three places per feeling, and parking if needed.
@@ -1604,6 +1609,15 @@
             (hashOf(seed + a.id) % 97) - (hashOf(seed + b.id) % 97);
         }).slice(0, 3).map(function (s) { return s.id; });
       });
+      if (anchor.type === "stop") {
+        // Up to two other dinners for Shuffle on the day: same price band, never one of the day's picks.
+        var picked = FEEL_ORDER.reduce(function (all, f) { return all.concat(pools[f]); }, []);
+        var band = STOP_BY_ID[anchor.id].costBand;
+        var alts = dinnerPool(p, d, iso, cap, wants, avoids, text).filter(function (s) {
+          return s.id !== anchor.id && picked.indexOf(s.id) === -1 && s.costBand === band;
+        }).slice(0, 2).map(function (s) { return s.id; });
+        if (alts.length) anchor.alts = alts;
+      }
       var deck = { v: 1, anchor: anchor, pools: pools, park: !!wants.parking };
       // One bit, so food cards can say "Check the menu for allergies." The note itself never leaves.
       if (mentionsAllergy(p)) deck.allergy = true;
@@ -1656,6 +1670,29 @@
       };
     }
 
+    // The dinner the page picked, or one of its frozen alternates after a Shuffle on the day.
+    function dinnerIds() {
+      var a = ensureDeck(plan).anchor;
+      return a && a.type === "stop" ? [a.id].concat(a.alts || []) : [];
+    }
+
+    function dinnerPick() {
+      var ids = dinnerIds();
+      var chosen = mode === "play" ? playState().dinner : "";
+      return ids.indexOf(chosen) !== -1 ? chosen : ids[0];
+    }
+
+    // Other dinners Shuffle can swap in now: not passed on, not done, and not too late to go.
+    function otherDinners() {
+      var skip = (plan.skip || []).concat(playState().skip), visited = visitedIds(), pick = dinnerPick(), h = planHour();
+      return dinnerIds().filter(function (id) {
+        if (id === pick || skip.indexOf(id) !== -1 || visited.indexOf(id) !== -1) return false;
+        var v = stopView(id);
+        v.gap = null;
+        return h === null || h + WALK <= cutoffAt(v, h);
+      });
+    }
+
     function anchorView() {
       var a = ensureDeck(plan).anchor;
       if (!a || a.type === "none") return null;
@@ -1668,7 +1705,7 @@
           why: "The one fixed point of the day."
         };
       }
-      var v = stopView(a.id);
+      var v = stopView(dinnerPick());
       v.gap = null; // dinner is about the evening close, not a lunch break
       v.time = a.time;
       v.leave = a.leave;
@@ -1822,6 +1859,11 @@
       var t = Number(a.time), leave = Number(a.leave);
       if (a.type === "stop" && STOP_BY_ID[a.id] && STOP_BY_ID[a.id].dinner && t >= 0 && t < 24) {
         anchor = { type: "stop", id: a.id, time: t, leave: isFinite(leave) ? leave : t - 0.5 };
+        var inPools = FEEL_ORDER.reduce(function (all, f) { return all.concat(pools[f]); }, []);
+        var alts = (Array.isArray(a.alts) ? a.alts : []).map(String).filter(function (id, i, all) {
+          return id !== a.id && all.indexOf(id) === i && STOP_BY_ID[id] && STOP_BY_ID[id].dinner && inPools.indexOf(id) === -1;
+        }).slice(0, 2);
+        if (alts.length) anchor.alts = alts;
       } else if (a.type === "custom" && t >= 0 && t < 24) {
         anchor = { type: "custom", time: t, leave: isFinite(leave) ? leave : t - 0.5 };
       }
@@ -1945,6 +1987,7 @@
       st.feel = typeof st.feel === "string" ? st.feel : "";
       st.panel = st.panel === "commit" || st.panel === "reveal" ? st.panel : "";
       st.heldOn = typeof st.heldOn === "string" ? st.heldOn : "";
+      st.dinner = typeof st.dinner === "string" ? st.dinner : "";
       playCache = { key: playKey(), state: st };
       return st;
     }
@@ -2083,6 +2126,13 @@
       go("commit");
     }
 
+    function shuffleDinner() {
+      var next = pickRandom(otherDinners());
+      if (next) playState().dinner = next;
+      holdCard("commit");
+      go("commit");
+    }
+
     function holdCard(panel) {
       var st = playState();
       st.pending = view.pending || "";
@@ -2181,7 +2231,7 @@
       if (name === "parked") { st.parked = true; savePlay(); return go("feel"); }
       if (name === "feel") return chooseFeel(arg);
       if (name === "reveal") return revealNow();
-      if (name === "shuffle") return chooseFeel(view.feel);
+      if (name === "shuffle") return view.feel === "anchor" ? shuffleDinner() : chooseFeel(view.feel);
       if (name === "back") {
         if (view.panel === "commit" || view.panel === "reveal") { view.pending = null; holdCard(""); }
         return go("feel");
@@ -2466,7 +2516,7 @@
     // At a food stop with nothing to shuffle, say so instead of hiding Shuffle without a word.
     function noShuffleHtml(a) {
       if (view.feel === "taste") return '<p class="meta">Nothing else tasty fits right now, so there\'s nothing to shuffle.</p>';
-      if (a && !a.custom) return '<p class="meta">This dinner is the one set for today, so there\'s nothing to shuffle.</p>';
+      if (a && !a.custom) return '<p class="meta">' + (dinnerIds().length > 1 ? "No other dinner fits right now" : "This dinner is the one set for today") + ", so there\'s nothing to shuffle.</p>";
       return "";
     }
 
@@ -2474,7 +2524,8 @@
       var c = FEELS[view.feel] || FEELS.taste;
       var a = view.feel === "anchor" ? anchorView() : null;
       var title = a && a.custom ? "The fixed point of the day." : c.title;
-      var canShuffle = view.feel !== "anchor" && offered(view.feel).length > 1;
+      var dinner = view.feel === "anchor" && a && !a.custom;
+      var canShuffle = view.feel === "anchor" ? dinner && otherDinners().length > 0 : offered(view.feel).length > 1;
       return (
         pipsHtml() +
         '<div class="card">' +
@@ -2482,7 +2533,7 @@
           "<h1>" + esc(title) + "</h1>" +
           '<p class="lede">' + esc(c.lede) + "</p>" +
           '<button type="button" class="btn btn-primary" data-act="reveal">Reveal the stop</button>' +
-          (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">Shuffle another for this feeling</button>' : noShuffleHtml(a)) +
+          (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">' + (dinner ? "Shuffle another dinner" : "Shuffle another for this feeling") + "</button>" : noShuffleHtml(a)) +
           '<button type="button" class="btn btn-ghost" data-act="back">Different feeling</button>' +
         "</div>"
       );
@@ -2679,7 +2730,11 @@
         ? '<div class="mini"><p><strong>' + esc(hideDinner ? "Dinner, hidden" : a.name) + "</strong></p><p class=\"meta\">" + esc(anchorLine()) + "</p>" +
           (a.custom ? "" : hideDinner
             ? '<p class="meta">Not booked. Untick Surprise us too to see where, if you want to call ahead.</p>'
-            : '<p class="meta">Not booked. If you want a sure table, call ' + esc(a.name) + ".</p>") + "</div>"
+            : '<p class="meta">Not booked. If you want a sure table, call ' + esc(a.name) + ".</p>") + "</div>" +
+          (a.custom || hideDinner ? "" : dinnerIds().slice(1).map(function (id) {
+            return '<div class="mini"><p>Shuffle on the day can swap in ' + esc(STOP_BY_ID[id].name) + '</p><p class="meta">' + esc(stopView(id).hours) +
+              ' · <button type="button" class="skip" style="display:inline;margin:0" data-desk-skip="' + esc(id) + '">Not for us</button></p></div>';
+          }).join(""))
         : '<p class="meta">No fixed point. ' + (noneFit ? "No dinner here fit your note and budget." : "Your note did not ask for dinner.") + " " + esc(anchorLine()) +
           " Add a reservation under \"Anything already set?\" to anchor the day.</p>";
       html += '<label class="check"><input type="checkbox" id="surprise"' + (plan.surprise ? " checked" : "") + ' /><span><strong>Surprise us too.</strong> Hide the places from me, so I can play the day without spoilers.</span></label>';
