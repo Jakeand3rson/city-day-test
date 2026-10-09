@@ -1562,6 +1562,17 @@ check("closing: a coffee shop near close", () => {
   at("2026-10-10", "14:30");
   assert(!g.offered("taste").includes("bandit-coffee"), "Bandit at 2:30");
   g.clockOverride = PINNED;
+  // Not revealed inside the buffer either: picked at 2:15pm, revealed or reloaded at 2:30pm.
+  dayWith("2026-10-10", { taste: ["bandit-coffee"] });
+  at("2026-10-10", "14:15"); g.act("begin"); g.act("feel", "taste");
+  at("2026-10-10", "14:30"); g.act("reveal");
+  assert(g.view.panel === "feel" && !g.view.pending, "revealed inside the coffee buffer: " + g.view.panel);
+  dayWith("2026-10-10", { taste: ["bandit-coffee"] });
+  at("2026-10-10", "14:15"); g.act("begin"); g.act("feel", "taste");
+  at("2026-10-10", "14:30");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  assert(g.view.panel === "feel" && !g.view.pending, "a held commit screen survived the buffer: " + g.view.panel);
+  g.clockOverride = PINNED;
 });
 
 check("closing: a revealed card survives a reload on the way, until the place closes", () => {
@@ -1649,6 +1660,34 @@ check("closing: a revealed dinner survives a reload until the restaurant closes"
   g.clockOverride = new Date(new Date("2026-10-13T00:00:00-04:00").getTime() + (end + 0.25) * 3600000);
   g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
   assert(g.view.panel !== "reveal", "kept after the restaurant closed");
+  g.clockOverride = PINNED;
+});
+
+check("closing: the default buffers by type, and a dinner that's done or closed that day", () => {
+  // Shops, parks and galleries: 30 minutes from arrival. Tombolo closes 5:30pm on Saturdays.
+  dayWith("2026-10-10", { dig: ["tombolo-books"] });
+  at("2026-10-10", "16:40");
+  assert(g.offered("dig").includes("tombolo-books"), "Tombolo at 4:40pm");
+  at("2026-10-10", "16:50");
+  assert(!g.offered("dig").includes("tombolo-books"), "Tombolo at 4:50pm");
+  // A small fee counts as an attraction: 60 minutes. Shuffleboard closes 10pm on Fridays.
+  dayWith("2026-10-16", { drift: ["st-pete-shuffleboard-club"] });
+  at("2026-10-16", "20:40");
+  assert(g.offered("drift").includes("st-pete-shuffleboard-club"), "Shuffleboard at 8:40pm");
+  at("2026-10-16", "20:50");
+  assert(!g.offered("drift").includes("st-pete-shuffleboard-club"), "Shuffleboard at 8:50pm");
+  // Dinner they already had reads done, not too late.
+  dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5 });
+  at("2026-10-13", "18:30");
+  g.act("begin"); g.act("feel", "anchor"); g.act("reveal"); g.act("here", "bellabrava");
+  at("2026-10-13", "23:00");
+  g.act("back");
+  assert(/Dinner: done\./.test(playText()) && !/Too late for the dinner spot/.test(playText()), "dinner done: " + playText().slice(0, 200));
+  // A frozen dinner that's closed that day says so instead of "too late". Pin Wok is closed Mondays.
+  dayWith("2026-10-12", { drift: ["north-straub-park"] }, { type: "stop", id: "pin-wok-bowl", time: 18, leave: 17.5 });
+  at("2026-10-12", "10:00");
+  g.act("begin");
+  assert(/The dinner spot is closed today\./.test(playText()) && !/Too late for the dinner spot/.test(playText()), "closed dinner: " + playText().slice(0, 200));
   g.clockOverride = PINNED;
 });
 
