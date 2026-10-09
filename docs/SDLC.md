@@ -6,7 +6,7 @@ This is the lifecycle for every change to City Day, from an idea to the live sit
 
 - **Jake** owns the product. He decides with the PM, play-tests on his phone, and is the only person who merges.
 - **The PM** turns decisions into GitHub issues, reviews PRs against the issue and the charter, and checks the live site after a merge.
-- **The dev team** picks up ready issues and opens PRs. Right now that's AI coding agents (Claude Code; maybe Grok Build later), and possibly humans.
+- **The dev team** picks up ready issues and opens PRs. Right now that's AI coding agents (Claude Code, Cursor; maybe Grok Build later), and possibly humans.
 
 **Where things live**
 
