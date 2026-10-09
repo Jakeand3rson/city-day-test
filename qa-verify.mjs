@@ -309,6 +309,7 @@ const OLD_LINKS = [
   { built: "8240ac1, the same day as a bare hash, the oldest link shape", hash: "#eyJpZCI6Im9sZGxpbmswIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiQW5uaXZlcnNhcnkiLCJraW5kIjoiZWFzeSIsImN1c3RvbSI6IiIsImRhdGUiOiIyMDI2LTEwLTEwIiwiY2l0eSI6IlN0LiBQZXRlcnNidXJnIiwiZHJpbmsiOiJubyIsInN0eWxlIjoicGxhbiIsImxlYW4iOiJtdXN0IiwiYnVkZ2V0IjoiIiwiYnVkZ2V0QW1vdW50IjoiMTUwIiwibXVzdCI6ImNvZmZlZSwgd2Fsa2luZywgdGFjb3MiLCJza2lwIjpbXX0" },
   { built: "607190a, a frozen deck with a dinner reservation", hash: "#play/eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJhbmNob3IiOnsibmFtZSI6IkRpbm5lciByZXNlcnZhdGlvbiIsInRpbWUiOiIxODozMCIsIndoZXJlIjoiODAwIDJuZCBBdmUgTkUifSwiZGVjayI6eyJ2IjoxLCJhbmNob3IiOnsidHlwZSI6ImN1c3RvbSIsInRpbWUiOjE4LjUsImxlYXZlIjoxOH0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImthaHdhIiwic3RpbGx3YXRlcnMiXSwiZHJpZnQiOlsiZmVzdGl2YWwiXSwiZGlnIjpbInB1bXBraW4iLCJhcnRwb29sIl0sInNvZnQiOlsicGFsZWhvcnNlIiwiZGFsaSIsIm1mYSJdfSwicGFyayI6ZmFsc2V9fQ" },
   { built: "607190a, a frozen deck with a dinner the page picked", hash: "#play/eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoic3RpbGx3YXRlcnMiLCJ0aW1lIjoxOCwibGVhdmUiOjE3LjV9LCJwb29scyI6eyJ0YXN0ZSI6WyJtYXJrZXQiLCJrYWh3YSIsImJvZGVnYSJdLCJkcmlmdCI6WyJmZXN0aXZhbCJdLCJkaWciOlsicHVtcGtpbiIsImFydHBvb2wiXSwic29mdCI6WyJwYWxlaG9yc2UiLCJkYWxpIiwibWZhIl19LCJwYXJrIjpmYWxzZX19" },
+  { built: "76b45ea, a Saturday with a late-night pizza place open until 3am (#30)", hash: "#play/eyJpZCI6Im9sZGxpbmszMCIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNX0sInBvb2xzIjp7InRhc3RlIjpbImpvZXktYnJvb2tseW5zLXBpenphIiwiY2Fzc2lzLXBpenphLW1hcmtldCIsIm1hcmtldCJdLCJkcmlmdCI6WyJmZXN0aXZhbCIsInN1bmtlbi1nYXJkZW5zIiwiY3Jlc2NlbnQtbGFrZS1wYXJrIl0sImRpZyI6WyJwdW1wa2luIiwidGhlLW1lcmNoYW50IiwiYXJ0cG9vbCJdLCJzb2Z0IjpbInBhbGVob3JzZSIsInN0LXBldGUtbXVzZXVtLW9mLWhpc3RvcnkiLCJkYWxpIl19LCJwYXJrIjpmYWxzZX19" },
   { built: "9e0a8a4, a frozen deck with a picked dinner, from an allergy note (no dinner alternates, no allergy flag)", hash: "#play/eyJpZCI6Im9sZGxpbmszMSIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNX0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImNhZmUtY2xlbWVudGluZSIsInBhY2l1Z28iXSwiZHJpZnQiOlsiZmVzdGl2YWwiLCJzdW5rZW4tZ2FyZGVucyIsIm5vcnRoLXN0cmF1Yi1wYXJrIl0sImRpZyI6WyJwdW1wa2luIiwiZmxvcmlkYS1jcmFmdGFydCIsImNvYXN0YWwtaG91c2UtdmludGFnZSJdLCJzb2Z0IjpbInBhbGVob3JzZSIsImphbWVzLW11c2V1bSIsInN0LXBldGUtbXVzZXVtLW9mLWhpc3RvcnkiXX0sInBhcmsiOmZhbHNlfX0" }
 ];
 
@@ -1691,6 +1692,102 @@ check("closing: the default buffers by type, and a dinner that's done or closed 
   g.act("begin");
   assert(/The dinner spot is closed today\./.test(playText()) && !/Too late for the dinner spot/.test(playText()), "closed dinner: " + playText().slice(0, 200));
   g.clockOverride = PINNED;
+});
+
+check("hours: after midnight still belongs to the night before", () => {
+  const id = "qa-late-night";
+  const base = {
+    id: id,
+    name: "Friday Late Window",
+    feel: "taste",
+    meal: "snack",
+    costBand: "cheap",
+    tags: ["late night"],
+    address: "1 Central Ave, St. Petersburg, FL",
+    query: "1 Central Ave, St. Petersburg, FL",
+    source: "https://example.invalid/not-a-place",
+    week: { 0: null, 1: null, 2: null, 3: null, 4: null, 5: [17, 25], 6: [11, 22] },
+    hoursText: "Fri 5pm–1am",
+    hoursChecked: "2026-10-09",
+    hint: "Test stand-in. Not a real place.",
+    why: "Listed open Friday 5pm to 1am."
+  };
+  function bind(closedDates) {
+    const stop = g.weekStop(Object.assign({}, base, { closedDates: closedDates }));
+    const atStop = g.STOPS.findIndex((s) => s.id === id);
+    if (atStop >= 0) g.STOPS[atStop] = stop;
+    else g.STOPS.push(stop);
+    g.STOP_BY_ID[id] = stop;
+    return stop;
+  }
+  function nightOpen() {
+    const v = g.stopView(id);
+    const h = g.viewHour(v);
+    return h != null && v.end > h && v.end > 24 && h >= v.start;
+  }
+  const fri = "2026-10-09", sat = "2026-10-10";
+  try {
+    const stop = bind([]);
+    assert(stop.hours(g.parseDate(fri)) === "5pm–1am", stop.hours(g.parseDate(fri)));
+
+    dayWith(fri, { taste: [id, "la-v-vietnamese"] });
+    at(fri, "23:30");
+    assert(nightOpen(), "Fri 11:30pm should be inside Fri 5pm–1am");
+    assert(g.offered("taste").includes(id), "not offered Fri 11:30pm");
+    g.act("begin"); g.act("feel", "taste"); g.act("reveal");
+    assert(g.view.pending === id && /open until 1am/i.test(playText()), playText().slice(0, 500));
+
+    at(sat, "00:30");
+    const late = g.stopView(id);
+    assert(nightOpen() && late.hours === "5pm–1am" && late.end === 25, "Sat 12:30am used Saturday hours: " + late.hours + " end " + late.end);
+    assert(/open until 1am/i.test(g.untilLine(late)), g.untilLine(late) || "(no until line)");
+    assert(!g.openNow(g.stopView("la-v-vietnamese"), "held"), "a 10pm close stayed open at 12:30am");
+    g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+    assert(g.view.panel === "reveal" && g.view.pending === id, "held card dropped at 12:30am: " + g.view.panel);
+
+    at(sat, "01:15");
+    assert(!nightOpen(), "Sat 1:15am still counted as open");
+    g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+    assert(g.view.panel !== "reveal", "kept the card after 1am");
+
+    // A Saturday holiday closes Saturday, not Friday night's tail.
+    bind(["2026-10-10"]);
+    dayWith(fri, { taste: [id] });
+    at(fri, "23:30");
+    assert(nightOpen(), "Friday night closed because Saturday is the holiday");
+    at(sat, "00:30");
+    assert(nightOpen() && g.stopView(id).end === 25, "Saturday holiday ate Friday's 12:30am tail");
+    dayWith(sat, { taste: [id] });
+    at(sat, "00:30");
+    assert(nightOpen() && g.stopView(id).hours === "5pm–1am", "Saturday 12:30am read as Saturday's 11am open");
+    at(sat, "11:30");
+    assert(!nightOpen() && g.stopView(id).end === 0, "Saturday holiday daytime still offered");
+
+    // A Friday holiday closes Friday night, including the hours after midnight.
+    bind(["2026-10-09"]);
+    dayWith(fri, { taste: [id] });
+    at(fri, "23:30");
+    assert(!nightOpen() && !g.offered("taste").includes(id), "Friday holiday still offered at 11:30pm");
+    at(sat, "00:30");
+    assert(!nightOpen(), "Friday holiday reopened at Sat 12:30am");
+
+    // Joey's own Sunday hours are 11am–1am. The same rule, on a real place.
+    dayWith("2026-10-11", { taste: ["joey-brooklyns-pizza"] });
+    at("2026-10-11", "23:30");
+    g.act("begin"); g.act("feel", "taste"); g.act("reveal");
+    assert(/open until 1am/i.test(playText()), playText().slice(0, 500));
+    at("2026-10-12", "00:30");
+    const joey = g.stopView("joey-brooklyns-pizza");
+    assert(g.viewHour(joey) < joey.end && /open until 1am/i.test(g.untilLine(joey)), g.untilLine(joey) + " end " + joey.end);
+    at("2026-10-12", "01:15");
+    const closed = g.stopView("joey-brooklyns-pizza");
+    assert(!(g.viewHour(closed) < closed.end), "Joey still open Monday 1:15am");
+  } finally {
+    const atStop = g.STOPS.findIndex((s) => s.id === id);
+    if (atStop >= 0) g.STOPS.splice(atStop, 1);
+    delete g.STOP_BY_ID[id];
+    g.clockOverride = PINNED;
+  }
 });
 
 check("closing: old #play/ links still play on the day", () => {
