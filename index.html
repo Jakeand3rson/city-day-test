@@ -613,6 +613,21 @@
       return !!plan && nowNY().iso === plan.date;
     }
 
+    // Friends often open the link the day before. Those taps must not write the real day.
+    function beforePlanDay() {
+      return !!plan && nowNY().iso < plan.date;
+    }
+
+    function dayStartsLine() {
+      var d = parseDate(plan.date);
+      var when = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+      return "This day starts on " + when + ".";
+    }
+
+    function dayStartsHtml() {
+      return beforePlanDay() ? '<p class="strip">' + esc(dayStartsLine()) + "</p>" : "";
+    }
+
     // The hour on the plan's night, or null on any other day.
     // A close written as 25 means 1am the next calendar morning, so that morning
     // (until 6am) still counts as the plan night: 12:30am is hour 24.5.
@@ -2264,6 +2279,7 @@
     }
 
     function markHere(id) {
+      if (beforePlanDay()) return go(view.panel === "list" ? "list" : "reveal");
       var st = playState();
       var a = anchorView();
       var name = a && a.id === id ? a.name : (STOP_BY_ID[id] ? STOP_BY_ID[id].name : "");
@@ -2277,6 +2293,7 @@
     }
 
     function skipHere(id) {
+      if (beforePlanDay()) return go(view.panel === "list" ? "list" : "reveal");
       var st = playState();
       if (st.skip.indexOf(id) === -1) st.skip.push(id);
       savePlay();
@@ -2528,6 +2545,7 @@
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
           (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
           dirBtn(v) +
+          (opts.here || opts.skip ? dayStartsHtml() : "") +
           (opts.here ? '<button type="button" class="btn btn-cyan" data-act="here" data-arg="' + esc(v.id) + '">We\'re here</button>' : "") +
           (opts.skip ? '<button type="button" class="skip" data-act="' + esc(opts.skipAct || "skip") + '" data-arg="' + esc(v.id) + '">Not for us</button>' : "") +
         "</article>"
@@ -2669,6 +2687,7 @@
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
           (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
           dirBtn(v) +
+          dayStartsHtml() +
           '<button type="button" class="btn btn-cyan" data-act="here" data-arg="' + esc(v.id) + '">We\'re here / on our way</button>' +
           (isAnchor ? "" : '<button type="button" class="btn btn-ghost" data-act="skip" data-arg="' + esc(v.id) + '">Not this. Try again</button>') +
           '<button type="button" class="skip" data-act="back">Back to choosing</button>' +
