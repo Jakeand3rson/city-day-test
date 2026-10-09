@@ -1121,6 +1121,8 @@
     // Places kept as plain data: weekly hours copied from each place's own site, the dates it says
     // it is closed, and the day the hours were checked. weekStop() turns each one into the same
     // shape as the entries above. week[0] is Sunday; [open, close] in 24h hours, null when closed.
+    // lastEntry (optional) is the place's own last entry or admission time: one hour, or one per
+    // weekday like week. lastEntryText holds the source's exact sentence when hoursText doesn't.
     var PLACES = [
       {"id": "sunken-gardens", "name": "Sunken Gardens", "feel": "drift", "cost": "ticket", "tags": ["garden", "plants", "flamingos", "kids", "family", "walking", "history"], "outdoor": true, "kids": true, "gem": false, "address": "1825 4th St N, St. Petersburg, FL 33704", "query": "Sunken Gardens, 1825 4th St N, St. Petersburg, FL", "source": "https://sunkengardens.org/plan-your-visit/", "week": {"0": [12, 16.5], "1": [10, 16.5], "2": [10, 16.5], "3": [10, 16.5], "4": [10, 16.5], "5": [10, 16.5], "6": [10, 16.5]}, "closedDates": ["2026-11-26", "2026-12-24", "2026-12-25", "2027-11-25", "2027-12-24", "2027-12-25"], "lastEntry": 16, "hoursText": "Monday - Saturday: 10 a.m. - 4:30 p.m. Sunday: 12 p.m. - 4:30 p.m. The last admission is sold at 4 p.m. daily. Gardens may close due to inclement weather. Sunken Gardens is open everyday except Thanksgiving, Christmas Eve, and Christmas Day.", "hoursChecked": "2026-10-08", "hint": "Pay in person on the day of your visit (admission can't be bought in advance), and the last admission is sold at 4 p.m.", "why": "St. Pete's oldest living museum: shady garden paths with flamingos, tropical birds and tortoises, and visitors tend to spend about 1.5 to 2 hours there."},
       {"id": "crescent-lake-park", "name": "Crescent Lake Park", "feel": "drift", "tags": ["park", "lake", "walking", "playground", "kids", "banyans", "dogs"], "outdoor": true, "kids": true, "address": "1320 5th St N, St. Petersburg, FL 33701", "query": "Crescent Lake Park, 1320 5th St N, St. Petersburg, FL", "source": "https://www.stpeteparksrec.org/parks___facilities/crescent_lake_park.php", "week": {"0": [7, 23], "1": [7, 23], "2": [7, 23], "3": [7, 23], "4": [7, 23], "5": [7, 23], "6": [7, 23]}, "opensBeforeSunrise": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes at 11:00 pm.", "hoursChecked": "2026-10-08", "lister": "The city's parks page lists", "hint": "Bring a blanket, as the city suggests; there's also a playground, recreation trails and a dog park.", "why": "A park surrounded by banyan trees, with recreation trails and a playground, a short walk from Sunken Gardens."},
@@ -1579,7 +1581,6 @@
     // #29: how long a visit needs before the place closes, when it posts no last entry. Minutes.
     var STAY_MIN = { museum: 60, meal: 45, treat: 20, other: 30 };
     function stayFor(s) {
-      if (s.stay != null) return s.stay;
       if (s.meal === "coffee" || s.meal === "dessert" || s.meal === "snack") return STAY_MIN.treat / 60;
       if (s.meal) return STAY_MIN.meal / 60;
       if (s.cost === "ticket" || s.cost === "small" || (s.tags || []).indexOf("museum") !== -1) return STAY_MIN.museum / 60;
@@ -1631,6 +1632,7 @@
         };
       }
       var v = stopView(a.id);
+      v.gap = null; // dinner is about the evening close, not a lunch break
       v.time = a.time;
       v.leave = a.leave;
       v.hint = "Dinner around " + fmtHour(a.time) + ". Not booked. Call ahead if you want a sure table.";
@@ -1969,7 +1971,7 @@
       var h = planHour();
       if (h === null) return true;
       var at = h + WALK;
-      if (v.gap && h < v.gap[1] && (how === "held" ? h >= v.gap[0] : at > v.gap[0] - v.stay)) return !how && h + 1 >= v.gap[1];
+      if (v.gap && h < v.gap[1] && (how === "held" ? h >= v.gap[0] : at > v.gap[0] - v.stay)) return how !== "inside" && h + 1 >= v.gap[1];
       if (how === "held") return h < v.end;
       return v.start <= (how === "inside" ? h : h + 1) && at <= cutoffAt(v, h);
     }
@@ -1983,7 +1985,7 @@
       if (h >= close) return "";
       var what = !brk && v.last != null ? "Last entry " + fmtHour(v.last) : "Closes at " + fmtHour(close);
       var cut = cutoffAt(v, h);
-      if (h + WALK > cut) return what + ". Too late now.";
+      if (h + WALK > cut) return what + (v.last != null && h >= v.last ? ". Too late now." : brk ? ". Back at " + fmtHour(v.gap[1]) + "." : ". Not much time left.");
       if (h + WALK > cut - TIGHT) return what + ", go soon.";
       return "";
     }
@@ -2009,7 +2011,8 @@
     }
 
     function anchorOffered(held) {
-      return !!anchorView() && !anchorDone() && (held || !anchorLate());
+      var a = anchorView(), h = planHour();
+      return !!a && !anchorDone() && (held ? a.custom || h === null || h < a.end : !anchorLate());
     }
 
     function listPromoted() {
@@ -2395,7 +2398,7 @@
       }
       html += buttons
         ? '<div class="moods">' + buttons + "</div>"
-        : '<p class="note">That\'s everything we found open right now. Show the list, or wander. You might find something better.</p>';
+        : '<p class="note">That\'s everything we found with time left right now. Show the list, or wander. You might find something better.</p>';
       html += '<div class="escapes">' +
         (promoted ? "" : '<button type="button" class="escape" data-act="list">Show me the list</button>') +
         '<button type="button" class="escape" data-act="iffy">Sky looks iffy</button>' +
@@ -2485,7 +2488,7 @@
         '<p class="why">' + esc(weatherLine(plan.date)) + " Florida storms usually pass. Duck inside, then pick up where you left off.</p></div>";
       html += inside.length
         ? "<h3>" + (isPlanDay() ? "Indoors, open now" : "Indoors on the day") + "</h3>" + inside.map(function (v) { return cardHtml(v, { here: true }); }).join("")
-        : '<p class="note">Nothing indoors on the list is open right now. A café or a shop doorway works. Wait it out and check back.</p>';
+        : '<p class="note">Nothing indoors on the list has enough time left right now. A café or a shop doorway works. Wait it out and check back.</p>';
       var a = anchorView();
       if (a && anchorOffered()) html += '<p class="strip">' + esc(anchorLine()) + "</p>";
       html += '<button type="button" class="btn btn-ghost" data-act="back">Back to choosing</button>';
