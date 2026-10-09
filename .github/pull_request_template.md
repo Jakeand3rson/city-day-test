@@ -26,7 +26,7 @@ Closes #
 
 ## Direction-doc check
 
-<!-- Which rule or decision in city-day/docs/reviews/2026-10-direction.md this follows, e.g. "§0 decision 6: free window is today through 3 days out". -->
+<!-- Which rule or decision in docs/reviews/2026-10-direction.md (this repo) this follows, e.g. "§0 decision 6: free window is today through 3 days out". -->
 
 ## Checklist
 

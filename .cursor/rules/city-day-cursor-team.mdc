@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Cursor team (City Day)
 
-Shared product rules, flow, and claiming live in `CLAUDE.md`, `CONTRIBUTING.md`, and `docs/SDLC.md`. Do not restate them here.
+Shared product rules, flow, and claiming live in `CLAUDE.md`, `CONTRIBUTING.md`, and `docs/SDLC.md`. Do not restate them here. The charter is `docs/reviews/2026-10-direction.md` in this repo. Do not open any other repo.
 
 ## Cursor-only
 

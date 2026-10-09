@@ -4,8 +4,10 @@ City Day nudges people into a good day out in St. Petersburg, FL. Pick a feeling
 
 ## Read first
 
-1. **The charter:** `docs/reviews/2026-10-direction.md` in the private `Jakeand3rson/city-day` repo. It beats everything else, including tickets and this file. Also read `docs/build-rules.md` and `docs/ui.md` there. If you can't reach that repo, ask on the issue.
+1. **The charter:** `docs/reviews/2026-10-direction.md` in this repo. It beats everything else, including tickets and this file. Also read `docs/build-rules.md` and `docs/ui.md` here. If one of those files is not in the repo yet, ask on the issue. Do not guess its contents.
 2. [CONTRIBUTING.md](CONTRIBUTING.md) for the rules and the dev team roles, and [docs/SDLC.md](docs/SDLC.md) for the lifecycle, labels, and question protocol.
+
+**Single repo:** `city-day-test` is the only maintained repo. All docs and code changes go here. The private `city-day` repo is archived, read-only reference that agents don't need.
 
 ## Product rules you never break
 

@@ -2,9 +2,13 @@
 
 For the dev team: humans and AI coding agents alike. The full lifecycle is in [docs/SDLC.md](docs/SDLC.md).
 
+## Single repo
+
+`city-day-test` is the only maintained repo. All docs and code changes go here. The private `city-day` repo is archived, read-only reference that agents don't need.
+
 ## Before you start
 
-1. **Read the charter first:** `docs/reviews/2026-10-direction.md` in the private [city-day](https://github.com/Jakeand3rson/city-day) repo, plus `docs/build-rules.md` and `docs/ui.md` there. Where anything disagrees with the charter, the charter wins. If you can't read that repo, ask on the issue.
+1. **Read the charter first:** `docs/reviews/2026-10-direction.md` in this repo, plus `docs/build-rules.md` and `docs/ui.md` here. Where anything disagrees with the charter, the charter wins. If one of those files is not in the repo yet, ask on the issue. Do not guess its contents.
 2. **Only pick up issues labeled `status:ready`.** `status:needs-decision` means Jake and the PM are still deciding. Don't build it.
 3. **Check for an open PR** that already covers the issue. If one exists, don't duplicate it.
 4. **Claim it before you start.** Swap `status:ready` for `status:in-progress`, assign it, and post one status comment that says who has it (a team name or session ID, since every team posts as the same account), the branch, and a short checklist. Edit that comment as you go. If you stop, put `status:ready` back. A claim with no update for 24 hours has lapsed. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).

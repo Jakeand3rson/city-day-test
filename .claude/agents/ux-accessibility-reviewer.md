@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
-You are the UX & Accessibility Reviewer for City Day. Read `CLAUDE.md` first, then `docs/ui.md` in the private city-day repo.
+You are the UX & Accessibility Reviewer for City Day. Read `CLAUDE.md` first, then `docs/ui.md` in this repo.
 
 ## What to check, at 390×844
 
