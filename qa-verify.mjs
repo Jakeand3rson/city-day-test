@@ -117,8 +117,8 @@ function allIds(deck) {
   return Object.values(deck.pools).flat();
 }
 
-// A stand-in seafood-centric dinner, since no real catalog place is one (#31). It copies BellaBrava's
-// hours and price, is tagged oysters, and sorts first, so it would be the dinner unless a note keeps it off.
+// A stand-in seafood-centric dinner. Pacific Counter is the real one. This copy of BellaBrava
+// sorts first, so it would be the celebration dinner unless a note keeps it off.
 function withSeafoodPlace(fn) {
   const base = g.STOP_BY_ID["bellabrava"];
   const fake = Object.assign({}, base, { id: "qa-oyster-bar", name: "QA Oyster Bar", feel: "taste", tags: base.tags.concat(["oysters", "raw bar"]), menuFocus: "seafood-centric", order: -1 });
@@ -1722,11 +1722,28 @@ check("food: every food place has a menu focus from its own menu", () => {
   }
 });
 
+function deckPlaceIds(deck) {
+  const ids = allIds(deck);
+  if (deck.anchor && deck.anchor.type === "stop") ids.push(deck.anchor.id, ...(deck.anchor.alts || []));
+  return ids;
+}
+
 check("food: 'no seafood', 'no fish' and shellfish allergies keep a seafood-centric place off but allow mixed menus", () => {
+  const pc = g.STOP_BY_ID["pacific-counter-downtown"];
+  assert(pc.menuFocus === "seafood-centric" && pc.menuSource === "https://pacificcounter.com/build-your-own/", "Pacific Counter menu focus");
   for (const must of ["no seafood, dinner", "dinner, no fish", "dinner, allergic to shellfish", "Allergies: shellfish. Dinner somewhere nice."]) {
     assert(keepsSeafoodCentricOff(must), must);
     const p = makePlan({ must });
-    for (const id of ["stillwaters", "perrys-porch", "pin-wok-bowl", "pacific-counter-downtown"]) assert(!g.avoidsStop(p, g.STOP_BY_ID[id]), must + " vetoed the mixed menu at " + id);
+    assert(g.avoidsStop(p, pc), must + " left Pacific Counter on");
+    for (const id of ["stillwaters", "perrys-porch", "pin-wok-bowl"]) assert(!g.avoidsStop(p, g.STOP_BY_ID[id]), must + " vetoed the mixed menu at " + id);
+  }
+  // Real catalog, including Shuffle alternates. The reported day is easy, $40, Tuesday 2026-10-13.
+  for (const must of ["no seafood. lunch and dinner", "no fish. lunch and dinner", "allergic to shellfish. lunch and dinner"]) {
+    const deck = deckOf({ must, kind: "easy", budgetAmount: "40", date: "2026-10-13" });
+    const ids = deckPlaceIds(deck);
+    assert(!ids.includes("pacific-counter-downtown"), must + " offered Pacific Counter in " + ids.join(","));
+    const p = makePlan({ must, kind: "easy", budgetAmount: "40", date: "2026-10-13" });
+    for (const id of ["stillwaters", "perrys-porch", "pin-wok-bowl"]) assert(!g.avoidsStop(p, g.STOP_BY_ID[id]), must + " vetoed the mixed menu at " + id);
   }
   assert(deckOf({ date: "2026-10-13", must: "dinner, no seafood, thai please", budgetAmount: "100" }).anchor.id === "pin-wok-bowl", "a mixed sushi-and-Thai place can still be dinner");
 });
@@ -1741,36 +1758,83 @@ check("food: naming an allergen doesn't count as asking for it", () => {
   assert(/tacos/.test(g.positiveText(makePlan({ must: "He doesn't eat seafood so let's do tacos" }))), "a wish after the no stays");
 });
 
-check("food: one plain allergy line, only when the note mentions an allergy", () => {
-  const yes = ["she's allergic to shellfish", "nut allergy", "Allergies: shellfish", "he's celiac", "allergen: peanuts"];
-  const no = ["no seafood", "she hates fish", "no allergies", "she isn't allergic to anything", "neither of us has allergies", "no food allergies", "no nut allergies", "allergies: none", "an allergy-free day"];
-  for (const must of yes) assert(deckOf({ must: must + ", coffee" }).allergy === true, "missed: " + must);
-  for (const must of no) assert(!("allergy" in deckOf({ must: must + ", coffee" })), "false alarm: " + must);
-  // Played from the link: the line shows on food cards only, and never claims a place is safe.
-  const p = makePlan({ must: "she's allergic to shellfish. coffee, art", date: "2026-10-10" });
-  p.deck = { v: 1, anchor: { type: "stop", id: "bellabrava", time: 18, leave: 17.5 }, pools: { taste: ["kahwa", "market"], drift: [], dig: [], soft: ["mfa"] }, park: false, allergy: true };
+function fillEasyDay(note) {
   resetPhone();
-  sunny(p.date);
-  openLink("#play/" + g.encodePlan(g.linkPlan(p)));
-  assert(g.ensureDeck(g.plan).allergy === true && !/shellfish/.test(JSON.stringify(g.plan)), "the link carries one bit, not the note");
-  g.act("begin"); g.act("feel", "taste"); g.act("reveal");
-  // Kahwa gets the menu line and the market's stalls get the ask line; the reveal is random.
-  assert(/Check the menu for allergies\.|Ask about allergies before you order\./.test(playText()), "taste card");
-  g.act("back"); g.act("feel", "anchor"); g.act("reveal");
-  assert(/Check the menu for allergies\./.test(playText()), "dinner card");
-  g.act("back"); g.act("feel", "soft"); g.act("reveal");
-  assert(!/allerg/i.test(playText()), "museum card");
-  g.act("back"); g.act("list");
-  assert((playText().match(/Check the menu for allergies\./g) || []).length === 2, "list: kahwa and the dinner");
-  assert((playText().match(/Ask about allergies before you order\./g) || []).length === 1, "list: the market's stalls");
-  // An old link without the bit shows no line.
-  delete p.deck.allergy;
+  g.clockOverride = PINNED;
+  g.setMode("create");
+  g.plan = null;
+  g.fillForm(null);
+  $("you").value = "Alex";
+  $("them").value = "Riley";
+  g.applyPills({ occasion: "Date", drink: "no", lean: "must" });
+  g.renderKinds("Date", "easy");
+  $("budget-amount").value = "120";
+  $("date").value = "2026-10-10";
+  $("must").value = note;
+}
+
+check("food: checking the allergy box puts the flag in the link and the line on every food card", () => {
+  const notes = ["she's allergic to shellfish, coffee", "nut allergy, coffee", "Allergies: shellfish. coffee", "he's celiac, coffee", "allergen: peanuts, coffee", "no seafood, coffee"];
+  for (const must of notes) assert(!("allergy" in deckOf({ must })), "the note still guessed an allergy: " + must);
+  fillEasyDay("she's allergic to shellfish. coffee and art");
+  assert($("food-allergy").checked === false, "checkbox should start unchecked");
+  assert(g.submitForm() === true, "unchecked form");
+  assert(g.plan.allergy !== true && !("allergy" in g.plan.deck), "unchecked day still flagged the link");
+  click($("edit"));
+  assert($("food-allergy").checked === false, "Change the day should keep the box unchecked");
+  $("food-allergy").checked = true;
+  assert(g.submitForm() === true, "checked form");
+  assert(g.plan.allergy === true && g.plan.deck.allergy === true, "checkbox did not flag the day");
+  const carried = g.linkPlan(g.plan);
+  assert(carried.deck.allergy === true && !("must" in carried) && !("allergy" in carried), "the link should carry the yes/no on the deck only");
+  const linked = g.decodePlan(g.encodePlan(carried));
+  assert(linked.deck.allergy === true && !/shellfish/.test(JSON.stringify(linked)), "the link carried the note");
+  // Play that link: every food card has one line, and a museum card has none.
   resetPhone();
-  openLink("#play/" + g.encodePlan(g.linkPlan(p)));
-  g.act("begin"); g.act("list");
-  assert(!/allerg/i.test(playText()), "line without the bit");
+  sunny("2026-10-10");
+  at("2026-10-10", "12:00");
+  openLink("#play/" + g.encodePlan(carried));
+  g.act("begin");
+  g.act("list");
+  const cards = [...$("play").querySelectorAll("article.stop")];
+  let food = 0;
+  cards.forEach((card) => {
+    const name = card.querySelector("h2").textContent;
+    const stop = g.STOPS.find((s) => s.name === name);
+    assert(stop, "unknown card " + name);
+    if (!(stop.feel === "taste" || stop.dinner)) {
+      assert(!/allerg/i.test(card.textContent), name + " is not a food card");
+      return;
+    }
+    food++;
+    const line = stop.meal ? "Check the menu for allergies." : "Ask about allergies before you order.";
+    assert(card.textContent.includes(line), name + " missing the allergy line");
+    assert(!/allergy-safe|safe for allerg/i.test(card.textContent), name + " claims to be safe");
+  });
+  assert(food >= 2, "expected several food cards, saw " + food);
   const page = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
   assert(!/allerg\w*[- ](?:safe|friendly)|safe for (?:allerg|celiac)|nut[- ]free (?:kitchen|facility)/i.test(page), "something claims to be allergy-safe");
+  g.clockOverride = PINNED;
+});
+
+check("food: an old link without the allergy flag still plays, with no allergy line", () => {
+  const p = makePlan({ must: "she's allergic to shellfish. coffee, art", date: "2026-10-10" });
+  p.deck = { v: 1, anchor: { type: "stop", id: "bellabrava", time: 18, leave: 17.5 }, pools: { taste: ["kahwa", "market"], drift: [], dig: [], soft: ["mfa"] }, park: false };
+  resetPhone();
+  sunny(p.date);
+  at(p.date, "15:30");
+  openLink("#play/" + g.encodePlan(g.linkPlan(p)));
+  assert(!("allergy" in g.ensureDeck(g.plan)), "old link grew an allergy flag");
+  g.act("begin");
+  const feel = ["taste", "drift", "dig", "soft"].find((f) => g.offered(f).length);
+  g.act("feel", feel);
+  g.act("reveal");
+  const id = g.view.pending;
+  assert(id && g.STOP_BY_ID[id], "nothing revealed");
+  assert(!/allerg/i.test(playText()), "allergy line on an old link");
+  g.act("here", id);
+  assert(g.playState().trail.length === 1, "We're here");
+  g.clockOverride = PINNED;
 });
 
 check("food: at a food stop, Shuffle shows when another place fits, and a plain line when none does", () => {

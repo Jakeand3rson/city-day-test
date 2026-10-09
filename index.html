@@ -386,8 +386,8 @@
     }
     .rate { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.45rem 0 0; }
     .ask { margin: 0 0 1.1rem; padding: 0.8rem 0.9rem; border-radius: 0.9rem; background: rgba(245, 167, 145, 0.16); }
-    .check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 0.4rem 0 0.9rem; cursor: pointer; }
-    .check input { margin-top: 0.3rem; width: 1.1rem; height: 1.1rem; }
+    .check { display: flex; gap: 0.75rem; align-items: center; margin: 0.4rem 0 0.9rem; cursor: pointer; min-height: 44px; }
+    .check input { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
     .desk-tip {
       margin: 0 0 0.6rem;
       padding: 0.85rem 0.95rem;
@@ -510,6 +510,10 @@
             <p class="meta">This is what shapes the day. Add food likes, pace, and anything to avoid. Different notes make different days.</p>
             <button type="button" class="learn" id="learn-context">Learn more</button>
           </div>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="food-allergy" name="foodAllergy" />
+          <span>Someone has a food allergy</span>
         </label>
         <button type="submit" class="btn btn-primary" id="make">Make the day</button>
       </form>
@@ -1167,7 +1171,7 @@
       {"id": "pin-wok-bowl", "name": "Pin Wok & Bowl", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://pinwokandbowl.com/food-menu", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["thai", "sushi", "poke", "japanese", "curry", "noodles", "indoor"], "address": "445 Central Avenue, St. Petersburg, FL 33701", "query": "Pin Wok & Bowl, 445 Central Avenue, St. Petersburg, FL", "source": "https://pinwokandbowl.com/", "week": {"0": [12, 21], "1": null, "2": [11.5, 21], "3": [11.5, 21], "4": [11.5, 21], "5": [11.5, 22], "6": [12, 22]}, "split": {"2": [15, 16], "3": [15, 16], "4": [15, 16], "5": [15, 16]}, "hoursText": "Monday Closed; Tuesday-Thursday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 9:00 PM; Friday Lunch Hours 11:30 AM - 3:00 PM, Dinner Hours 4:00 PM - 10:00 PM; Saturday 12:00 PM - 10:00 PM; Sunday 12:00 PM - 9:00 PM", "hoursChecked": "2026-10-08", "hint": "The site recommends making a reservation ahead of time.", "why": "Thai curries, pad thai, sushi rolls and poke bowls in one downtown Central Ave stop."},
       {"id": "perrys-porch", "name": "Perry's Porch", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://cdn.prod.website-files.com/66327710640914aa1aff6ace/687a766b6b77f3e636923561_Perry%27s%20Porch%20Dinner%20Menu.pdf", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["american", "seafood", "sandwiches", "burgers", "waterfront", "pier", "patio", "family"], "address": "335 2nd Ave NE, St. Petersburg, FL 33701", "query": "Perry's Porch, 335 2nd Ave NE, St. Petersburg, FL", "source": "https://www.perrysporch.com/", "week": {"0": [7, 21], "1": [7, 22], "2": [7, 22], "3": [7, 22], "4": [7, 22], "5": [7, 22], "6": [7, 22]}, "hoursText": "Monday -Saturday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-10pm | Dinner; Sunday 7a-11am | Coffee, 11am-4pm | Lunch, 4pm-9pm | Dinner", "hoursChecked": "2026-10-08", "hint": "Perry's Porch is cashless: debit or credit cards only.", "why": "Lunch or dinner with park and waterfront views at the entrance to the St. Pete Pier."},
       {"id": "joey-brooklyns-pizza", "name": "Joey Brooklyn's Famous Pizza Kitchen", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://joeybrooklynsfamouspizzakitchen.com/", "menuChecked": "2026-10-08", "costBand": "cheap", "tags": ["pizza", "slices", "italian", "sandwiches", "wings", "late night"], "address": "210 1st Ave N, St. Petersburg, FL 33701", "query": "Joey Brooklyn's Famous Pizza Kitchen, 210 1st Ave N, St. Petersburg, FL", "source": "https://joeybrooklynsfamouspizzakitchen.com/", "week": {"0": [11, 25], "1": [11, 25], "2": [11, 25], "3": [11, 25], "4": [11, 27], "5": [11, 27], "6": [11, 27]}, "hoursText": "Mon 11:00 am – 01:00 am; Tue 11:00 am – 01:00 am; Wed 11:00 am – 01:00 am; Thu 11:00 am – 03:00 am; Fri 11:00 am – 03:00 am; Sat 11:00 am – 03:00 am; Sun 11:00 am – 01:00 am", "hoursChecked": "2026-10-08", "hint": "Pizza is sold by the slice; a cheese slice is $4 plus $1 per topping.", "why": "Cheap pizza by the slice downtown by Jannus Live, open late every night."},
-      {"id": "pacific-counter-downtown", "name": "Pacific Counter (Downtown St. Pete)", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://pacificcounter.com/build-your-own/", "menuChecked": "2026-10-08", "dinner": true, "costBand": "cheap", "tags": ["poke", "hawaiian", "sushi burrito", "bowls", "boba", "hot dogs", "indoor"], "address": "660 Central Avenue, St. Petersburg, FL 33701", "query": "Pacific Counter, 660 Central Avenue, St. Petersburg, FL", "source": "https://pacificcounter.com/", "week": {"0": [11, 21], "1": [11, 21], "2": [11, 21], "3": [11, 21], "4": [11, 21], "5": [11, 21], "6": [11, 21]}, "hoursText": "Downtown St. Pete, 660 Central Avenue: Hours Mon - Sun: 11am - 9pm", "hoursChecked": "2026-10-08", "hint": "You build your own bowl or burrito. Besides fish, the proteins include baked or BBQ chicken, tofu and mushrooms, and the one you pick costs extra.", "why": "Build-your-own poke bowls and sushi burritos on Central Ave, with quick counter service."},
+      {"id": "pacific-counter-downtown", "name": "Pacific Counter (Downtown St. Pete)", "feel": "taste", "meal": "lunch", "menuFocus": "seafood-centric", "menuSource": "https://pacificcounter.com/build-your-own/", "menuChecked": "2026-10-09", "dinner": true, "costBand": "cheap", "tags": ["poke", "hawaiian", "sushi burrito", "bowls", "boba", "hot dogs", "indoor"], "address": "660 Central Avenue, St. Petersburg, FL 33701", "query": "Pacific Counter, 660 Central Avenue, St. Petersburg, FL", "source": "https://pacificcounter.com/", "week": {"0": [11, 21], "1": [11, 21], "2": [11, 21], "3": [11, 21], "4": [11, 21], "5": [11, 21], "6": [11, 21]}, "hoursText": "Downtown St. Pete, 660 Central Avenue: Hours Mon - Sun: 11am - 9pm", "hoursChecked": "2026-10-08", "hint": "You build your own bowl or burrito. That page lists tuna, salmon, shrimp, calamari and krab beside baked or BBQ chicken, tofu and mushrooms. The protein you pick costs extra.", "why": "Build-your-own poke bowls and sushi burritos on Central Ave, with quick counter service."},
       {"id": "cassis-pizza-market", "name": "Cassis Pizza & Market", "feel": "taste", "meal": "lunch", "menuFocus": "mixed", "menuSource": "https://cassisstpete.com/market/", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["pizza", "sandwiches", "cuban", "coffee", "pastries", "ice cream"], "address": "162 Beach Dr NE, St. Petersburg, FL 33701", "query": "Cassis Market, 162 Beach Dr NE, St. Petersburg, FL", "source": "https://cassisstpete.com/market/", "week": {"0": [7.5, 22], "1": null, "2": [7.5, 22], "3": [7.5, 22], "4": [7.5, 22], "5": [7.5, 23], "6": [7.5, 23]}, "hoursText": "Monday – Closed; Tuesday – Thursday 7:30am – 10pm; Friday & Saturday 7:30am – 11pm; Sunday 7:30am – 10:00pm. Hours are subject to change, please call to confirm hours as needed.", "hoursChecked": "2026-10-08", "hint": "Pizza and sandwiches are served after 11am.", "why": "Sicilian pizza slices, Cubanos and pastries from a market cafe on Beach Drive."},
       {"id": "baba-on-central", "name": "Baba on Central", "feel": "taste", "meal": "dinner", "menuFocus": "mixed", "menuSource": "https://www.eatatbaba.com/restaurant", "menuChecked": "2026-10-08", "dinner": true, "costBand": "mid", "tags": ["mediterranean", "greek", "lebanese", "falafel", "vegetarian", "kenwood", "indoor"], "address": "2701 Central Ave, St. Petersburg, FL", "query": "Baba on Central, 2701 Central Ave, St. Petersburg, FL", "source": "https://www.eatatbaba.com/contact/", "week": {"0": [17, 22], "1": null, "2": [17, 22], "3": [17, 22], "4": [17, 22], "5": [17, 22], "6": [17, 22]}, "hoursText": "Restaurant Hours Tue - Sun: 5pm - 10pm. Happy Hour @ the Bar: Tue - Thur 5-7pm", "hoursChecked": "2026-10-08", "hint": "Book on Resy; the restaurant asks parties larger than 6 to call.", "why": "Greek and Lebanese mezze, falafel and grilled plates for a shared dinner in Kenwood."},
       {"id": "bandit-coffee", "name": "Bandit Coffee Co.", "feel": "taste", "meal": "coffee", "menuFocus": "mixed", "menuSource": "https://cdn.shopify.com/s/files/1/1382/7135/files/CURRENT-BANDIT-MENU-2-11-25-kitchen.pdf", "menuChecked": "2026-10-08", "costBand": "cheap", "tags": ["coffee", "bakery", "breakfast", "roaster", "vegan", "indoor", "patio"], "address": "2662 Central Ave, St. Petersburg, FL 33712", "query": "Bandit Coffee Co., 2662 Central Ave, St. Petersburg, FL", "source": "https://banditcoffee.co/pages/visit", "week": {"0": [7, 15], "1": [7, 15], "2": [7, 15], "3": [7, 15], "4": [7, 15], "5": [7, 15], "6": [7, 15]}, "hoursText": "café hours: 7am - 3pm daily kitchen all day", "hoursChecked": "2026-10-08", "hint": "Counter service with seating indoors and outdoors. On-site parking is for customers during business hours, and there's no wifi.", "why": "A locally owned café and coffee roaster on Central Avenue that makes all its bread and pastries in-house and serves coffee every day from 7am."},
@@ -1460,14 +1464,6 @@
       return terms;
     }
 
-    // Does the note mention an allergy? Only then do food cards say "Check the menu for allergies."
-    function mentionsAllergy(p) {
-      var text = noteText(p)
-        .replace(/\b(?:no|not|without|zero|isn['’]?t|aren['’]?t|(?:does|do)n['’]?t\s+have|(?:neither|none)\s+of\s+us\s+(?:has|have)|nobody\s+has)\s+(?:any\s+|known\s+|food\s+|[a-z]+\s+){0,2}allerg\w*/g, " ")
-        .replace(/\ballerg\w*\s*[:\-–]\s*(?:none|n\/?a|no|nope|nothing)\b|\ballergy[- ](?:free|friendly)\b/g, " ");
-      return /\ballerg(?:y|ies|ic|ens?)\b|\bc(?:o)?eliac\b|\banaphyla\w*|\bepi-?pens?\b/.test(text);
-    }
-
     function avoidsStop(p, s) {
       var terms = avoidTerms(p);
       if (!terms.length) return false;
@@ -1656,8 +1652,9 @@
         if (alts.length) anchor.alts = alts;
       }
       var deck = { v: 1, anchor: anchor, pools: pools, park: !!wants.parking };
-      // One bit, so food cards can say "Check the menu for allergies." The note itself never leaves.
-      if (mentionsAllergy(p)) deck.allergy = true;
+      // Jake's decision, 2026-10-08: the create-screen checkbox is the only allergy trigger.
+      // The share link carries that yes/no. It does not carry the note or which allergen.
+      if (p.allergy === true) deck.allergy = true;
       return deck;
     }
 
@@ -2457,7 +2454,8 @@
       return '<a class="btn btn-ink" href="' + esc(mapsUrl(v.query)) + '" target="_blank" rel="noopener">' + esc(label || "Get directions") + "</a>";
     }
 
-    // One plain line on food cards when the note mentioned an allergy. Nothing says a place is safe.
+    // One plain line on food cards when the creator checked "Someone has a food allergy."
+    // Nothing says a place is safe.
     function allergyHtml(v) {
       var s = v && !v.custom && STOP_BY_ID[v.id];
       if (!s || !ensureDeck(plan).allergy || !(s.feel === "taste" || s.dinner)) return "";
@@ -2936,6 +2934,7 @@
       document.getElementById("anchor-time").value = an ? an.time : "";
       document.getElementById("anchor-where").value = an ? an.where : "";
       if (an) document.getElementById("set-box").setAttribute("open", "");
+      document.getElementById("food-allergy").checked = !!(p && p.allergy);
       applyPills(p || {});
       renderKinds(p && p.occasion, p && p.kind);
       document.getElementById("form-err").classList.add("hidden");
@@ -2993,6 +2992,7 @@
         budget: "",
         budgetAmount: String(Math.round(Number(amount))),
         must: document.getElementById("must").value.trim().slice(0, 400),
+        allergy: document.getElementById("food-allergy").checked === true,
         anchor: anName ? { name: anName.slice(0, 80), time: anTime, where: anWhere.slice(0, 120) } : null,
         skip: plan && plan.date === date ? (plan.skip || []) : [],
         rebuild: plan ? (Number(plan.rebuild) || 0) : 0,
