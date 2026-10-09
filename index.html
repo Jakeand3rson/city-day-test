@@ -602,9 +602,28 @@
       return !!plan && nowNY().iso === plan.date;
     }
 
-    // The hour on the plan's own day, or null on any other day.
+    // The hour on the plan's night, or null on any other day.
+    // A close written as 25 means 1am the next calendar morning, so that morning
+    // (until 6am) still counts as the plan night: 12:30am is hour 24.5.
     function planHour() {
-      return isPlanDay() ? nowNY().hour : null;
+      if (!plan) return null;
+      var now = nowNY();
+      if (now.iso === plan.date) return now.hour;
+      if (now.iso === addDays(plan.date, 1) && now.hour < 6) return now.hour + 24;
+      return null;
+    }
+
+    // A stop can carry its own clock when the open window is the night before.
+    function viewHour(v) {
+      if (v && v.clock != null) return v.clock;
+      return planHour();
+    }
+
+    // A card revealed on the plan night is still that night after midnight.
+    function stillHeldNight(iso) {
+      var now = nowNY();
+      if (now.iso === iso) return true;
+      return !!plan && iso === plan.date && now.iso === addDays(plan.date, 1) && now.hour < 6;
     }
 
     function addDays(iso, n) {
@@ -1594,11 +1613,33 @@
       return typeof le === "number" && le < s.end(d, iso) ? le : null;
     }
 
+    // The morning hour is still inside this night when the close runs past midnight
+    // and the night itself isn't a holiday. 0 when it isn't.
+    function spillClose(s, nightIso, morningHour) {
+      if (morningHour == null || morningHour >= 6) return 0;
+      var d = parseDate(nightIso);
+      if (!d || (typeof s.isOpen === "function" && !s.isOpen(d, nightIso))) return 0;
+      var end = typeof s.end === "function" ? s.end(d, nightIso) : 0;
+      return end > 24 && morningHour < end - 24 ? end : 0;
+    }
+
     function stopView(id) {
       var s = STOP_BY_ID[id];
       var d = parseDate(plan.date);
       var iso = isoDate(d);
+      var now = nowNY();
+      var clock = planHour();
+      // 12:30am on the plan's calendar date can still be the night before's hours.
+      if (now.iso === plan.date && now.hour < 6 && spillClose(s, addDays(plan.date, -1), now.hour)) {
+        var todayOpen = typeof s.isOpen !== "function" || s.isOpen(d, iso);
+        if (!(todayOpen && s.start(d, iso) <= now.hour)) {
+          iso = addDays(plan.date, -1);
+          d = parseDate(iso);
+          clock = now.hour + 24;
+        }
+      }
       var hours = s.hours(d, iso);
+      var open = typeof s.isOpen !== "function" || s.isOpen(d, iso);
       return {
         id: s.id,
         name: s.name,
@@ -1606,11 +1647,12 @@
         query: s.query,
         hours: hours,
         hint: s.hint || "",
-        start: s.start(d, iso),
-        end: s.end(d, iso),
-        gap: s.gap ? s.gap(d) : null,
-        last: lastEntryOn(s, d, iso),
+        start: open ? s.start(d, iso) : 0,
+        end: open ? s.end(d, iso) : 0,
+        gap: open && s.gap ? s.gap(d) : null,
+        last: open ? lastEntryOn(s, d, iso) : null,
         stay: stayFor(s),
+        clock: clock,
         why: s.why({ iso: iso, day: d.getDay(), when: formatWhen(d), hours: hours, occ: occasionPhrase(plan), on: dayPhrase(iso) }),
         source: s.source,
         dated: s.dated,
@@ -1974,7 +2016,7 @@
 
     // how: "inside" = open right now (Plan B); "held" = already revealed, so only still open.
     function openNow(v, how) {
-      var h = planHour();
+      var h = viewHour(v);
       if (h === null) return true;
       var at = h + WALK;
       if (v.gap && h < v.gap[1] && (how === "held" ? h >= v.gap[0] : at > v.gap[0] - v.stay)) return how !== "inside" && h + 1 >= v.gap[1];
@@ -1984,7 +2026,7 @@
 
     // Plain closing copy for a card on the day: "Closes at 5pm, go soon." Empty when there's time.
     function closingLine(v) {
-      var h = planHour();
+      var h = viewHour(v);
       if (h === null || v.end == null || v.stay == null) return "";
       var brk = v.gap && h < v.gap[0];
       var close = brk ? v.gap[0] : v.end;
@@ -1994,6 +2036,13 @@
       if (h + WALK > cut) return what + (v.last != null && h >= v.last ? ". Too late now." : brk ? ". Back at " + fmtHour(v.gap[1]) + "." : ". Not much time left.");
       if (h + WALK > cut - TIGHT) return what + ", go soon.";
       return "";
+    }
+
+    // A close past midnight, while that night is still open: "Open until 1am".
+    function untilLine(v) {
+      var h = viewHour(v);
+      if (!v || v.end == null || v.end <= 24 || h === null || h >= v.end) return "";
+      return "Open until " + fmtHour(v.end);
     }
 
     function offered(feel, how) {
@@ -2012,12 +2061,12 @@
 
     // A dinner the page picked stops being offered once it's too close to closing. A booking never does.
     function anchorLate() {
-      var a = anchorView(), h = planHour();
+      var a = anchorView(), h = a ? viewHour(a) : planHour();
       return !!a && !a.custom && h !== null && h + WALK > cutoffAt(a, h);
     }
 
     function anchorOffered(held) {
-      var a = anchorView(), h = planHour();
+      var a = anchorView(), h = a ? viewHour(a) : planHour();
       return !!a && !anchorDone() && (held ? a.custom || h === null || h < a.end : !anchorLate());
     }
 
@@ -2326,6 +2375,7 @@
           '<p class="why">' + esc(v.why) + "</p>" +
           (v.hint ? '<p class="hint">' + esc(v.hint) + "</p>" : "") +
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
+          (untilLine(v) ? '<p class="meta">' + esc(untilLine(v)) + "</p>" : "") +
           (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
           (wet ? '<p class="meta">Only if it clears.</p>' : "") +
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
@@ -2456,6 +2506,7 @@
           '<p class="why">' + esc(v.why) + "</p>" +
           (v.hint ? '<p class="hint">' + esc(v.hint) + "</p>" : "") +
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
+          (untilLine(v) ? '<p class="meta">' + esc(untilLine(v)) + "</p>" : "") +
           (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
           (wet ? '<p class="meta">Outdoors. Only if it clears.</p>' : "") +
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
@@ -2473,7 +2524,7 @@
       var ids = liveIds().filter(function (id) { return visited.indexOf(id) === -1; });
       var views = ids.map(stopView);
       var now = views.filter(function (v) { return openNow(v); }), later = views.filter(function (v) { return !openNow(v); });
-      var html = '<p class="kicker">Just show me</p><h1>' + (isPlanDay() ? "Open around now" : "The whole day") + "</h1>";
+      var html = '<p class="kicker">Just show me</p><h1>' + (planHour() !== null ? "Open around now" : "The whole day") + "</h1>";
       html += '<p class="strip">' + esc(anchorLine()) + "</p>";
       if (!views.length) html += '<p class="note">You have been everywhere on the list. Wander. Or log what you found.</p>';
       html += now.map(function (v) { return cardHtml(v, { here: true, skip: true }); }).join("");
@@ -2493,7 +2544,7 @@
       var html = '<div class="card reveal"><div class="stamp peach">Plan B</div><p class="place">Soft landing</p>' +
         '<p class="why">' + esc(weatherLine(plan.date)) + " Florida storms usually pass. Duck inside, then pick up where you left off.</p></div>";
       html += inside.length
-        ? "<h3>" + (isPlanDay() ? "Indoors, open now" : "Indoors on the day") + "</h3>" + inside.map(function (v) { return cardHtml(v, { here: true }); }).join("")
+        ? "<h3>" + (planHour() !== null ? "Indoors, open now" : "Indoors on the day") + "</h3>" + inside.map(function (v) { return cardHtml(v, { here: true }); }).join("")
         : '<p class="note">Nothing indoors on the list has enough time left right now. A café or a shop doorway works. Wait it out and check back.</p>';
       var a = anchorView();
       if (a && anchorOffered()) html += '<p class="strip">' + esc(anchorLine()) + "</p>";
@@ -2568,7 +2619,7 @@
       var st = playState();
       if (!st.started) view.panel = "curtain";
       else if (view.panel === "curtain") {
-        if (st.panel && st.heldOn === nowNY().iso && cardStillGood(st.pending, st.feel, st.panel === "reveal")) {
+        if (st.panel && stillHeldNight(st.heldOn) && cardStillGood(st.pending, st.feel, st.panel === "reveal")) {
           view.pending = st.pending;
           view.feel = st.feel;
           view.panel = st.panel;
