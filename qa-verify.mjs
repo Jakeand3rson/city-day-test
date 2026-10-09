@@ -373,6 +373,28 @@ check("play: We're here logs the stop, fills a pip, and asks how it was", () => 
   assert(!g.offered("taste").includes(id), "visited place not offered again");
 });
 
+check("dinner: a morning check-in does not finish a dinner that is not open yet", () => {
+  startPlay({ date: "2026-10-10", must: "dinner", budgetAmount: "40", kind: "easy" });
+  const id = g.plan.deck.anchor.id;
+  const openAt = g.STOP_BY_ID[id].start(g.parseDate("2026-10-10"), "2026-10-10");
+  assert(g.STOP_BY_ID[id].costBand === "cheap" && openAt > 9, id + " opens " + openAt);
+  g.clockOverride = new Date("2026-10-10T09:00:00-04:00");
+  g.act("begin");
+  g.act("feel", "anchor");
+  g.act("reveal");
+  assert(/Opens at /.test(playText()) && !/Dinner: done/.test(playText()), playText().slice(0, 500));
+  g.act("here", id);
+  assert(g.playState().trail.length === 0 && !/Dinner: done/.test(playText()), "morning check-in: " + playText().slice(0, 300));
+  g.clockOverride = new Date("2026-10-10T18:30:00-04:00");
+  g.act("back");
+  g.act("feel", "anchor");
+  g.act("reveal");
+  assert(!/Opens at /.test(playText()), "evening still says it has not opened");
+  g.act("here", id);
+  assert(g.anchorDone() && /Dinner: done\./.test(playText()), playText().slice(0, 300));
+  g.clockOverride = PINNED;
+});
+
 check("play: Not this, try again swaps in another from the same feeling", () => {
   startPlay({ date: "2026-10-10", must: "coffee, gelato, market" });
   g.act("begin");
