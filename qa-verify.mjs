@@ -117,6 +117,29 @@ function allIds(deck) {
   return Object.values(deck.pools).flat();
 }
 
+// A stand-in seafood-centric dinner, since no real catalog place is one (#31). It copies BellaBrava's
+// hours and price, is tagged oysters, and sorts first, so it would be the dinner unless a note keeps it off.
+function withSeafoodPlace(fn) {
+  const base = g.STOP_BY_ID["bellabrava"];
+  const fake = Object.assign({}, base, { id: "qa-oyster-bar", name: "QA Oyster Bar", tags: base.tags.concat(["oysters", "raw bar"]), menuFocus: "seafood-centric", order: -1 });
+  g.STOPS.push(fake);
+  g.STOP_BY_ID[fake.id] = fake;
+  try {
+    return fn(fake);
+  } finally {
+    g.STOPS.splice(g.STOPS.indexOf(fake), 1);
+    delete g.STOP_BY_ID[fake.id];
+  }
+}
+
+// The note is read as a no: a seafood-centric place is off the whole deck, and a mixed menu stays allowed.
+function keepsSeafoodCentricOff(must, extra) {
+  return withSeafoodPlace((fake) => {
+    const deck = deckOf(Object.assign({ must, kind: "celebrate", budgetAmount: "300" }, extra || {}));
+    return deck.anchor.id !== fake.id && !allIds(deck).includes(fake.id);
+  });
+}
+
 function sunny(iso) {
   g.weatherByDate[iso] = { status: "ready", name: "Saturday", temp: "78°F", wind: "10 mph E", short: "Sunny", wet: false };
 }
@@ -176,9 +199,13 @@ check("deck: a plain Tuesday still offers several feelings", () => {
   assert(feels >= 3, "feelings with options: " + feels + " " + JSON.stringify(deck.pools));
 });
 
-check("note: 'no seafood' keeps Stillwaters off the day", () => {
-  const deck = deckOf({ must: "pasta, no seafood", kind: "celebrate", budgetAmount: "300" });
-  assert(!allIds(deck).includes("stillwaters") && deck.anchor.id !== "stillwaters", JSON.stringify(deck));
+check("note: 'no seafood' keeps a seafood-centric place off, and a mixed menu on", () => {
+  withSeafoodPlace((fake) => {
+    assert(deckOf({ must: "pasta, dinner", kind: "celebrate", budgetAmount: "300" }).anchor.id === fake.id, "the stand-in would be the dinner");
+  });
+  assert(keepsSeafoodCentricOff("pasta, no seafood"), "seafood-centric place kept");
+  // Stillwaters has schnitzel and jerk chicken next to its seafood, so it can stay.
+  assert(!g.avoidsStop(makePlan({ must: "pasta, no seafood" }), g.STOP_BY_ID["stillwaters"]), "mixed menu vetoed");
 });
 
 check("note: 'no museums' keeps the Dalí and MFA off, even in the rain", () => {
@@ -698,8 +725,7 @@ check("review: a second tab does not wipe the first tab's stops", () => {
 
 check("review: hates, doesn't eat, allergic to and can't stand all count as no", () => {
   for (const must of ["he doesn't eat seafood. dinner somewhere nice", "she hates seafood but loves pasta", "allergic to seafood. pasta, art", "can't stand seafood. dinner"]) {
-    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "250" });
-    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+    assert(keepsSeafoodCentricOff(must, { budgetAmount: "250" }), must);
   }
   const deck = deckOf({ must: "she hates museums. walking", date: "2026-10-13", budgetAmount: "300" });
   assert(!allIds(deck).includes("dali") && !allIds(deck).includes("mfa"), JSON.stringify(deck.pools));
@@ -1197,16 +1223,17 @@ check("friends: cards say today only on the day, and the weekday otherwise", () 
 
 check("friends: allergies and 'no fish' keep seafood off", () => {
   for (const must of ["dinner, allergic to shellfish", "dinner, no fish", "dinner. shrimp allergy", "dinner, he can't eat crab or lobster", "dinner, no sushi"]) {
-    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "300" });
-    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+    assert(keepsSeafoodCentricOff(must), must);
   }
+  // A dish is still a dish: "no sushi" keeps the sushi-and-Thai place off.
+  assert(g.avoidsStop(makePlan({ must: "dinner, no sushi" }), g.STOP_BY_ID["pin-wok-bowl"]), "no sushi");
   const terms = g.avoidTerms(makePlan({ must: "nut allergy, she's gluten-free, no dairy" }));
   assert(terms.includes("nuts") && terms.includes("gluten") && terms.includes("dairy"), JSON.stringify(terms));
   // Still the same as before:
   assert(!allIds(deckOf({ must: "she hates museums. walking", date: "2026-10-13" })).includes("dali"), "hates museums");
   assert(deckOf({ must: "She's never been to the Dali, so that's a must.", kind: "celebrate", budgetAmount: "250" }).pools.soft.includes("dali"), "never been");
   assert(deckOf({ must: "He doesn't eat seafood so let's do tacos", date: "2026-10-13", budgetAmount: "120" }).anchor.id === "bodega", "so tacos");
-  assert(deckOf({ must: "no seafood, dinner", kind: "celebrate", budgetAmount: "300" }).anchor.id !== "stillwaters", "no seafood");
+  assert(keepsSeafoodCentricOff("no seafood, dinner"), "no seafood");
 });
 
 check("friends: a note that says no drinking beats Drinking: yes", () => {
@@ -1263,8 +1290,7 @@ check("review: a second veto in the same clause still counts ('can't have dairy 
 check("review: allergy lists block every allergen, written any common way", () => {
   for (const must of ["dinner, she's allergic to nuts and shellfish", "dinner, allergic to peanuts, shellfish", "dinner, shellfish and peanut allergies",
     "dinner, she has an allergy to shellfish", "dinner. Allergies: shellfish", "dinner, she has food allergies (shellfish)", "dinner, no nuts and no shellfish"]) {
-    const deck = deckOf({ must, kind: "celebrate", budgetAmount: "300" });
-    assert(deck.anchor.id !== "stillwaters" && !allIds(deck).includes("stillwaters"), must + " -> " + JSON.stringify(deck.anchor));
+    assert(keepsSeafoodCentricOff(must), must);
   }
   const both = g.avoidTerms(makePlan({ must: "allergic to nuts and dairy" }));
   assert(both.includes("nuts") && both.includes("dairy"), JSON.stringify(both));
@@ -1641,6 +1667,94 @@ check("closing: old #play/ links still play on the day", () => {
     g.act("here", id);
     assert(g.playState().trail.length === 1, link.built + ": We're here");
   });
+  g.clockOverride = PINNED;
+});
+
+// --- #31: food stops leave room to choose ---
+
+check("food: every food place has a menu focus from its own menu", () => {
+  const food = g.STOPS.filter((s) => s.meal);
+  assert(food.length >= 16, "food places: " + food.length);
+  for (const s of food) {
+    assert(["seafood-centric", "mixed"].includes(s.menuFocus), s.id + " menuFocus " + s.menuFocus);
+    assert(/^https:\/\//.test(s.menuSource || "") && /^2026-\d\d-\d\d$/.test(s.menuChecked || ""), s.id + " menu source or date");
+  }
+});
+
+check("food: 'no seafood', 'no fish' and shellfish allergies keep a seafood-centric place off but allow mixed menus", () => {
+  for (const must of ["no seafood, dinner", "dinner, no fish", "dinner, allergic to shellfish", "Allergies: shellfish. Dinner somewhere nice."]) {
+    assert(keepsSeafoodCentricOff(must), must);
+    const p = makePlan({ must });
+    for (const id of ["stillwaters", "perrys-porch", "pin-wok-bowl", "pacific-counter-downtown"]) assert(!g.avoidsStop(p, g.STOP_BY_ID[id]), must + " vetoed the mixed menu at " + id);
+  }
+  assert(deckOf({ date: "2026-10-13", must: "dinner, no seafood, thai please", budgetAmount: "100" }).anchor.id === "pin-wok-bowl", "a mixed sushi-and-Thai place can still be dinner");
+});
+
+check("food: naming an allergen doesn't count as asking for it", () => {
+  for (const must of ["she has a seafood allergy. dinner", "Allergies: shellfish, seafood. Dinner", "seafood allergy, pasta"]) {
+    const text = g.positiveText(makePlan({ must }));
+    assert(!/seafood|shellfish/.test(text), must + " -> " + text);
+    const s = g.STOP_BY_ID["stillwaters"];
+    assert(g.tagScore(s, text) === g.tagScore(s, g.positiveText(makePlan({ must: must.replace(/[a-z]*\s*(seafood|shellfish)[a-z,]*/g, "") })) ), must);
+  }
+  assert(/tacos/.test(g.positiveText(makePlan({ must: "He doesn't eat seafood so let's do tacos" }))), "a wish after the no stays");
+});
+
+check("food: one plain allergy line, only when the note mentions an allergy", () => {
+  const yes = ["she's allergic to shellfish", "nut allergy", "Allergies: shellfish", "he's celiac", "allergen: peanuts"];
+  const no = ["no seafood", "she hates fish", "no allergies", "she isn't allergic to anything", "neither of us has allergies", "no food allergies"];
+  for (const must of yes) assert(deckOf({ must: must + ", coffee" }).allergy === true, "missed: " + must);
+  for (const must of no) assert(!("allergy" in deckOf({ must: must + ", coffee" })), "false alarm: " + must);
+  // Played from the link: the line shows on food cards only, and never claims a place is safe.
+  const p = makePlan({ must: "she's allergic to shellfish. coffee, art", date: "2026-10-10" });
+  p.deck = { v: 1, anchor: { type: "stop", id: "bellabrava", time: 18, leave: 17.5 }, pools: { taste: ["kahwa", "market"], drift: [], dig: [], soft: ["mfa"] }, park: false, allergy: true };
+  resetPhone();
+  sunny(p.date);
+  openLink("#play/" + g.encodePlan(g.linkPlan(p)));
+  assert(g.ensureDeck(g.plan).allergy === true && !/shellfish/.test(JSON.stringify(g.plan)), "the link carries one bit, not the note");
+  g.act("begin"); g.act("feel", "taste"); g.act("reveal");
+  assert(/Check the menu for allergies\./.test(playText()), "taste card");
+  g.act("back"); g.act("feel", "anchor"); g.act("reveal");
+  assert(/Check the menu for allergies\./.test(playText()), "dinner card");
+  g.act("back"); g.act("feel", "soft"); g.act("reveal");
+  assert(!/allerg/i.test(playText()), "museum card");
+  g.act("back"); g.act("list");
+  assert((playText().match(/Check the menu for allergies\./g) || []).length === 3, "list: kahwa, market and the dinner");
+  // An old link without the bit shows no line.
+  delete p.deck.allergy;
+  resetPhone();
+  openLink("#play/" + g.encodePlan(g.linkPlan(p)));
+  g.act("begin"); g.act("list");
+  assert(!/allerg/i.test(playText()), "line without the bit");
+  const page = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
+  assert(!/allerg\w*[- ](?:safe|friendly)|safe for (?:allerg|celiac)|nut[- ]free (?:kitchen|facility)/i.test(page), "something claims to be allergy-safe");
+});
+
+check("food: at a food stop, Shuffle shows when another place fits, and a plain line when none does", () => {
+  const briefs = [
+    { must: "cheap eats, coffee", budgetAmount: "40" },
+    { must: "coffee, gelato, walking", budgetAmount: "120" },
+    { must: "brunch, pastries, art", budgetAmount: "300", kind: "celebrate" },
+  ];
+  let shown = 0;
+  for (const b of briefs) {
+    for (const t of ["10:00", "13:00"]) {
+      const p = startPlay(Object.assign({ date: "2026-10-10" }, b));
+      at("2026-10-10", t);
+      const n = g.offered("taste").length;
+      g.act("begin");
+      if (!n) continue;
+      g.act("feel", "taste");
+      const btn = $("play").querySelector('[data-act="shuffle"]');
+      if (n > 1) { assert(btn, JSON.stringify(b) + " " + t + ": no Shuffle with " + n + " options"); shown++; }
+      else assert(!btn && /nothing to shuffle/.test(playText()), JSON.stringify(b) + " " + t + ": no plain line");
+    }
+  }
+  assert(shown >= 4, "Shuffle shown on " + shown + " food stops");
+  dayWith("2026-10-10", { taste: ["kahwa"] });
+  at("2026-10-10", "10:00");
+  g.act("begin"); g.act("feel", "taste");
+  assert(!$("play").querySelector('[data-act="shuffle"]') && /Nothing else tasty fits right now, so there's nothing to shuffle\./.test(playText()), "one tasty place");
   g.clockOverride = PINNED;
 });
 
