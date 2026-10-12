@@ -2,12 +2,16 @@
 
 For the dev team: humans and AI coding agents alike. The full lifecycle is in [docs/SDLC.md](docs/SDLC.md).
 
+## Single repo
+
+`city-day-test` is the only maintained repo. All docs and code changes go here. The private `city-day` repo is archived, read-only reference that agents don't need.
+
 ## Before you start
 
-1. **Read the charter first:** `docs/reviews/2026-10-direction.md` in the private [city-day](https://github.com/Jakeand3rson/city-day) repo, plus `docs/build-rules.md` and `docs/ui.md` there. Where anything disagrees with the charter, the charter wins. If you can't read that repo, ask on the issue.
+1. **Read the charter first:** [docs/reviews/2026-10-direction.md](docs/reviews/2026-10-direction.md) in this repo, plus [docs/build-rules.md](docs/build-rules.md) and [docs/ui.md](docs/ui.md) here. Where anything disagrees with the charter, the charter wins.
 2. **Only pick up issues labeled `status:ready`.** `status:needs-decision` means Jake and the PM are still deciding. Don't build it.
 3. **Check for an open PR** that already covers the issue. If one exists, don't duplicate it.
-4. **Claim it before you start.** Swap `status:ready` for `status:in-progress`, assign it, and post one status comment that says who has it (a team name or session ID, since every team posts as the same account), the branch, and a short checklist. Edit that comment as you go. If you stop, put `status:ready` back. A claim with no update for 24 hours has lapsed. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
+4. **Claim it before you start.** If you can write to the issue, swap `status:ready` for `status:in-progress` and post one status comment (who has it, the branch, a short checklist). Edit that comment as you go. A Cursor token cannot comment on issues: the Engineering Manager opens a **draft** PR with `Closes #N` and keeps one **Team log** comment on that PR updated in place (session id, claimed time in UTC, plan, each role's model and one-line result, then a closing "How this job went" note). The PM puts a proxy claim on the issue that links the PR. Jake still play-tests and merges. A claim with no update for 24 hours has lapsed. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
 5. **Blocked on a product question?** Comment `Question for PM:` with two or three options and your recommendation, add `needs:pm-answer`, and work on something else. Don't guess on anything a player or creator will see. See [Questions](docs/SDLC.md#questions).
 
 ## Workflow
@@ -43,7 +47,11 @@ The dev team is a set of Claude Code subagents in [`.claude/agents/`](.claude/ag
 | DevOps / Release | `devops-release` | haiku | Keeps CI green. After Jake merges, confirms Pages serves the new commit and comments on the PR. |
 | Tech Writer | `tech-writer` | haiku | Writes PR descriptions and keeps this file and `docs/SDLC.md` current, in plain English. |
 
-When a role starts a ticket, it comments `Starting: <role>, branch <name>` on the issue.
+When a role starts a ticket and it can write to the issue, it comments `Starting: <role>, branch <name>` there. A Cursor team records that line in the Team log instead.
+
+### Cursor team
+
+A second dev team can run in Cursor. Its roles live in [`.cursor/agents/`](.cursor/agents/) with the same names as the Claude files (Cursor prefers `.cursor/` when both exist). Models: Engineering Manager and QA on Composer 2.5 (standard), Tech Lead on Claude Opus 5.5 (high), Developer and Data & Catalog on Claude Sonnet 5.5, Code Reviewer on GPT-5.6 Terra, UX & Accessibility on Gemini 3.1 Pro, and Security & Privacy, DevOps, and Tech Writer on Claude Haiku 5.5. Cursor teams name themselves `cursor-<id>` (e.g. `cursor-7f3a`) in the Team log and the PR. The Cursor token cannot comment on issues, so the claim is a draft PR plus one Team log, as in [docs/SDLC.md](docs/SDLC.md#claiming-a-ticket). The PM keeps the proxy claim on the issue. Jake still play-tests and merges.
 
 ### Questions for the PM
 

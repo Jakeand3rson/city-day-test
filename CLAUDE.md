@@ -4,8 +4,10 @@ City Day nudges people into a good day out in St. Petersburg, FL. Pick a feeling
 
 ## Read first
 
-1. **The charter:** `docs/reviews/2026-10-direction.md` in the private `Jakeand3rson/city-day` repo. It beats everything else, including tickets and this file. Also read `docs/build-rules.md` and `docs/ui.md` there. If you can't reach that repo, ask on the issue.
+1. **The charter:** [docs/reviews/2026-10-direction.md](docs/reviews/2026-10-direction.md) in this repo. It beats everything else, including tickets and this file. Also read [docs/build-rules.md](docs/build-rules.md) and [docs/ui.md](docs/ui.md) here.
 2. [CONTRIBUTING.md](CONTRIBUTING.md) for the rules and the dev team roles, and [docs/SDLC.md](docs/SDLC.md) for the lifecycle, labels, and question protocol.
+
+**Single repo:** `city-day-test` is the only maintained repo. All docs and code changes go here. The private `city-day` repo is archived, read-only reference that agents don't need.
 
 ## Product rules you never break
 
@@ -29,11 +31,11 @@ City Day nudges people into a good day out in St. Petersburg, FL. Pick a feeling
 - Commits: short, imperative, with the issue: `Block seafood on shellfish allergy notes (#8)`.
 - PR title: plain English plus the issue: `Allergy notes block seafood (#8)`.
 - PR body: the template, filled in completely. `Closes #N` on the first line. One issue per PR.
-- Starting a ticket: comment `Starting: <role>, branch <name>`.
+- Starting a ticket: `Starting: <role>, branch <name>` on the issue when you can write there. Cursor records it in the Team log.
 
 ## The flow
 
-1. Pick only `status:ready` issues, P0 first, oldest first. Check that no open PR already covers it. Claim it: swap `status:ready` for `status:in-progress` and keep one status comment current (who has it, the branch, a checklist). Other dev teams may be working in this repo too. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
+1. Pick only `status:ready` issues, P0 first, oldest first. Check that no open PR already covers it. A team that can write to the issue swaps `status:ready` for `status:in-progress` and keeps one status comment current. A Cursor team cannot comment on issues: it opens a draft PR with `Closes #N` and keeps one Team log on that PR. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
 2. Plan: the Tech Lead posts a plan for `size:L`, `type:spike`, or anything touching the play loop, the share-link format, or the catalog schema.
 3. Build on the ticket's branch.
 4. Test: checks in `qa-verify.mjs`, `npm test` and CI green, screenshots at 390×844.
@@ -45,4 +47,4 @@ City Day nudges people into a good day out in St. Petersburg, FL. Pick a feeling
 
 Blocked on a product question? Comment `Question for PM:` with options and a recommendation, add `needs:pm-answer`, and move on to other ready work. Don't guess.
 
-At the end of a session, comment on each ticket you touched: what was done, what's next, and any open questions.
+At the end of a session, update the claim (the issue status comment, or the Team log): what was done, what's next, and any open questions.

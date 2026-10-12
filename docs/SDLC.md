@@ -6,12 +6,12 @@ This is the lifecycle for every change to City Day, from an idea to the live sit
 
 - **Jake** owns the product. He decides with the PM, play-tests on his phone, and is the only person who merges.
 - **The PM** turns decisions into GitHub issues, reviews PRs against the issue and the charter, and checks the live site after a merge.
-- **The dev team** picks up ready issues and opens PRs. Right now that's AI coding agents (Claude Code; maybe Grok Build later), and possibly humans.
+- **The dev team** picks up ready issues and opens PRs. Right now that's AI coding agents (Claude Code, Cursor; maybe Grok Build later), and possibly humans.
 
 **Where things live**
 
-- **Issues, PRs, and code:** this repo, [city-day-test](https://github.com/Jakeand3rson/city-day-test). It's public, and GitHub Pages deploys `main` to https://jakeand3rson.github.io/city-day-test/.
-- **Product docs and decisions:** the private [city-day](https://github.com/Jakeand3rson/city-day) repo. The charter, `docs/reviews/2026-10-direction.md`, wins over everything else. Docs-only work is still filed here, labeled `area:docs`, and the PR goes to city-day.
+- **Issues, PRs, code, and docs:** this repo, [city-day-test](https://github.com/Jakeand3rson/city-day-test). It's public, and GitHub Pages deploys `main` to https://jakeand3rson.github.io/city-day-test/.
+- **Single repo:** `city-day-test` is the only maintained repo. All docs and code changes go here. The private `city-day` repo is archived, read-only reference that agents don't need. The charter, [docs/reviews/2026-10-direction.md](reviews/2026-10-direction.md) in this repo, wins over everything else. Docs-only work is filed here, labeled `area:docs`, and the PR goes to this repo.
 
 ---
 
@@ -33,11 +33,11 @@ Blank issues are turned off, so every issue has the same shape.
 
 ### 3. Pick up
 
-The dev picks up a `status:ready` issue. Either they assign themselves, or Jake hands the issue link to an agent like Claude Code. More than one dev team can work in this repo at once, so every ticket is **claimed** before work starts. See [Claiming a ticket](#claiming-a-ticket). The dev:
+The dev picks up a `status:ready` issue. Either they assign themselves, or Jake hands the issue link to an agent. More than one dev team can work in this repo at once, so every ticket is **claimed** before work starts. See [Claiming a ticket](#claiming-a-ticket). The dev:
 
-- claims the issue: swaps `status:ready` for `status:in-progress` and posts a status comment
+- claims it (an issue status comment when the token can write issues; a draft PR and one Team log when it cannot)
 - creates a branch: `feat/<issue#>-slug`, `fix/<issue#>-slug`, `chore/<issue#>-slug`, or `data/<issue#>-slug`
-- keeps the status comment current until the PR is open
+- keeps that claim current until the PR is ready for review
 
 ### 4. Build + PR
 
@@ -72,34 +72,47 @@ The PM checks the live site, at phone size, against the acceptance criteria. If 
 
 ## Claiming a ticket
 
-Several dev teams can work here at the same time, and they all post through the same GitHub account (`Jakeand3rson`). Assigning an issue can't tell teams apart, so a claim is a label plus a status comment.
+Several dev teams can work here at the same time. Assigning an issue can't tell teams apart, so a claim is either a label plus a status comment, or (for Cursor) a draft PR plus one Team log.
 
 **Before you claim**, check that the issue:
 
 - still has `status:ready`
 - has no open PR with `Closes #N`
-- has no other team's status comment updated in the last 24 hours
+- has no other team's claim updated in the last 24 hours (an issue status comment, or a Team log on an open PR)
 
-**To claim:**
+**When you can write to the issue** (Claude Code, and a person):
 
 1. Swap `status:ready` for `status:in-progress`, and assign the issue.
 2. Post one status comment, and keep editing that same comment instead of adding new ones. It holds:
    - `Starting: <role>, branch <name>`
-   - who claimed it: a team name or session ID, since everyone posts as the same account
+   - who claimed it: a team name or session ID
    - the time it was last updated
    - a short checklist: plan, build, checks, reviews, PR opened
 3. Edit the comment as each step lands.
 
+**Cursor.** The Cursor token cannot comment on issues or change labels. The Engineering Manager claims on the PR instead:
+
+1. Open a **draft** PR early, on the ticket's branch, with `Closes #N` on the first line.
+2. Post one PR comment titled **Team log**, and edit that same comment in place. Do not add a second running log. It holds:
+   - the session id
+   - the claimed time (UTC)
+   - the plan
+   - each role's step as it happens (Tech Lead, Developer, QA, Code Reviewer, UX, Security, and any other role that ran), with the model used and a one-line result
+   - a closing **How this job went** note: what worked, blockers, and elapsed time
+3. Do not comment on the issue. The PM keeps a proxy claim comment on the issue that links this PR.
+4. When the work is ready for the PM, mark the PR ready for review (not a draft).
+5. Jake play-tests and merges. The team does not merge.
+
 **While it's claimed:**
 
-- Other teams skip it. They only pick up `status:ready`.
-- If you're waiting on a `Question for PM:`, keep the claim and say so in the status comment.
-- Once the PR is open, leave `status:in-progress` on. The issue closes when the PR merges.
+- Other teams skip it. They only pick up `status:ready` issues with no open `Closes #N` PR.
+- If you're waiting on a `Question for PM:`, keep the claim and say so in the status comment or the Team log.
+- Once the PR is open, leave `status:in-progress` on if you were able to set it. The issue closes when the PR merges.
 
 **Letting go:**
 
-- If you stop before the PR is open, put `status:ready` back, remove `status:in-progress`, and say in the status comment where the work stands and which branch has it.
-- A claim whose status comment hasn't been updated in 24 hours has lapsed. Another team may put `status:ready` back and take it, building on the pushed branch if there is one.
+- If you stop before the work is ready, say where it stands and which branch has it (in the status comment, or in the Team log). Put `status:ready` back if you can change labels.
+- A claim that hasn't been updated in 24 hours has lapsed. Another team may take it, building on the pushed branch if there is one.
 
 **Working alongside other teams:**
 
@@ -184,7 +197,7 @@ An issue is done when:
 | `area:catalog` | Places, hours, tags, sources |
 | `area:weather` | Forecast, "Sky looks iffy," weather fallbacks |
 | `area:share` | Share links, link preview, icons, feedback to Jake |
-| `area:docs` | Docs-only. The work happens in the private city-day repo. |
+| `area:docs` | Docs-only. The PR goes to this repo. |
 | `area:infra` | CI, Pages, tooling, agent tooling |
 
 ### Status
@@ -193,7 +206,7 @@ An issue is done when:
 |---|---|
 | `status:needs-decision` | Jake and the PM are still deciding. Don't build it. |
 | `status:ready` | Fully specced. A dev can pick it up. |
-| `status:in-progress` | Claimed by a dev team. Don't pick it up. Its status comment says who has it and how far along it is (see [Claiming a ticket](#claiming-a-ticket)). |
+| `status:in-progress` | Claimed by a dev team. Don't pick it up. The issue status comment, or the Team log on the PR, says who has it (see [Claiming a ticket](#claiming-a-ticket)). |
 | `status:blocked` | Waiting on something. The issue says what. |
 
 ### Needs
@@ -226,7 +239,7 @@ The plan is a GitHub Project called "City Day" with these columns: **Backlog →
 
 - Backlog = open issue, `status:needs-decision`
 - Ready = `status:ready`, nobody assigned
-- In progress = `status:in-progress`, with a status comment saying who has it
+- In progress = `status:in-progress`, or an open PR with `Closes #N` and a Team log, saying who has it
 - In review = open PR with `Closes #N`
 - Done = closed issue, checked on the live site
 

@@ -16,4 +16,13 @@ https://jakeand3rson.github.io/city-day-test/
 
 Local check: `npm install && npm test`
 
-Decisions and direction live in the planning repo, `city-day` (`docs/reviews/2026-10-direction.md`).
+## Docs
+
+- [docs/reviews/2026-10-direction.md](docs/reviews/2026-10-direction.md) (the charter)
+- [docs/reviews/2026-10-audit.md](docs/reviews/2026-10-audit.md)
+- [docs/product.md](docs/product.md)
+- [docs/personas.md](docs/personas.md)
+- [docs/build-rules.md](docs/build-rules.md)
+- [docs/ui.md](docs/ui.md)
+
+The charter wins where another doc disagrees.
