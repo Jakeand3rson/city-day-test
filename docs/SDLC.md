@@ -11,7 +11,7 @@ This is the lifecycle for every change to City Day, from an idea to the live sit
 **Where things live**
 
 - **Issues, PRs, code, and docs:** this repo, [city-day-test](https://github.com/Jakeand3rson/city-day-test). It's public, and GitHub Pages deploys `main` to https://jakeand3rson.github.io/city-day-test/.
-- **Single repo:** `city-day-test` is the only maintained repo. All docs and code changes go here. The private `city-day` repo is archived, read-only reference that agents don't need. The charter, `docs/reviews/2026-10-direction.md` in this repo, wins over everything else. Docs-only work is filed here, labeled `area:docs`, and the PR goes to this repo.
+- **Single repo:** `city-day-test` is the only maintained repo. All docs and code changes go here. The private `city-day` repo is archived, read-only reference that agents don't need. The charter, [docs/reviews/2026-10-direction.md](reviews/2026-10-direction.md) in this repo, wins over everything else. Docs-only work is filed here, labeled `area:docs`, and the PR goes to this repo.
 
 ---
 

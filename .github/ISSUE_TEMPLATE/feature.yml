@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Read the charter first: `docs/reviews/2026-10-direction.md` in this repo. Where anything disagrees with it, the charter wins.
+        Read the charter first: [docs/reviews/2026-10-direction.md](https://github.com/Jakeand3rson/city-day-test/blob/main/docs/reviews/2026-10-direction.md) in this repo. Where anything disagrees with it, the charter wins.
         This repo is public. Don't put names, phone numbers, emails, or other personal details in this issue.
         New issues start as `status:needs-decision`. Switch to `status:ready` only when the acceptance criteria are final.
   - type: textarea
@@ -47,7 +47,7 @@ body:
     attributes:
       label: Direction-doc check
       description: >-
-        Which rule or decision in the charter (2026-10-direction.md) this follows.
+        Which rule or decision in the charter ([docs/reviews/2026-10-direction.md](https://github.com/Jakeand3rson/city-day-test/blob/main/docs/reviews/2026-10-direction.md)) this follows.
         Name the section, e.g. "§0 decision 6: free window is today through 3 days out".
     validations:
       required: true

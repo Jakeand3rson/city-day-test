@@ -18,13 +18,11 @@ Local check: `npm install && npm test`
 
 ## Docs
 
-Product docs live in this repo:
+- [docs/reviews/2026-10-direction.md](docs/reviews/2026-10-direction.md) (the charter)
+- [docs/reviews/2026-10-audit.md](docs/reviews/2026-10-audit.md)
+- [docs/product.md](docs/product.md)
+- [docs/personas.md](docs/personas.md)
+- [docs/build-rules.md](docs/build-rules.md)
+- [docs/ui.md](docs/ui.md)
 
-- `docs/reviews/2026-10-direction.md` (the charter)
-- `docs/reviews/2026-10-audit.md`
-- `docs/product.md`
-- `docs/personas.md`
-- `docs/build-rules.md`
-- `docs/ui.md`
-
-The charter wins where another doc disagrees. Those files are not copied in yet.
+The charter wins where another doc disagrees.

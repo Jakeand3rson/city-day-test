@@ -8,7 +8,7 @@ For the dev team: humans and AI coding agents alike. The full lifecycle is in [d
 
 ## Before you start
 
-1. **Read the charter first:** `docs/reviews/2026-10-direction.md` in this repo, plus `docs/build-rules.md` and `docs/ui.md` here. Where anything disagrees with the charter, the charter wins. If one of those files is not in the repo yet, ask on the issue. Do not guess its contents.
+1. **Read the charter first:** [docs/reviews/2026-10-direction.md](docs/reviews/2026-10-direction.md) in this repo, plus [docs/build-rules.md](docs/build-rules.md) and [docs/ui.md](docs/ui.md) here. Where anything disagrees with the charter, the charter wins.
 2. **Only pick up issues labeled `status:ready`.** `status:needs-decision` means Jake and the PM are still deciding. Don't build it.
 3. **Check for an open PR** that already covers the issue. If one exists, don't duplicate it.
 4. **Claim it before you start.** If you can write to the issue, swap `status:ready` for `status:in-progress` and post one status comment (who has it, the branch, a short checklist). Edit that comment as you go. A Cursor token cannot comment on issues: the Engineering Manager opens a **draft** PR with `Closes #N` and keeps one **Team log** comment on that PR updated in place (session id, claimed time in UTC, plan, each role's model and one-line result, then a closing "How this job went" note). The PM puts a proxy claim on the issue that links the PR. Jake still play-tests and merges. A claim with no update for 24 hours has lapsed. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
