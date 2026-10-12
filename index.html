@@ -1822,6 +1822,14 @@
       return a && !a.custom && !STOP_BY_ID[a.id].isOpen(d, isoDate(d)) ? "The dinner spot is closed today." : "Too late for the dinner spot now.";
     }
 
+    // On the plan date, before the dinner place opens, a check-in is not "dinner's done".
+    function opensLine(v) {
+      if (!v || v.custom || v.start == null) return "";
+      var h = viewHour(v);
+      if (h === null || h >= v.start) return "";
+      return "Opens at " + fmtHour(v.start) + ".";
+    }
+
     function anchorLine() {
       var a = anchorView();
       var sun = "Sunset is about " + fmtHour(sunsetHour(parseDate(plan.date))) + ".";
@@ -2277,6 +2285,8 @@
 
     function markHere(id) {
       if (beforePlanDay()) return go(view.panel === "list" ? "list" : "reveal");
+      var a0 = anchorView();
+      if (a0 && a0.id === id && opensLine(a0)) return go(view.panel === "list" ? "list" : "reveal");
       var st = playState();
       var a = anchorView();
       var name = a && a.id === id ? a.name : (STOP_BY_ID[id] ? STOP_BY_ID[id].name : "");
@@ -2297,6 +2307,7 @@
       var options = view.feel && view.feel !== "anchor" ? offered(view.feel) : [];
       if (options.length && view.panel === "reveal") {
         view.pending = pickRandom(options);
+        view.linedUp = true;
         holdCard("commit");
         go("commit");
       } else {
@@ -2343,6 +2354,7 @@
     function act(name, arg) {
       // Another tab may have played this day since this one last looked.
       // With storage blocked, the in-memory copy is the only copy, so keep it.
+      view.linedUp = false;
       if (storageOK) playCache = null;
       var st = playState();
       if (name === "begin") { st.started = true; savePlay(); return go(ensureDeck(plan).park && !st.parked ? "start" : "feel"); }
@@ -2538,6 +2550,7 @@
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
           (untilLine(v) ? '<p class="meta">' + esc(untilLine(v)) + "</p>" : "") +
           (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
+          (opensLine(v) && anchorView() && anchorView().id === v.id ? '<p class="strip">' + esc(opensLine(v)) + "</p>" : "") +
           (wet ? '<p class="meta">Only if it clears.</p>' : "") +
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
           (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +
@@ -2646,7 +2659,8 @@
     function commitHtml() {
       var c = FEELS[view.feel] || FEELS.taste;
       var a = view.feel === "anchor" ? anchorView() : null;
-      var title = a && a.custom ? "The fixed point of the day." : c.title;
+      var title = view.linedUp ? "Another place is lined up." : (a && a.custom ? "The fixed point of the day." : c.title);
+      var lede = view.linedUp ? "Not this one. Reveal when you're both ready." : c.lede;
       var dinner = view.feel === "anchor" && a && !a.custom;
       var canShuffle = view.feel === "anchor" ? dinner && otherDinners().length > 0 : offered(view.feel).length > 1;
       return (
@@ -2654,7 +2668,7 @@
         '<div class="card">' +
           '<p class="kicker">' + esc(a && a.custom ? "Main event" : c.kicker) + "</p>" +
           "<h1>" + esc(title) + "</h1>" +
-          '<p class="lede">' + esc(c.lede) + "</p>" +
+          '<p class="lede">' + esc(lede) + "</p>" +
           '<button type="button" class="btn btn-primary" data-act="reveal">Reveal the stop</button>' +
           (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">' + (dinner ? "Shuffle another dinner" : "Shuffle another for this feeling") + "</button>" : noShuffleHtml(a)) +
           '<button type="button" class="btn btn-ghost" data-act="back">Different feeling</button>' +
@@ -2680,6 +2694,7 @@
           (v.hours ? '<p class="meta">' + esc(v.hours) + "</p>" : "") +
           (untilLine(v) ? '<p class="meta">' + esc(untilLine(v)) + "</p>" : "") +
           (soon ? '<p class="strip">' + esc(soon) + "</p>" : "") +
+          (isAnchor && opensLine(v) ? '<p class="strip">' + esc(opensLine(v)) + "</p>" : "") +
           (wet ? '<p class="meta">Outdoors. Only if it clears.</p>' : "") +
           (v.address ? '<p class="meta">' + esc(v.address) + "</p>" : "") +
           (v.source ? '<p class="meta"><a href="' + esc(v.source) + '" target="_blank" rel="noopener">Source</a></p>' : "") +

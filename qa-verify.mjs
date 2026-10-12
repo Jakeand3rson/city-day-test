@@ -404,6 +404,28 @@ check("play: We're here logs the stop, fills a pip, and asks how it was", () => 
   assert(!g.offered("taste").includes(id), "visited place not offered again");
 });
 
+check("dinner: a morning check-in does not finish a dinner that is not open yet", () => {
+  startPlay({ date: "2026-10-10", must: "dinner", budgetAmount: "40", kind: "easy" });
+  const id = g.plan.deck.anchor.id;
+  const openAt = g.STOP_BY_ID[id].start(g.parseDate("2026-10-10"), "2026-10-10");
+  assert(g.STOP_BY_ID[id].costBand === "cheap" && openAt > 9, id + " opens " + openAt);
+  g.clockOverride = new Date("2026-10-10T09:00:00-04:00");
+  g.act("begin");
+  g.act("feel", "anchor");
+  g.act("reveal");
+  assert(/Opens at /.test(playText()) && !/Dinner: done/.test(playText()), playText().slice(0, 500));
+  g.act("here", id);
+  assert(g.playState().trail.length === 0 && !/Dinner: done/.test(playText()), "morning check-in: " + playText().slice(0, 300));
+  g.clockOverride = new Date("2026-10-10T18:30:00-04:00");
+  g.act("back");
+  g.act("feel", "anchor");
+  g.act("reveal");
+  assert(!/Opens at /.test(playText()), "evening still says it has not opened");
+  g.act("here", id);
+  assert(g.anchorDone() && /Dinner: done\./.test(playText()), playText().slice(0, 300));
+  g.clockOverride = PINNED;
+});
+
 check("play: a day-early We're here or Not this waits until the plan date", () => {
   try {
     startPlay({ date: "2026-10-10", must: "coffee, walking" });
@@ -445,6 +467,34 @@ check("play: Not this, try again swaps in another from the same feeling", () => 
   assert(g.playState().skip.includes(first), "skip saved");
   assert(g.view.panel === "commit" && g.view.pending && g.view.pending !== first, "panel " + g.view.panel + " pending " + g.view.pending);
   assert(g.plan.deck.pools.taste.includes(g.view.pending), "replacement from the same feeling");
+});
+
+check("play: Not this says another place is lined up, and that place stays off", () => {
+  startPlay({ date: "2026-10-10", must: "coffee, gelato, market" });
+  g.act("begin");
+  g.act("feel", "taste");
+  g.act("reveal");
+  const first = g.view.pending;
+  const before = playText();
+  g.act("skip", first);
+  assert(/Another place is lined up\./.test(playText()), playText().slice(0, 400));
+  assert(!/Another place is lined up\./.test(before), "the line was already there");
+  assert(g.view.panel === "commit" && g.view.pending !== first, "still veiled, new pending " + g.view.pending);
+  const seen = new Set([first]);
+  let guard = 0;
+  while (g.view.panel === "commit" && g.view.pending && !seen.has(g.view.pending) && guard < 8) {
+    const id = g.view.pending;
+    seen.add(id);
+    g.act("reveal");
+    assert(!/Another place is lined up\./.test(playText()), "reveal should name the place");
+    g.act("skip", id);
+    guard++;
+  }
+  assert(g.playState().skip.includes(first) && !g.offered("taste").includes(first), "offered again: " + g.offered("taste"));
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  g.act("begin");
+  g.act("feel", "taste");
+  assert(g.playState().skip.includes(first) && !g.offered("taste").includes(first), "came back after reload");
 });
 
 check("play: Chapter 0 parking when the note mentions driving", () => {
@@ -510,8 +560,11 @@ check("play: the fixed point reveals through Real dinner and logs", () => {
   g.act("feel", "anchor");
   g.act("reveal");
   assert(/BellaBrava/.test(playText()) && /Not booked/.test(playText()), "anchor reveal");
+  g.clockOverride = new Date("2026-10-10T18:30:00-04:00");
   g.act("here", "bellabrava");
+  assert(g.playState().trail.some((t) => t.id === "bellabrava"), "logged after it opened");
   assert(!/Real dinner/.test(playText()), "anchor not offered twice");
+  g.clockOverride = PINNED;
 });
 
 check("play: We found something goes on the day, with a rating", () => {
@@ -838,11 +891,13 @@ check("review: the weather after 6pm and on past days tells the truth", () => {
 check("review: after dinner, the wind-down and the strip both know it's done", () => {
   startPlay({ must: "dinner", kind: "celebrate", budgetAmount: "300" });
   g.act("begin");
+  g.clockOverride = new Date("2026-10-10T18:30:00-04:00");
   g.act("here", "bellabrava");
   g.act("cool");
   assert(/Dinner's done/.test(playText()) && !/No fixed point/.test(playText()), playText().slice(0, 200));
   g.act("back");
   assert(/Dinner: done\./.test(playText()) && !/Leave by/.test(playText()), "strip");
+  g.clockOverride = PINNED;
 });
 
 check("review: Plan B lists only what is open right now on the day", () => {
@@ -1387,10 +1442,12 @@ check("review: once dinner is checked in, the screen you land on offers the feed
   startPlay({ must: "dinner", kind: "celebrate", budgetAmount: "300" });
   g.act("begin");
   assert(!/Tell Jake how it went/.test(playText()), "too early");
+  g.clockOverride = new Date("2026-10-10T18:30:00-04:00");
   g.act("here", "bellabrava");
   assert(/Tell Jake how it went/.test(playText()), "missing after dinner");
   click($("play").querySelector('.btn[data-act="trail"]'));
   assert(g.view.panel === "trail" && $("play").querySelector('[data-act="feedback"]'), "goes to the feedback");
+  g.clockOverride = PINNED;
 });
 
 // --- the catalog ---
