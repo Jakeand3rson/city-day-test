@@ -1,14 +1,15 @@
 # Adding a city
 
-City Day reads each city from one file. A city is its config at the top of the file, then its places. Nothing in `index.html` names a city, but the page doesn't find city files on its own. Today it fetches only `data/stops.json`. A second file is not loaded until `loadCatalog` fetches it. That is a later ticket (#50). Adding a second real city also means adding its file to the schema check in `qa-verify.mjs`.
+City Day reads each city from one file. A city is its config at the top of the file, then its places. Nothing in `index.html` names a city. The page reads `data/cities.json`, a list of city files, and `loadCatalog` loads every file on it.
 
-St. Petersburg, FL is the only real city so far.
+Adding a city means three things: its file, one line at the end of `data/cities.json`, and checks for it in `qa-verify.mjs`.
 
 ## Where the file goes
 
 - One file per city, named for its id: `data/<cityId>.json`, like `data/examplecity.json` for a city whose `cityId` is `examplecity`.
-- `data/stops.json` stays the first city. It is St. Pete, and it owns every `#play/` link that carries no city. Old links never name one.
-- The shape is `data/stops.schema.json`. Check the file against it before you open a pull request: `npm test` does this for the files it knows about.
+- `data/cities.json` is a plain list of file paths, like `["data/stops.json", "data/kirkland.json"]`. Add the new file as one line at the end. A path must look like `data/<name>.json`, and none may repeat. A broken list fails the whole load.
+- `data/stops.json` stays first. It is St. Pete, and it owns every `#play/` link that carries no city. Old links never name one. A listed city is never removed, because links already sent carry its id.
+- The shape is `data/stops.schema.json`. Check the file against it before you open a pull request: `npm test` does this for the files it knows about, so add the new file there.
 
 ## The config
 
