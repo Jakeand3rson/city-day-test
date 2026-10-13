@@ -26,6 +26,10 @@ Settled on October 7:
 8. "Surprise us too" and calendar nudges are paid only.
 9. Changes go in as pull requests for you to review and merge. Nothing is merged to `main` directly.
 
+Settled on October 13:
+
+10. Feeling pools hold up to six places: six when at least six fit the brief and are open that date, all of them when fewer fit. This replaces the two-to-three cap below.
+
 ---
 
 ## 1. The short version
@@ -67,7 +71,7 @@ Each of these is in [anniversary-15-stpete/index.html](https://github.com/Jakean
 6. Escape hatches tied to real conditions. "Vibes are cooling" sends you toward the anchor early. "Sky looks iffy" gives a Plan B: duck indoors, then go to the anchor.
 7. Practical, local hints. "Recheck the sign when you pull in." "Band roughly 2–5. Crowds peak mid-afternoon." "Best before afternoon storms." These read like a friend who knows the city, not a listing.
 8. Progress. Six pips fill as you go, so it feels like a journey with chapters, not a checklist.
-9. Small pools. One to three places per feeling, picked by someone who knew the couple, with no repeats once used.
+9. Small pools. One to three places per feeling, picked by someone who knew the couple, with no repeats once used. The generated deck now holds up to six per feeling (decision 10).
 
 Count the phone touches: begin, parked, then a handful of rounds of feeling, reveal and "We're here" (the pips allow for six), plus an occasional shuffle or escape. That is roughly 15 to 20 taps across a whole day, each one a decision rather than reading. That is what "a nudge, not a schedule" looks like in practice.
 
@@ -114,7 +118,7 @@ The engine produces a deck, not a list:
 - A pocket: the walkable area the day lives in, such as downtown waterfront or Central Ave and Grand Central.
 - Chapter 0: how to arrive. Parking with a "We're parked" pin when the note mentions driving, or a starting corner when it doesn't.
 - One anchor: the fixed point. A dinner, a dated evening event, or the creator's own reservation. It has a time, an address and a leave-by time.
-- Feeling pools: two or three verified places for each feeling. The feelings are the original's: tasty, drift, dig through, slow and soft, and real dinner (the anchor), plus "Surprise me." Dated events join the pool they fit: the Pier's Fall Festival is "drift," with a timing hint, the way the original's Piertoberfest card said "Band roughly 2–5."
+- Feeling pools: up to six verified places for each feeling, fewer only when fewer fit the brief and are open. The feelings are the original's: tasty, drift, dig through, slow and soft, and real dinner (the anchor), plus "Surprise me." Dated events join the pool they fit: the Pier's Fall Festival is "drift," with a timing hint, the way the original's Piertoberfest card said "Band roughly 2–5."
 - Escapes: "Vibes are cooling" (go to the anchor early, or head home) and "Sky looks iffy" (an indoor Plan B from the pools, built from the real forecast).
 - Hints: one practical line per place, plus a "look for" line on the walk between places, such as a mural or the pelicans off the end of the Pier.
 
@@ -166,7 +170,7 @@ No feature is removed. "Change" means a different form or meaning, with the reas
 | About screen | Keep, shorten to one line and one action | [ui.md](../ui.md): first screen is one line and one action. |
 | Names | Keep | They make the curtain personal; the original opened with "For us." |
 | Occasion | Keep | Drives the curtain, the anchor type and the tone. |
-| Kind of day | Keep | Sets tone: "celebrate" picks a nicer anchor, "easy" sets smaller pools and an earlier end, "away" leans to evening. |
+| Kind of day | Keep | Sets tone: "celebrate" picks a nicer anchor, "easy" sets an earlier end, "away" leans to evening. |
 | Date | Keep | The core of paid: what is actually open and happening. |
 | City (fixed) | Keep | One city until it works ([product.md](../product.md)). |
 | Drinking | Keep | [product.md](../product.md): it changes the agenda, and we don't assume. |
@@ -222,7 +226,7 @@ The free page's "Just show me," "Not for us," and session reset already appear a
 
 | Audit item | Grade | Reason |
 |---|---|---|
-| 4.1 Cap the day at 3–4 stops | Revised | The original had a pool of 11 places across its feelings, including the anchor, and the couple chose their way through it one at a time. The fix is one anchor, pools of 2–3 per feeling, and one card at a time, not a shorter list. This also keeps ordinary weekdays from feeling thin. |
+| 4.1 Cap the day at 3–4 stops | Revised | The original had a pool of 11 places across its feelings, including the anchor, and the couple chose their way through it one at a time. The fix is one anchor, pools of up to six per feeling, and one card at a time, not a shorter list. This also keeps ordinary weekdays from feeling thin. |
 | 4.2 Negation in the note | Kept | A wrong pick ruins a reveal more than a wrong list item. |
 | 4.3 Budget honesty | Kept | Now tied mostly to the anchor and any ticket. |
 | 4.4 Freeze the day in the link | Kept, extended | Freeze the deck now. Plan the backend for after-sending edits (6.5). |
@@ -332,7 +336,7 @@ Resolved on October 6 and 7: see section 0. Still open:
 What the friends link does now:
 
 - The creator form, without the mystery-or-plan question, plus "Anything already set?" (what, time, where), which becomes the fixed point.
-- The engine builds a deck: one fixed point (your booking, or a dinner when the note or the kind of day asks for one, matched to the budget; a lunch note does not make a dinner), up to three places per feeling, and parking when the note mentions driving. The deck is frozen in the link, so weather or catalog edits never change a day already sent. Free dated events lead their feeling; ticketed ones and reservation-only ones (the Boyd Hill volunteer morning) only come in when the note asks for that kind of thing.
+- The engine builds a deck: one fixed point (your booking, or a dinner when the note or the kind of day asks for one, matched to the budget; a lunch note does not make a dinner), up to six places per feeling (fewer when fewer fit), and parking when the note mentions driving. The deck is frozen in the link, so weather or catalog edits never change a day already sent. Free dated events lead their feeling; ticketed ones and reservation-only ones (the Boyd Hill volunteer morning) only come in when the note asks for that kind of thing.
 - The note honors the ways people say no: "no," "skip," "avoid," "not," "never," "without," "hates," "can't stand," "allergic to," "doesn't eat / like / want," "isn't our thing." So "she hates seafood" keeps a seafood place off, including as dinner. Wishes are not vetoes ("never been to the Dalí" keeps the Dalí), and a veto stops at the next idea ("doesn't eat seafood so let's do tacos" keeps the tacos).
 - The share link carries only the frozen day and the names. The creator's note, budget and vetoes stay on the creator's phone.
   - Exception (owner decision 2026-10-08): the share link also carries a yes/no for the create-screen food-allergy checkbox; no allergen or note text.
