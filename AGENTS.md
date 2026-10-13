@@ -6,3 +6,6 @@
 4. Follow the charter at [docs/reviews/2026-10-direction.md](docs/reviews/2026-10-direction.md) in this repo. It beats everything else. Do not open any other repo.
 5. Cursor cannot comment on issues. The Engineering Manager opens a draft PR with `Closes #N` and keeps one Team log comment on that PR. See [Claiming a ticket](docs/SDLC.md#claiming-a-ticket).
 6. One issue per PR. Never push to `main`. Never merge.
+7. Model spend: follow the routing and fallback rules in `.cursor/rules/city-day-cursor-team.mdc`.
+   On-demand billing is off; when premium usage runs out, fall back to Grok/Composer, never stop.
+   Record the model each role actually ran in the PR Team log.

@@ -1,7 +1,7 @@
 ---
 name: devops-release
 description: Keeps City Day CI green and, after Jake merges, confirms GitHub Pages serves the new commit. Returns the CI or deploy result to the Engineering Manager to comment on the PR; does not post to GitHub itself.
-model: claude-haiku-5-5
+model: composer-2.5[fast=false]
 readonly: true
 is_background: false
 ---

@@ -1,7 +1,7 @@
 ---
 name: ux-accessibility-reviewer
 description: Reviews City Day changes for phone usability and accessibility at 390x844. Checks 44px tap targets, WCAG AA contrast, plain product-voice copy, and one-handed use. Returns findings to the Engineering Manager; does not post to GitHub.
-model: gemini-3.1-pro
+model: composer-2.5[fast=false]
 readonly: true
 is_background: false
 ---

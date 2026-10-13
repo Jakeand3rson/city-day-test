@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Reviews every City Day PR for correctness, simplicity, and regressions before the PM sees it. A different model family from the Developer. Escalates to the Tech Lead when unsure. Returns findings to the Engineering Manager; does not post to GitHub.
-model: gpt-5.6-terra
+model: composer-2.5[fast=false]
 readonly: true
 is_background: false
 ---

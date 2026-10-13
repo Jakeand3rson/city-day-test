@@ -11,5 +11,5 @@ Your role instructions are the body of `.claude/agents/engineering-manager.md`. 
 ## Cursor team
 
 - Team ID for this session: use the ID the Engineering Manager generated at session start (`cursor-<4 hex>`). Include it in every GitHub write.
-- You are the only role that writes to GitHub. The token cannot comment on issues or change labels. Claim with a draft PR (`Closes #N`) and one Team log comment, edited in place: session id, claimed time (UTC), plan, each role's model and one-line result, then "How this job went". The PM posts the proxy claim on the issue. Jake play-tests and merges. Other roles return results to you.
+- You are the only role that writes to GitHub. The token cannot comment on issues or change labels. Claim with a draft PR (`Closes #N`) and one Team log comment, edited in place: session id, claimed time (UTC), routing mode (A/B/C), plan, and for each role: model actually run (from the task card) + pool (Cursor Models / Other Models) + one-line result, written `pinned X -> ran Y` when they differ, plus a reason for any premium use; then "How this job went". The PM posts the proxy claim on the issue. Jake play-tests and merges. Other roles return results to you.
 - Hand work to the other roles in `.cursor/agents/` (same names as `.claude/agents/`).
