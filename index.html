@@ -253,9 +253,10 @@
       padding: 0.7rem 0.85rem;
       border-left: 3px solid var(--cyan);
     }
-    .kinds, .moods { display: grid; gap: 0.6rem; }
+    .kinds, .moods, .picks { display: grid; gap: 0.6rem; }
     .moods { margin: 0 0 0.6rem; }
-    .kinds button, .moods button {
+    .picks { margin: 0 0 1rem; }
+    .kinds button, .moods button, .picks button {
       text-align: left;
       background: transparent;
       color: var(--ink);
@@ -271,7 +272,8 @@
       background: var(--cyan);
       border-color: var(--cyan);
     }
-    .kinds button small, .moods button small {
+    .picks button { width: 100%; min-height: 44px; }
+    .kinds button small, .moods button small, .picks button small {
       display: block;
       font-weight: 450;
       opacity: 0.68;
@@ -1966,6 +1968,23 @@
       go("commit");
     }
 
+    // "See all" on the commit screen: that feeling's queue as a list. Nothing is held, so a reload goes back to the veil.
+    function openOptions() {
+      if (!moodQueue(view.feel).length) { view.pending = null; holdCard(""); return go("feel"); }
+      go("options");
+    }
+
+    function pickOption(id) {
+      var queue = moodQueue(view.feel);
+      if (queue.indexOf(id) !== -1) {
+        view.pending = id;
+        holdCard("reveal");
+        return go("reveal");
+      }
+      if (!queue.length) { view.pending = null; holdCard(""); return go("feel"); }
+      go("options");
+    }
+
     function holdCard(panel) {
       var st = playState();
       st.pending = view.pending || "";
@@ -2094,7 +2113,10 @@
       if (name === "feel") return chooseFeel(arg);
       if (name === "reveal") return revealNow();
       if (name === "shuffle") return view.feel === "anchor" ? shuffleDinner() : shuffleFeel();
+      if (name === "options") return openOptions();
+      if (name === "pick") return pickOption(arg);
       if (name === "back") {
+        if (view.panel === "options") return go("commit");
         if (view.panel === "reveal" && FEEL_ORDER.indexOf(view.feel) !== -1 && STOP_BY_ID[view.pending] && !beforePlanDay()) markPassed(view.pending);
         if (view.panel === "commit" || view.panel === "reveal") { view.pending = null; holdCard(""); }
         return go("feel");
@@ -2268,10 +2290,15 @@
 
     // One plain line on food cards when the creator checked "Someone has a food allergy."
     // Nothing says a place is safe.
-    function allergyHtml(v) {
+    function allergyLine(v) {
       var s = v && !v.custom && STOP_BY_ID[v.id];
       if (!s || !ensureDeck(plan).allergy || !(s.feel === "taste" || s.dinner)) return "";
-      return '<p class="meta">' + (s.meal ? "Check the menu for allergies." : "Ask about allergies before you order.") + "</p>";
+      return s.meal ? "Check the menu for allergies." : "Ask about allergies before you order.";
+    }
+
+    function allergyHtml(v) {
+      var line = allergyLine(v);
+      return line ? '<p class="meta">' + line + "</p>" : "";
     }
 
     function cardHtml(v, opts) {
@@ -2393,6 +2420,14 @@
       return "";
     }
 
+    // A way to pick from this feeling's places instead of the shuffle. Dinner has its own shuffle, so it gets none.
+    function seeAllHtml() {
+      if (FEEL_ORDER.indexOf(view.feel) === -1) return "";
+      var lab = FEELS[view.feel].label;
+      var text = "See all " + lab.charAt(0).toLowerCase() + lab.slice(1) + " options";
+      return '<button type="button" class="btn btn-ghost" data-act="options">' + esc(text) + "</button>";
+    }
+
     function commitHtml() {
       var c = FEELS[view.feel] || FEELS.taste;
       var a = view.feel === "anchor" ? anchorView() : null;
@@ -2408,6 +2443,7 @@
           '<p class="lede">' + esc(lede) + "</p>" +
           '<button type="button" class="btn btn-primary" data-act="reveal">Reveal the stop</button>' +
           (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">' + (dinner ? "Shuffle another dinner" : "Shuffle another for this feeling") + "</button>" : noShuffleHtml(a)) +
+          seeAllHtml() +
           '<button type="button" class="btn btn-ghost" data-act="back">Different feeling</button>' +
         "</div>"
       );
@@ -2442,6 +2478,27 @@
           '<button type="button" class="skip" data-act="back">Back to choosing</button>' +
         "</div>"
       );
+    }
+
+    function optionsHtml() {
+      var c = FEELS[view.feel];
+      var passed = playState().passed;
+      var html = '<p class="kicker">' + esc(c.kicker) + "</p><h1>" + esc(c.label) + "</h1>" +
+        '<p class="lede">Tap one to go with it.</p><div class="picks">';
+      moodQueue(view.feel).forEach(function (id) {
+        var v = stopView(id);
+        var when = closingLine(v) || v.hours;
+        var allergy = allergyLine(v);
+        html += '<button type="button" data-act="pick" data-arg="' + esc(id) + '">' + esc(v.name) +
+          "<small>" + esc(v.why) + "</small>" +
+          (when ? "<small>" + esc(when) + "</small>" : "") +
+          (allergy ? "<small>" + esc(allergy) + "</small>" : "") +
+          (passed.indexOf(id) !== -1 ? "<small>Passed earlier</small>" : "") +
+          "</button>";
+      });
+      html += "</div>";
+      html += '<button type="button" class="btn btn-ghost" data-act="back">Back to the mystery</button>';
+      return html;
     }
 
     function listHtml() {
@@ -2553,11 +2610,13 @@
         }
       }
       if (view.panel === "reveal" && !view.pending) view.panel = "feel";
+      if (view.panel === "options" && FEEL_ORDER.indexOf(view.feel) === -1) view.panel = "feel";
       var html = "";
       if (view.panel === "curtain") html = curtainHtml();
       else if (view.panel === "start") html = startHtml();
       else if (view.panel === "commit") html = commitHtml();
       else if (view.panel === "reveal") html = revealHtml();
+      else if (view.panel === "options") html = optionsHtml();
       else if (view.panel === "list") html = listHtml();
       else if (view.panel === "iffy") html = iffyHtml();
       else if (view.panel === "cool") html = coolHtml();
