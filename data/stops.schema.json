@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jakeand3rson.github.io/city-day-test/data/stops.schema.json",
+  "title": "City Day places",
+  "description": "Every place City Day can reveal. The page reads only `stops`. A place is never added from a guess: each one has a source and the hours it was checked against. Two keywords go beyond standard JSON Schema: calendarDate (a real day, so not 2026-02-31) and startBeforeEnd (the first hour is before the second). A validator that doesn't know them skips them, so the page checks the same two things itself when it loads the file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["city", "stops"],
+  "properties": {
+    "$schema": { "type": "string", "description": "Points an editor at this schema." },
+    "city": { "type": "string", "minLength": 1, "description": "The city these places are in. The page does not read it yet." },
+    "stops": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The places, in the order the page keeps them. Order breaks ties, so moving one can change a day.",
+      "items": { "$ref": "#/$defs/stop" }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "date": { "type": "string", "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$", "calendarDate": true },
+    "hour": { "type": "number", "minimum": 0, "maximum": 28 },
+    "window": {
+      "type": "array",
+      "prefixItems": [{ "$ref": "#/$defs/hour" }, { "$ref": "#/$defs/hour" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2,
+      "startBeforeEnd": true
+    },
+    "dates": { "type": "array", "items": { "$ref": "#/$defs/date" }, "uniqueItems": true },
+    "stop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "address", "query", "hint", "tags", "costBand", "cost", "week", "closedDates", "source", "hoursChecked"],
+      "oneOf": [{ "required": ["why"] }, { "required": ["whyText"] }],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "Never rename or delete: sent links refer to it." },
+        "name": { "$ref": "#/$defs/text", "description": "The place's name as shown on screen." },
+        "address": { "$ref": "#/$defs/text", "description": "Street address shown under the name." },
+        "query": { "$ref": "#/$defs/text", "description": "What the Get directions button searches for in maps. The page builds the link from this." },
+        "hint": { "$ref": "#/$defs/text", "description": "One practical line about the visit, from the place's own page." },
+        "tags": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text" }, "description": "Words a note can match, such as coffee or museum. A museum tag is what 'no museums' removes." },
+        "costBand": { "enum": ["cheap", "mid", "nice", null], "description": "Price level of a meal or a dinner. null means not recorded." },
+        "cost": { "enum": ["ticket", "small", null], "description": "ticket is paid entry. small is a small fee. null means not recorded or free." },
+        "week": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["0", "1", "2", "3", "4", "5", "6"],
+          "description": "The window City Day offers each weekday, 0 is Sunday. [open, close] in 24-hour time, null when closed. A close past midnight is written as 25, 27 and so on. It is not always the source's label: see hoursLabel and hoursText.",
+          "properties": {
+            "0": { "oneOf": [{ "$ref": "#/$defs/window" }, { "type": "null" }] },
+            "1": { "oneOf": [{ "$ref": "#/$defs/window" }, { "type": "null" }] },
+            "2": { "oneOf": [{ "$ref": "#/$defs/window" }, { "type": "null" }] },
+            "3": { "oneOf": [{ "$ref": "#/$defs/window" }, { "type": "null" }] },
+            "4": { "oneOf": [{ "$ref": "#/$defs/window" }, { "type": "null" }] },
+            "5": { "oneOf": [{ "$ref": "#/$defs/window" }, { "type": "null" }] },
+            "6": { "oneOf": [{ "$ref": "#/$defs/window" }, { "type": "null" }] }
+          }
+        },
+        "closedDates": { "$ref": "#/$defs/dates", "description": "Dates the place says it is closed. Use [] when there are none." },
+        "source": { "type": "string", "pattern": "^https://", "description": "The page the hours and facts came from." },
+        "hoursChecked": { "type": ["string", "null"], "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$", "calendarDate": true, "description": "The day the hours were last checked against the source. null means no check date was ever recorded." },
+        "why": { "$ref": "#/$defs/text", "description": "The line about the place. The page adds 'Its own site lists <hours> <day>.' after it. Use this or whyText, not both." },
+        "whyText": {
+          "$ref": "#/$defs/text",
+          "description": "The whole line about the place, with no sentence added after it. May use {hours}, {on}, {occ} and {when}: the hours shown, 'today' or 'on Saturday', 'a date', and the date. Use this or why, not both."
+        },
+        "whyByDate": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/date" },
+          "additionalProperties": { "$ref": "#/$defs/text" },
+          "minProperties": 1,
+          "description": "A line that replaces whyText on one date, for a one-day event at a place that is otherwise regular."
+        },
+        "feel": { "enum": ["taste", "drift", "dig", "soft"], "description": "Which 'What's calling?' pool the place can come up in. Leave it out for a dinner or parking only." },
+        "meal": { "enum": ["coffee", "lunch", "dinner", "dessert", "snack"], "description": "What kind of food stop this is. Leave it out for places that are not a meal." },
+        "menuFocus": { "enum": ["seafood-centric", "mixed"], "description": "What the kitchen centers on, from its own menu. Only a seafood-centric place is kept off for 'no seafood'." },
+        "menuSource": { "type": "string", "pattern": "^https://", "description": "The menu page menuFocus came from." },
+        "menuChecked": { "$ref": "#/$defs/date", "description": "The day the menu was last read." },
+        "dinner": { "type": "boolean", "description": "True when the place can be the evening dinner." },
+        "parking": { "type": "boolean", "description": "True for the parking garage, which is offered only when the note mentions driving." },
+        "booking": { "type": "boolean", "description": "True when a reservation is needed, so it only comes up when the note asks for that kind of thing." },
+        "outdoor": { "type": "boolean", "description": "True when the place is outside, so it is left out on a rainy day." },
+        "music": { "type": "boolean", "description": "True when music is part of the place." },
+        "kids": { "type": "boolean", "description": "True when the place suits kids." },
+        "gem": { "type": "boolean", "description": "True for a lesser-known place. Left out means true." },
+        "bar": { "type": "boolean", "description": "True when the place is a bar or brewery. It is only offered to someone who said yes to drinks." },
+        "dated": { "type": "boolean", "description": "True for a one-day or one-weekend event. It leads the day when it is on." },
+        "only": { "$ref": "#/$defs/text", "description": "Short words for when a dated place happens, such as 'this weekend only'." },
+        "covers": { "type": ["string", "null"], "description": "The id of a place this event stands in for, so the day does not show both." },
+        "order": { "type": "number", "description": "Tie-break, lowest first. Left out means 20." },
+        "split": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "A break in the day, by weekday: [start, end] hours when the place is closed between its lunch and dinner service.",
+          "properties": {
+            "0": { "$ref": "#/$defs/window" }, "1": { "$ref": "#/$defs/window" }, "2": { "$ref": "#/$defs/window" },
+            "3": { "$ref": "#/$defs/window" }, "4": { "$ref": "#/$defs/window" }, "5": { "$ref": "#/$defs/window" },
+            "6": { "$ref": "#/$defs/window" }
+          }
+        },
+        "opensBeforeSunrise": { "type": "number", "minimum": 0, "description": "Hours before sunrise the place opens. The opening time is worked out for the date and replaces week's open time." },
+        "closesAfterSunset": { "type": "number", "minimum": 0, "description": "Hours after sunset the place closes. The closing time is worked out for the date and replaces week's close time." },
+        "lastEntry": {
+          "oneOf": [
+            { "$ref": "#/$defs/hour" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "0": { "$ref": "#/$defs/hour" }, "1": { "$ref": "#/$defs/hour" }, "2": { "$ref": "#/$defs/hour" },
+                "3": { "$ref": "#/$defs/hour" }, "4": { "$ref": "#/$defs/hour" }, "5": { "$ref": "#/$defs/hour" },
+                "6": { "$ref": "#/$defs/hour" }
+              }
+            }
+          ],
+          "description": "The place's own last entry or admission time: one hour, or one per weekday."
+        },
+        "lastEntryText": { "$ref": "#/$defs/text", "description": "The source's exact sentence about last entry, when hoursText does not hold it." },
+        "hoursText": { "$ref": "#/$defs/text", "description": "The source's own hours, copied word for word. Not shown on screen." },
+        "hoursLabel": {
+          "oneOf": [
+            { "$ref": "#/$defs/text" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "0": { "$ref": "#/$defs/text" }, "1": { "$ref": "#/$defs/text" }, "2": { "$ref": "#/$defs/text" },
+                "3": { "$ref": "#/$defs/text" }, "4": { "$ref": "#/$defs/text" }, "5": { "$ref": "#/$defs/text" },
+                "6": { "$ref": "#/$defs/text" }
+              }
+            }
+          ],
+          "description": "The hours text shown for the place, as one string or one per weekday. Left out, the text is built from week."
+        },
+        "lister": { "$ref": "#/$defs/text", "description": "Who says the hours, in place of 'Its own site lists'." },
+        "skipDates": { "$ref": "#/$defs/dates", "description": "Dates the source lists shorter hours or an event this file cannot hold. The place is not offered then." },
+        "openDates": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/date" }, "description": "The only dates the place is open. For a one-day event." },
+        "months": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 1, "maximum": 12 },
+          "description": "The months the place is open, 1 to 12. For a seasonal place."
+        },
+        "dateHours": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/date" },
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "start", "end"],
+            "startBeforeEnd": true,
+            "properties": {
+              "label": { "$ref": "#/$defs/text", "description": "The hours text shown on that date." },
+              "start": { "$ref": "#/$defs/hour", "description": "The hour the place opens on that date." },
+              "end": { "$ref": "#/$defs/hour", "description": "The hour the place closes on that date." }
+            }
+          },
+          "description": "Hours that replace the weekday's on one date, such as a holiday with short hours."
+        }
+      }
+    }
+  }
+}
