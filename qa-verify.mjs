@@ -3204,6 +3204,22 @@ check("kirkland: drinks stay opt-in: every bar, brewery, winery or taproom is ma
   assert(deckPlaceIds(yes).every((id) => kirklandIds.includes(id)), "a yes-drinks Kirkland day left Kirkland");
 });
 
+check("kirkland: the arts center gallery is closed between the exhibitions its page lists (#50)", () => {
+  const gallery = g.STOP_BY_ID["kirkland-arts-center-gallery"];
+  const open = (iso) => gallery.isOpen(g.parseDate(iso), iso);
+  assert(!open("2026-10-14") && !open("2026-11-21"), "open between exhibitions");
+  assert(open("2026-10-17"), "closed during Northwest Designer Craft Artists");
+  const raw = kirklandFile.stops.find((e) => e.id === "kirkland-arts-center-gallery");
+  assert(raw.closedDates.length === 0 && raw.skipDates.join() === ["2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-11-21", "2026-11-22"].concat(Array.from({ length: 10 }, (_, i) => "2026-12-" + (22 + i))).join(), "the gaps: " + raw.skipDates);
+});
+
+check("kirkland: Parklane's posted hours right now are 11am to 6pm (#50)", () => {
+  const raw = kirklandFile.stops.find((e) => e.id === "kirkland-parklane-gallery");
+  assert(raw.week["6"].join() === "11,18", "Saturday is " + raw.week["6"]);
+  assert(raw.hoursText.includes("11am \u2013 6pm") && raw.hoursText.includes("April 1"), "hoursText: " + raw.hoursText);
+  assert(raw.hoursChecked === "2026-10-13", "checked " + raw.hoursChecked);
+});
+
 const failed = results.filter((r) => r.startsWith("FAIL"));
 console.log("\n--- summary ---");
 console.log(results.length - failed.length + " passed, " + failed.length + " failed");
