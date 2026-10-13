@@ -881,6 +881,7 @@
       if (data.rainLine != null && !isText(data.rainLine)) throw new Error(data.cityId + " has a rain line that isn't text.");
       if (data.fixture != null && typeof data.fixture !== "boolean") throw new Error(data.cityId + " has a fixture flag that isn't true or false.");
       if (CITIES[data.cityId] || cityIdFor(data.city)) throw new Error(data.cityId + " is already loaded.");
+      if (!isText(data.timeZone)) throw new Error(data.cityId + " doesn't say its time zone.");
       // An unknown time zone throws here, so a mistyped one fails the load instead of the clock.
       new Intl.DateTimeFormat("en-US", { timeZone: data.timeZone });
       var city = {

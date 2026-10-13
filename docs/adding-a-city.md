@@ -1,6 +1,6 @@
 # Adding a city
 
-City Day reads each city from one file. A city is its config at the top of the file, then its places. Nothing in `index.html` names a city, so a new city is a new file and no code change.
+City Day reads each city from one file. A city is its config at the top of the file, then its places. Nothing in `index.html` names a city, but the page doesn't find city files on its own. Today it fetches only `data/stops.json`. A second file is not loaded until `loadCatalog` fetches it. That is a later ticket (#50). Adding a second real city also means adding its file to the schema check in `qa-verify.mjs`.
 
 St. Petersburg, FL is the only real city so far.
 
@@ -21,7 +21,7 @@ These sit at the top of the file, before `stops`. Every one is required except `
 | `short` | The short name for lines like "A day in St. Pete". |
 | `region` | The state or region as people write it in an address, like `FL`. Added after a typed place in Get directions. |
 | `regionNames` | Lowercase ways a typed place can already name the region, like `["fl", "florida"]`. If the typed place has one of them, nothing is added. |
-| `timeZone` | An IANA time zone name, like `America/New_York`. The page runs the day's clock in it: open now, closing times and after midnight all follow it. A name that isn't real fails the load. |
+| `timeZone` | An IANA time zone name, like `America/New_York`. The page runs the day's clock in it: open now, closing times and after midnight all follow it. A missing or made-up name fails the load. |
 | `weather` | `{ "lat": ..., "lon": ... }` where the forecast is read from. The point has to be inside National Weather Service coverage, written to 3 decimals. The page asks `api.weather.gov` for exactly that point. |
 | `sun` | `{ "lat": ..., "lon": ... }` where sunrise and sunset are worked out. Separate from `weather` because the two don't have to match. Parks that open by the sun use it. |
 | `rainLine` | One true line about local rain, shown on the plan B screen after the forecast. Leave it out when there is nothing true to say. |

@@ -2336,6 +2336,7 @@ const catalogDown = {
   "the file isn't JSON": replies({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError("Unexpected token <")) }),
   "the file has no places": replies({ ok: true, status: 200, json: () => Promise.resolve({ city: "St. Petersburg", stops: [] }) }),
   "the file doesn't say which city it is": withTop((file) => { delete file.cityId; }),
+  "the file has no time zone": withTop((file) => { delete file.timeZone; }),
   "its time zone isn't a real one": withTop((file) => { file.timeZone = "Mars/Olympus_Mons"; }),
   "one place can't be read": withBadStop,
   "a check date isn't a real day": withEdit((stops) => { stops[20].hoursChecked = "2026-02-31"; }),
@@ -2706,6 +2707,8 @@ check("city: the St. Pete config passes the schema, its time zone is real, and l
   const asked = (edit) => { const f = clone(fixtureFile); edit(f); return throwsError(() => g.readCity(f)); };
   assert(!throwsError(() => g.readCity(clone(fixtureFile))), "the fixture should read");
   assert(asked((f) => { f.timeZone = "Mars/Olympus_Mons"; }), "a made-up time zone was accepted");
+  assert(asked((f) => { delete f.timeZone; }) && asked((f) => { f.timeZone = ""; }), "a missing time zone was accepted");
+  assert(!throwsError(() => { const f = clone(stopsFile); f.cityId = "stpete-copy"; f.city = "Copy (QA only)"; f.stops.forEach((s) => { s.id = "copy-" + s.id; }); g.readCity(f); }), "a file with a time zone should read");
   assert(asked((f) => { delete f.cityId; }) && asked((f) => { f.cityId = "Not An Id"; }), "a missing or bad cityId was accepted");
   assert(asked((f) => { f.cityId = "stpete"; }), "a city id that is already loaded was accepted");
   assert(asked((f) => { f.city = "St. Petersburg"; }), "a city name that is already loaded was accepted");
@@ -2944,7 +2947,9 @@ check("city: docs/adding-a-city.md names every config field, source and hoursChe
   const fields = Object.keys(stopsSchema.properties).filter((k) => k !== "$schema" && k !== "stops");
   assert(fields.join() === "city,cityId,short,region,regionNames,timeZone,weather,sun,rainLine,fixture", "the schema's fields: " + fields);
   fields.forEach((k) => assert(cityDoc.includes("`" + k + "`"), "the doc doesn't name " + k));
-  ["`source`", "`hoursChecked`", "data/<cityId>.json", "data/stops.json"].forEach((word) => assert(cityDoc.includes(word), "the doc doesn't say " + word));
+  ["`source`", "`hoursChecked`", "data/<cityId>.json", "data/stops.json", "`loadCatalog`", "#50"].forEach((word) => assert(cityDoc.includes(word), "the doc doesn't say " + word));
+  assert(/fetches only `data\/stops\.json`/.test(cityDoc) && /not loaded until `loadCatalog` fetches it/.test(cityDoc), "the doc doesn't say a second file isn't loaded yet");
+  assert(!/no code change/i.test(cityDoc), "the doc says a new city needs no code change");
   assert(/permanent/i.test(cityDoc) && /unique/i.test(cityDoc) && /IANA/.test(cityDoc) && /3 decimals/.test(cityDoc) && /first/i.test(cityDoc), "the doc is missing a rule");
   assert(/19 original places/.test(cityDoc) && /null/.test(cityDoc), "the doc doesn't say who may leave hoursChecked null");
   assert(fs.readFileSync(new URL("./README.md", import.meta.url), "utf8").includes("docs/adding-a-city.md"), "the README doesn't link the doc");
