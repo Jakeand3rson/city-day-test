@@ -1,6 +1,8 @@
 # City Day, friends and family
 
-A free test of the paid day in St. Petersburg. No payment and no account.
+A free test of the paid day. No payment and no account.
+
+St. Petersburg, FL is the only city so far (the beta). To add another, see [docs/adding-a-city.md](docs/adding-a-city.md).
 
 The creator fills in a short brief and gets a desk with a share link. The people going open a `#play/…` link and play the day the way the original anniversary page worked:
 
