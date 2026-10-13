@@ -2287,6 +2287,31 @@ async function settled(options) {
   return page;
 }
 
+// The schema's two extra rules, which patterns can't hold: a date has to be a real day, and a
+// window's first hour has to come before its second. The page checks the same two things itself.
+function catalogValidator() {
+  const ajv = new Ajv2020({ allErrors: true });
+  ajv.addKeyword({
+    keyword: "calendarDate",
+    type: "string",
+    validate: (_on, text) => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+      if (!m) return false;
+      const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+      return d.getUTCFullYear() === Number(m[1]) && d.getUTCMonth() === Number(m[2]) - 1 && d.getUTCDate() === Number(m[3]);
+    }
+  });
+  ajv.addKeyword({
+    keyword: "startBeforeEnd",
+    type: ["array", "object"],
+    validate: (_on, win) => {
+      const [start, end] = Array.isArray(win) ? win : [win.start, win.end];
+      return typeof start === "number" && typeof end === "number" && start < end;
+    }
+  });
+  return ajv.compile(stopsSchema);
+}
+
 const offline = () => Promise.reject(new Error("offline"));
 const replies = (res) => () => Promise.resolve(res);
 const withBadStop = () => {
@@ -2294,12 +2319,21 @@ const withBadStop = () => {
   delete bad.stops[5].week;
   return { ok: true, status: 200, json: () => Promise.resolve(bad) };
 };
+const withEdit = (edit) => () => {
+  const bad = JSON.parse(JSON.stringify(stopsFile));
+  edit(bad.stops);
+  return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(bad) });
+};
 const catalogDown = {
   "the request fails": offline,
   "the file is missing": replies({ ok: false, status: 404, json: () => Promise.resolve({}) }),
   "the file isn't JSON": replies({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError("Unexpected token <")) }),
   "the file has no places": replies({ ok: true, status: 200, json: () => Promise.resolve({ city: "St. Petersburg", stops: [] }) }),
-  "one place can't be read": withBadStop
+  "one place can't be read": withBadStop,
+  "a check date isn't a real day": withEdit((stops) => { stops[20].hoursChecked = "2026-02-31"; }),
+  "a closed date isn't a real day": withEdit((stops) => { stops[20].closedDates = ["2026-11-31"]; }),
+  "a day's hours end before they start": withEdit((stops) => { stops[20].week["2"] = [18, 9]; }),
+  "a date's hours end where they start": withEdit((stops) => { stops[10].dateHours["2026-10-22"].end = 10; })
 };
 
 const linkOnPhone = OLD_LINKS[2].hash;
@@ -2340,14 +2374,14 @@ answerLate();
 await new Promise((resolve) => setTimeout(resolve, 20));
 
 check("catalog file: every entry in data/stops.json passes data/stops.schema.json", () => {
-  const validate = new Ajv2020({ allErrors: true }).compile(stopsSchema);
+  const validate = catalogValidator();
   const ok = validate(stopsFile);
   assert(ok, JSON.stringify((validate.errors || []).slice(0, 3)));
   assert(stopsFile.stops.length >= 49, "only " + stopsFile.stops.length + " places in the file");
 });
 
 check("catalog file: the schema rejects a missing required field and an unknown key", () => {
-  const validate = new Ajv2020({ allErrors: true }).compile(stopsSchema);
+  const validate = catalogValidator();
   const fresh = () => JSON.parse(JSON.stringify(stopsFile));
   const required = stopsSchema.$defs.stop.required;
   for (const key of required) {
@@ -2376,6 +2410,31 @@ check("catalog file: the schema rejects a missing required field and an unknown 
   file = fresh();
   file.stops = [];
   assert(!validate(file), "an empty list of places passed");
+  // Patterns can't know February has no 31st or that a window can't run backwards.
+  const dali = (f) => f.stops.find((e) => e.id === "dali");
+  file = fresh();
+  file.stops[20].hoursChecked = "2026-02-31";
+  assert(!validate(file), "hoursChecked 2026-02-31 passed");
+  file = fresh();
+  file.stops[20].closedDates = ["2026-04-31"];
+  assert(!validate(file), "a closed date that isn't a day passed");
+  file = fresh();
+  dali(file).dateHours["2026-02-30"] = dali(file).dateHours["2026-10-22"];
+  assert(!validate(file), "a dateHours key that isn't a day passed");
+  file = fresh();
+  file.stops[2].whyByDate = { "2026-13-01": "No such month." };
+  assert(!validate(file), "a whyByDate key that isn't a day passed");
+  file = fresh();
+  file.stops[20].week["2"] = [18, 9];
+  assert(!validate(file), "a week window of [18, 9] passed");
+  file = fresh();
+  file.stops[20].week["2"] = [9, 9];
+  assert(!validate(file), "a week window that starts where it ends passed");
+  file = fresh();
+  dali(file).dateHours["2026-10-22"].start = 19;
+  assert(!validate(file), "dateHours with start >= end passed");
+  file = fresh();
+  assert(validate(file), "the real file stopped passing");
 });
 
 check("catalog file: ids are unique, and the page loaded every entry in file order", () => {
@@ -2400,8 +2459,8 @@ check("catalog file: no catalog is left in index.html", () => {
   assert(/<section id="screen-about" class="hidden">/.test(html) && /Loading the places…/.test(html), "the page doesn't hold the first screen until the places load");
 });
 
-// The name says 20 as the ticket does, but the page shipped with 19 hand-written places (LEGACY_IDS).
-check("catalog file: every whyText uses only {hours} {on} {occ} {when}, and hoursChecked is null only for the 20 entries that never had one", () => {
+// The page shipped with 19 hand-written places (LEGACY_IDS). They never had a check date.
+check("catalog file: every whyText uses only {hours} {on} {occ} {when}, and hoursChecked is null only for the 19 entries that never had one", () => {
   for (const e of stopsFile.stops) {
     for (const line of [e.whyText].concat(Object.values(e.whyByDate || {})).filter(Boolean)) {
       const left = line.replace(/\{(?:hours|on|occ|when)\}/g, "");
@@ -2447,8 +2506,7 @@ check("catalog file: every id the page shipped with on 40a974a is still in the f
   const inFile = stopsFile.stops.map((e) => e.id);
   assert(beforeMove.ids.length === 49, "the saved list of ids is off");
   beforeMove.ids.forEach((id) => assert(inFile.includes(id), id + " is gone: sent links refer to it"));
-  const kept = inFile.filter((id) => beforeMove.ids.includes(id));
-  assert(JSON.stringify(kept) === JSON.stringify(beforeMove.ids), "the shipped places changed order");
+  assert(JSON.stringify(inFile) === JSON.stringify(beforeMove.ids), "the file's ids aren't the shipped ones, in the same order, with nothing extra: " + JSON.stringify(inFile.filter((id) => !beforeMove.ids.includes(id))));
   OLD_LINKS.forEach((link) => {
     const plan = g.decodePlan(link.hash.replace(/^#(?:play\/)?/, ""));
     if (!plan.deck) return;

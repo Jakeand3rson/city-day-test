@@ -731,9 +731,36 @@
     // Every place in data/stops.json comes through here, and the page only ever uses the result.
     // week is the window City Day offers, which is not always the source's own label: hoursLabel
     // (one text, or one per weekday) is what shows. dateHours changes one date's window and label.
+    function realDay(iso) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso));
+      if (!m) return false;
+      var d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+      return d.getUTCFullYear() === Number(m[1]) && d.getUTCMonth() === Number(m[2]) - 1 && d.getUTCDate() === Number(m[3]);
+    }
+
+    function realWindow(w) {
+      return Array.isArray(w) && w.length === 2 && typeof w[0] === "number" && typeof w[1] === "number" && w[0] < w[1];
+    }
+
+    // The schema's calendarDate and startBeforeEnd rules, for the page, which doesn't ship a validator.
+    function checkPlace(raw) {
+      var id = raw.id;
+      var days = [].concat(raw.closedDates || [], raw.skipDates || [], raw.openDates || [], Object.keys(raw.dateHours || {}), Object.keys(raw.whyByDate || {}));
+      if (raw.hoursChecked != null) days.push(raw.hoursChecked);
+      if (raw.menuChecked != null) days.push(raw.menuChecked);
+      days.forEach(function (iso) { if (!realDay(iso)) throw new Error(id + " has a date that isn't a day: " + iso); });
+      Object.keys(raw.week).forEach(function (k) { if (raw.week[k] != null && !realWindow(raw.week[k])) throw new Error(id + " has hours that end before they start."); });
+      Object.keys(raw.split || {}).forEach(function (k) { if (!realWindow(raw.split[k])) throw new Error(id + " has a break that ends before it starts."); });
+      Object.keys(raw.dateHours || {}).forEach(function (iso) {
+        var h = raw.dateHours[iso];
+        if (!h || typeof h.start !== "number" || typeof h.end !== "number" || h.start >= h.end) throw new Error(id + " has hours on " + iso + " that end before they start.");
+      });
+    }
+
     function weekStop(raw) {
       if (!raw || typeof raw.id !== "string" || !raw.week || typeof raw.week !== "object") throw new Error("A place is missing its id or its week.");
       if (typeof raw.why !== "string" && typeof raw.whyText !== "string") throw new Error(raw.id + " has no line about it.");
+      checkPlace(raw);
       var e = Object.assign({}, raw);
       // skipDates: days the source lists shorter hours or an event that this schema can't hold.
       // The place isn't offered then, so nobody is sent somewhere that has already closed.
