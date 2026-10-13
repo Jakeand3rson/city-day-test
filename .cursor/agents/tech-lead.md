@@ -15,4 +15,4 @@ Your role instructions are the body of `.claude/agents/tech-lead.md`. Read it fi
 
 ## Model routing
 
-Pinned to `grok-4.7[reasoning_effort=xhigh,fast=false]` (included usage). In mode A (premium budget left) the EM may launch you on `claude-opus-5-5[effort=high]` for architecture and spike plans. See `docs/model-routing.md`.
+Pinned to `grok-4.7[reasoning_effort=xhigh,fast=false]` (included usage). The EM does not override this pin at launch except for an escalation trigger; then, in mode A, `claude-opus-5-5[effort=high]` may be used and logged as `override: pinned X -> Y, reason`. Your plans still pass the premium plan gate before implementation starts. See `docs/model-routing.md`.

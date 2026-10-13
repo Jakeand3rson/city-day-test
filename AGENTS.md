@@ -9,3 +9,7 @@
 7. Model spend: follow the routing and fallback rules in `.cursor/rules/city-day-cursor-team.mdc`.
    On-demand billing is off; when premium usage runs out, fall back to Grok/Composer, never stop.
    Record the model each role actually ran in the PR Team log.
+8. Quality gates: a premium plan gate before implementation and a premium merge gate (different
+   model family from the developer) before the PR is marked ready; failed tests, diffs over ~300
+   lines, or auth/data/payments changes escalate early. Pins are not overridden at launch except for
+   those escalations. See `docs/model-routing.md#quality-gates`.

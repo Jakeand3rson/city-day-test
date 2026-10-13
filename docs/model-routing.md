@@ -18,12 +18,12 @@ Grok is **not** unlimited. Running out of Cursor Models with on-demand off also 
 
 | Tier | Models (pool) | Use for |
 |---|---|---|
-| **P (premium)**, rarely | `claude-opus-5-5`, `claude-sonnet-5-5`, `gpt-5.6-sol` / `gpt-5.6-terra` (Other Models) | Only hard implementation (size:L, play loop, share-link format, catalog schema) and architecture/spike plans, and only while Other Models has budget. |
+| **P (premium)**, rarely | `claude-opus-5-5`, `claude-sonnet-5-5`, `gpt-5.6-sol` / `gpt-5.6-terra` (Other Models); `grok-4.7[reasoning_effort=xhigh,fast=false]` as the included premium stand-in | Quality gates (plan gate, merge gate) and escalations under the triggers in [Quality gates](#quality-gates). Third-party P models only while Other Models has budget. |
 | **S (strong included)** | `grok-4.7[reasoning_effort=high,fast=false]`; xhigh only for architecture (Cursor Models) | Default implementer and Tech Lead when P is unavailable; all normal implementation. |
 | **C (cheap included)** | `composer-2.5[fast=false]` (Cursor Models) | Review, advising, triage, docs, PR descriptions, summaries, PM Q&A, ticket specs, QA scripting, CI/deploy checks, security/UX scans. |
 
 Rules:
-1. Default to C. Move up a tier only with a stated reason in the Team log.
+1. Default to C. Roles run on their committed pins; the only way above a pin is a gate or an escalation trigger (see Quality gates), logged in the Team log.
 2. Always `fast=false`.
 3. Keep Grok 4.7 context under 256k. Don't use the 500k variant.
 4. Never use Auto for cost control. Pin explicit IDs.
@@ -45,14 +45,14 @@ Claude (Sonnet 5.5 / Opus 5.5)            [Other Models]
 Claude and GPT share the Other Models pool, so when one is out, both are. The real boundary is Other Models -> Cursor Models.
 
 Modes (EM checks the usage dashboard at session start):
-- **Mode A** (Other Models budget left): premium pins for P-tier roles only.
+- **Mode A** (Other Models budget left): roles still run on their committed pins; Other Models is spent on quality gates and escalations.
 - **Mode B** (Other Models exhausted): every role on Grok/Composer (the committed pins).
 - **Mode C** (Cursor Models >90% used): everything on Composer 2.5; size:S/M only; post `Question for PM:` before size:L.
 - At the billing-cycle reset, return to Mode A.
 
 ## Per-role pins
 
-| Role (file) | Function | Mode A | Mode B (committed pin) |
+| Role (file) | Function | Escalation model (rule-3 trigger only, Mode A) | Committed pin (all modes) |
 |---|---|---|---|
 | engineering-manager | planner/orchestrator, PM Q&A, ticket specs | composer-2.5[fast=false] | composer-2.5[fast=false] |
 | tech-lead | architect/planner | claude-opus-5-5[effort=high] | grok-4.7[reasoning_effort=xhigh,fast=false] |
@@ -65,13 +65,26 @@ Modes (EM checks the usage dashboard at session start):
 | devops-release | CI/deploy check | composer-2.5[fast=false] | composer-2.5[fast=false] |
 | data-catalog-researcher | research/summaries | composer-2.5[fast=false] | composer-2.5[fast=false] |
 
-In Mode A, premium is used only for Tech Lead plans and Developer on hard tickets. For size:S/M in Mode A, the EM launches the developer with an explicit `grok-4.7[...]` model.
+The committed pin is what every role runs, in every mode; the developer's pin is `grok-4.7[reasoning_effort=high,fast=false]`, so no launch-time model is needed for any ticket size. The EM may not override a pin at launch except for an escalation under an escalation trigger (see Quality gates); the escalation column shows the model to use then (Mode A only; in Mode B use `grok-4.7[reasoning_effort=xhigh,fast=false]`). Log every override as `override: pinned X -> Y, reason`.
 
-Mode A alternates live in each agent file's body, not as frontmatter comments (Cursor's subagent docs don't document `#` comments in frontmatter).
+Escalation models live in each agent file's body, not as frontmatter comments (Cursor's subagent docs don't document `#` comments in frontmatter).
+
+## Quality gates
+
+Gates are short, cheap premium checks. They do not replace the code-reviewer, QA, or Tech Lead reviews.
+
+1. **Plan gate.** Before any implementation starts, a premium model approves the plan. Use `claude-sonnet-5-5` when Other Models has budget (Mode A), otherwise `grok-4.7[reasoning_effort=xhigh,fast=false]`. No developer launch until the verdict is pass.
+2. **Merge gate.** Before the PR is marked ready for review, a premium model reviews the full diff against the ticket's acceptance criteria. The gate model must be a different model family from the model the developer actually ran (e.g. Grok developer -> `claude-sonnet-5-5` or `gpt-5.6-terra`; in Mode B with a Grok developer, `grok-4.7` xhigh is allowed only if no other family has budget, and the Team log says so).
+3. **Escalation triggers.** Any failed test, a diff over about 300 lines, or a change touching auth, data, or payments sends the work to the premium gate reviewer early, without waiting for the merge gate.
+4. **Short and cheap.** Input is only the diff plus the acceptance criteria (and the plan, for the plan gate). Output is only a verdict: `pass`, or `fail` with reasons. The EM logs the verdict and the model that actually ran on the Team log line, next to the existing trail entries.
+5. **Mode A rule.** When the developer ran on Claude, the gate reviewer is `gpt-5.6-terra` or `grok-4.7[reasoning_effort=xhigh,fast=false]`, never Claude.
+6. **Pin overrides.** The EM may not override a role's pinned model at launch except for an escalation under rule 3. Every override is logged in the Team log as `override: pinned X -> Y, reason`.
+
+Team log examples: `plan gate: pass (ran claude-sonnet-5-5, Other Models)`, `merge gate: fail - AC2 not covered (ran gpt-5.6-terra, Other Models)`, `override: pinned grok-4.7[reasoning_effort=high,fast=false] -> claude-sonnet-5-5, diff 420 lines`.
 
 ## Logging
 
-In the PR Team log, the EM records for every role invocation: role, model ID actually run (from the subagent task card, not the pin), pool, mode (A/B/C), and why any role ran above tier C. If it differs from the pin, log `pinned X -> ran Y`.
+In the PR Team log, the EM records for every role invocation: role, model ID actually run (from the subagent task card, not the pin), pool, mode (A/B/C), and why any role ran above tier C. If it differs from the pin, log `pinned X -> ran Y`. Also log each gate verdict with the model that ran, and every launch override as `override: pinned X -> Y, reason`.
 
 ## Open questions
 
