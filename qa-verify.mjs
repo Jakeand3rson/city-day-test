@@ -120,7 +120,7 @@ g.clockOverride = PINNED;
 // A check about the day before sets g.keepEarlyClock.
 const rawAct = g.act.bind(g);
 g.act = function (name, arg) {
-  const early = (name === "here" || name === "skip") && g.plan && !g.keepEarlyClock && g.nowNY().iso < g.plan.date;
+  const early = (name === "here" || name === "skip") && g.plan && !g.keepEarlyClock && g.cityNow().iso < g.plan.date;
   const prev = g.clockOverride;
   if (early) g.clockOverride = new Date(g.plan.date + "T12:00:00-04:00");
   try { return rawAct(name, arg); }
@@ -145,7 +145,7 @@ function makePlan(overrides) {
     kind: "easy",
     custom: "",
     date: "2026-10-10",
-    city: "St. Petersburg",
+    city: stopsFile.cityId,
     drink: "no",
     style: "mystery",
     lean: "must",
@@ -324,7 +324,7 @@ check("anchor: something already set becomes the fixed point with a leave-by", (
 });
 
 check("sunset: about 7:10pm on October 10", () => {
-  const h = g.sunsetHour(g.parseDate("2026-10-10"));
+  const h = g.sunsetHour(g.parseDate("2026-10-10"), g.CITIES.stpete);
   assert(h > 19.0 && h < 19.35, "sunset hour " + h);
 });
 
@@ -379,7 +379,8 @@ const OLD_LINKS = [
   { built: "607190a, a frozen deck with a dinner reservation", hash: "#play/eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJhbmNob3IiOnsibmFtZSI6IkRpbm5lciByZXNlcnZhdGlvbiIsInRpbWUiOiIxODozMCIsIndoZXJlIjoiODAwIDJuZCBBdmUgTkUifSwiZGVjayI6eyJ2IjoxLCJhbmNob3IiOnsidHlwZSI6ImN1c3RvbSIsInRpbWUiOjE4LjUsImxlYXZlIjoxOH0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImthaHdhIiwic3RpbGx3YXRlcnMiXSwiZHJpZnQiOlsiZmVzdGl2YWwiXSwiZGlnIjpbInB1bXBraW4iLCJhcnRwb29sIl0sInNvZnQiOlsicGFsZWhvcnNlIiwiZGFsaSIsIm1mYSJdfSwicGFyayI6ZmFsc2V9fQ" },
   { built: "607190a, a frozen deck with a dinner the page picked", hash: "#play/eyJpZCI6Im9sZGxpbmsxIiwieW91IjoiQWxleCIsInRoZW0iOiJSaWxleSIsIm9jY2FzaW9uIjoiRGF0ZSIsImtpbmQiOiJlYXN5IiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoic3RpbGx3YXRlcnMiLCJ0aW1lIjoxOCwibGVhdmUiOjE3LjV9LCJwb29scyI6eyJ0YXN0ZSI6WyJtYXJrZXQiLCJrYWh3YSIsImJvZGVnYSJdLCJkcmlmdCI6WyJmZXN0aXZhbCJdLCJkaWciOlsicHVtcGtpbiIsImFydHBvb2wiXSwic29mdCI6WyJwYWxlaG9yc2UiLCJkYWxpIiwibWZhIl19LCJwYXJrIjpmYWxzZX19" },
   { built: "76b45ea, a Saturday with a late-night pizza place open until 3am (#30)", hash: "#play/eyJpZCI6Im9sZGxpbmszMCIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNX0sInBvb2xzIjp7InRhc3RlIjpbImpvZXktYnJvb2tseW5zLXBpenphIiwiY2Fzc2lzLXBpenphLW1hcmtldCIsIm1hcmtldCJdLCJkcmlmdCI6WyJmZXN0aXZhbCIsInN1bmtlbi1nYXJkZW5zIiwiY3Jlc2NlbnQtbGFrZS1wYXJrIl0sImRpZyI6WyJwdW1wa2luIiwidGhlLW1lcmNoYW50IiwiYXJ0cG9vbCJdLCJzb2Z0IjpbInBhbGVob3JzZSIsInN0LXBldGUtbXVzZXVtLW9mLWhpc3RvcnkiLCJkYWxpIl19LCJwYXJrIjpmYWxzZX19" },
-  { built: "9e0a8a4, a frozen deck with a picked dinner, from an allergy note (no dinner alternates, no allergy flag)", hash: "#play/eyJpZCI6Im9sZGxpbmszMSIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNX0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImNhZmUtY2xlbWVudGluZSIsInBhY2l1Z28iXSwiZHJpZnQiOlsiZmVzdGl2YWwiLCJzdW5rZW4tZ2FyZGVucyIsIm5vcnRoLXN0cmF1Yi1wYXJrIl0sImRpZyI6WyJwdW1wa2luIiwiZmxvcmlkYS1jcmFmdGFydCIsImNvYXN0YWwtaG91c2UtdmludGFnZSJdLCJzb2Z0IjpbInBhbGVob3JzZSIsImphbWVzLW11c2V1bSIsInN0LXBldGUtbXVzZXVtLW9mLWhpc3RvcnkiXX0sInBhcmsiOmZhbHNlfX0" }
+  { built: "9e0a8a4, a frozen deck with a picked dinner, from an allergy note (no dinner alternates, no allergy flag)", hash: "#play/eyJpZCI6Im9sZGxpbmszMSIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNX0sInBvb2xzIjp7InRhc3RlIjpbIm1hcmtldCIsImNhZmUtY2xlbWVudGluZSIsInBhY2l1Z28iXSwiZHJpZnQiOlsiZmVzdGl2YWwiLCJzdW5rZW4tZ2FyZGVucyIsIm5vcnRoLXN0cmF1Yi1wYXJrIl0sImRpZyI6WyJwdW1wa2luIiwiZmxvcmlkYS1jcmFmdGFydCIsImNvYXN0YWwtaG91c2UtdmludGFnZSJdLCJzb2Z0IjpbInBhbGVob3JzZSIsImphbWVzLW11c2V1bSIsInN0LXBldGUtbXVzZXVtLW9mLWhpc3RvcnkiXX0sInBhcmsiOmZhbHNlfX0" },
+  { built: "40a974a, current main before #33: picked dinner, alternates, allergy flag, no city", hash: "#play/eyJpZCI6Im9sZGxpbmszMyIsInlvdSI6IkFsZXgiLCJ0aGVtIjoiUmlsZXkiLCJvY2Nhc2lvbiI6IkRhdGUiLCJraW5kIjoiY2VsZWJyYXRlIiwiZGF0ZSI6IjIwMjYtMTAtMTAiLCJkcmluayI6Im5vIiwibGVhbiI6Im11c3QiLCJkZWNrIjp7InYiOjEsImFuY2hvciI6eyJ0eXBlIjoic3RvcCIsImlkIjoiYmVsbGFicmF2YSIsInRpbWUiOjE4LCJsZWF2ZSI6MTcuNSwiYWx0cyI6WyJsYS12LXZpZXRuYW1lc2UiLCJwaW4td29rLWJvd2wiXX0sInBvb2xzIjp7InRhc3RlIjpbInN0aWxsd2F0ZXJzIiwibWFya2V0IiwiY2Fzc2lzLXBpenphLW1hcmtldCJdLCJkcmlmdCI6WyJmZXN0aXZhbCIsInN1bmtlbi1nYXJkZW5zIiwiZ2l6ZWxsYS1rb3BzaWNrLWFyYm9yZXR1bSJdLCJkaWciOlsicHVtcGtpbiIsInRvbWJvbG8tYm9va3MiLCJmbG9yaWRhLWNyYWZ0YXJ0Il0sInNvZnQiOlsicGFsZWhvcnNlIiwiZGFsaSIsImphbWVzLW11c2V1bSJdfSwicGFyayI6ZmFsc2UsImFsbGVyZ3kiOnRydWV9fQ" }
 ];
 
 check("standard: old #play/ links still play (open, reveal, We're here)", () => {
@@ -1493,8 +1494,8 @@ check("review: once dinner is checked in, the screen you land on offers the feed
 check("catalog: park hours come from the sun, not a guess", () => {
   const park = g.STOP_BY_ID["albert-whitted-park"];
   const oct = g.parseDate("2026-10-10"), jan = g.parseDate("2027-01-10");
-  assert(Math.abs(park.start(oct) - (g.sunriseHour(oct) - 0.5)) < 0.1, "opens 30 min before sunrise: " + park.start(oct));
-  assert(Math.abs(park.end(oct) - (g.sunsetHour(oct) + 0.5)) < 0.1, "closes 30 min after sunset: " + park.end(oct));
+  assert(Math.abs(park.start(oct) - (g.sunriseHour(oct, g.CITIES.stpete) - 0.5)) < 0.1, "opens 30 min before sunrise: " + park.start(oct));
+  assert(Math.abs(park.end(oct) - (g.sunsetHour(oct, g.CITIES.stpete) + 0.5)) < 0.1, "closes 30 min after sunset: " + park.end(oct));
   assert(park.end(jan) < park.end(oct), "closes earlier in winter");
   assert(/opens 30 min before sunrise, closes 30 min after sunset/.test(park.hours(oct)), park.hours(oct));
   // Published times for St. Pete (sunrise-sunset.org), including both DST switch days.
@@ -1503,8 +1504,8 @@ check("catalog: park hours come from the sun, not a guess", () => {
   const hrs = (t) => Number(t.slice(0, 2)) + Number(t.slice(3)) / 60;
   for (const [iso, rise, set] of published) {
     const d = g.parseDate(iso);
-    assert(Math.abs(g.sunriseHour(d) - hrs(rise)) <= 3 / 60, iso + " sunrise " + g.fmtHour(g.sunriseHour(d)) + ", published " + rise);
-    assert(Math.abs(g.sunsetHour(d) - hrs(set)) <= 3 / 60, iso + " sunset " + g.fmtHour(g.sunsetHour(d)) + ", published " + set);
+    assert(Math.abs(g.sunriseHour(d, g.CITIES.stpete) - hrs(rise)) <= 3 / 60, iso + " sunrise " + g.fmtHour(g.sunriseHour(d, g.CITIES.stpete)) + ", published " + rise);
+    assert(Math.abs(g.sunsetHour(d, g.CITIES.stpete) - hrs(set)) <= 3 / 60, iso + " sunset " + g.fmtHour(g.sunsetHour(d, g.CITIES.stpete)) + ", published " + set);
   }
   assert(g.STOP_BY_ID["crescent-lake-park"].end(oct) === 23, "an exact close stays exact");
 });
@@ -1772,7 +1773,7 @@ check("closing: copy never says a place is open later than its hours", () => {
         if (!line) continue;
         const m = /^(Closes at|Last entry) ([^,.]+)/.exec(line);
         assert(m, id + " " + line);
-        const h = g.nowNY().hour;
+        const h = g.cityNow().hour;
         if (m[1] === "Closes at") assert(m[2] === g.fmtHour(v.gap && h < v.gap[0] ? v.gap[0] : v.end), id + " " + iso + " " + line);
         else assert(v.last != null && m[2] === g.fmtHour(v.last) && v.last < v.end, id + " " + line);
         // "Too late now" only once the place's own last entry has passed.
@@ -1870,7 +1871,7 @@ check("hours: after midnight still belongs to the night before", () => {
     why: "Listed open Friday 5pm to 1am."
   };
   function bind(closedDates) {
-    const stop = g.weekStop(Object.assign({}, base, { closedDates: closedDates }));
+    const stop = g.weekStop(Object.assign({}, base, { closedDates: closedDates }), g.CITIES.stpete);
     const atStop = g.STOPS.findIndex((s) => s.id === id);
     if (atStop >= 0) g.STOPS[atStop] = stop;
     else g.STOPS.push(stop);
@@ -2144,7 +2145,7 @@ check("food: the dinner the page picks comes with up to two alternates, never on
   // cleanDeck drops anything that isn't a fitting dinner outside the pools.
   const raw = { v: 1, anchor: { type: "stop", id: "bellabrava", time: 18, leave: 17.5, alts: ["bellabrava", "nope", "mfa", "kahwa", "stillwaters", "stillwaters", "baba-on-central", "la-v-vietnamese"] },
     pools: { taste: ["kahwa", "stillwaters"], drift: [], dig: [], soft: [] }, park: false };
-  assert(JSON.stringify(g.cleanDeck(raw).anchor.alts) === JSON.stringify(["baba-on-central", "la-v-vietnamese"]), JSON.stringify(g.cleanDeck(raw).anchor));
+  assert(JSON.stringify(g.cleanDeck(raw, "stpete").anchor.alts) === JSON.stringify(["baba-on-central", "la-v-vietnamese"]), JSON.stringify(g.cleanDeck(raw, "stpete").anchor));
 });
 
 check("food: on the day, Shuffle swaps the dinner and the choice survives a reload", () => {
@@ -2324,11 +2325,19 @@ const withEdit = (edit) => () => {
   edit(bad.stops);
   return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(bad) });
 };
+const withTop = (edit) => () => {
+  const bad = JSON.parse(JSON.stringify(stopsFile));
+  edit(bad);
+  return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(bad) });
+};
 const catalogDown = {
   "the request fails": offline,
   "the file is missing": replies({ ok: false, status: 404, json: () => Promise.resolve({}) }),
   "the file isn't JSON": replies({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError("Unexpected token <")) }),
   "the file has no places": replies({ ok: true, status: 200, json: () => Promise.resolve({ city: "St. Petersburg", stops: [] }) }),
+  "the file doesn't say which city it is": withTop((file) => { delete file.cityId; }),
+  "the file has no time zone": withTop((file) => { delete file.timeZone; }),
+  "its time zone isn't a real one": withTop((file) => { file.timeZone = "Mars/Olympus_Mons"; }),
   "one place can't be read": withBadStop,
   "a check date isn't a real day": withEdit((stops) => { stops[20].hoursChecked = "2026-02-31"; }),
   "a closed date isn't a real day": withEdit((stops) => { stops[20].closedDates = ["2026-11-31"]; }),
@@ -2339,7 +2348,7 @@ const catalogDown = {
 const linkOnPhone = OLD_LINKS[2].hash;
 const savedDay = () => {
   const phone = {};
-  phone["cityday-test-v1"] = JSON.stringify({ last: "keep1", plans: { keep1: makePlan({ id: "keep1" }) } });
+  phone["cityday-test-v1"] = JSON.stringify({ last: "keep1", plans: { keep1: makePlan({ id: "keep1", city: "St. Petersburg" }) } });
   return phone;
 };
 
@@ -2471,7 +2480,7 @@ check("catalog file: every whyText uses only {hours} {on} {occ} {when}, and hour
   }
   assert(LEGACY_IDS.length === 19 && LEGACY_IDS.every((id) => g.STOP_BY_ID[id]), "the shipped-with list is off");
   // A $ in a line is read as text.
-  const stop = g.weekStop({ id: "qa-dollar", week: { 0: [9, 17], 1: [9, 17], 2: [9, 17], 3: [9, 17], 4: [9, 17], 5: [9, 17], 6: [9, 17] }, whyText: "Costs $& and $1, open {hours} {on}." });
+  const stop = g.weekStop({ id: "qa-dollar", week: { 0: [9, 17], 1: [9, 17], 2: [9, 17], 3: [9, 17], 4: [9, 17], 5: [9, 17], 6: [9, 17] }, whyText: "Costs $& and $1, open {hours} {on}." }, g.CITIES.stpete);
   assert(stop.why({ iso: "2026-10-13", hours: "9am–5pm", on: "today" }) === "Costs $& and $1, open 9am–5pm today.", stop.why({ iso: "2026-10-13", hours: "9am–5pm", on: "today" }));
 });
 
@@ -2564,6 +2573,386 @@ check("catalog file: nothing opens a link or a saved day until the places have l
   assert(hungWhileWaiting.plan === null && hungWhileWaiting.stops === 0, "a day opened before the places came");
   assert(hungWhileWaiting.loading && hungWhileWaiting.aboutHidden, "the page didn't wait out loud");
   assert(hungWhileWaiting.hash === linkOnPhone && hungWhileWaiting.replaceState === 0, "the link was touched while waiting");
+});
+
+// --- #33: any city, not just St. Pete ---
+
+// A made-up city on the Pacific coast, for tests only. Nothing in index.html points at it: the
+// checks hand it to a fresh page with addCity(), and the suite's main page g never loads it.
+const fixtureFile = JSON.parse(fs.readFileSync(new URL("./qa-fixtures/pacific-test-city.json", import.meta.url), "utf8"));
+const cityDoc = fs.readFileSync(new URL("./docs/adding-a-city.md", import.meta.url), "utf8");
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const throwsError = (fn) => { try { fn(); } catch (e) { return true; } return false; };
+const blocked = (urls) => async (url) => { urls.push(String(url)); throw new Error("network blocked in QA"); };
+const decodeLink = (link) => JSON.parse(Buffer.from(link.replace(/^[^#]*#/, "").replace(/^play\//, "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+const clickOn = (page, el) => el.dispatchEvent(new page.Event("click", { bubbles: true }));
+
+// The page with the fixture added, on a Pacific clock. fxUrls is every address it asked for.
+const fxUrls = [];
+const fx = (await settled()).window;
+fx.fetch = blocked(fxUrls);
+fx.addCity(clone(fixtureFile));
+const fxNoon = new Date("2026-10-07T12:00:00-07:00");
+fx.clockOverride = fxNoon;
+const fxPlan = (overrides) => makePlan(Object.assign({ id: "fx1", city: "qa-pacific", occasion: "Date", must: "coffee, walking, dinner" }, overrides || {}));
+const fxDeck = (pools) => ({ v: 1, anchor: { type: "none" }, pools: Object.assign({ taste: [], drift: [], dig: [], soft: [] }, pools), park: false });
+
+// A page that only ever loads data/stops.json, and asks for nothing else but the places.
+const askedFor = [];
+const plainPage = makePage({ fetchStops: (url) => { askedFor.push(String(url)); return served(); } });
+await plainPage.window.CATALOG_READY;
+
+// Two real cities, for the picker. The second is a test-only clone, loaded inside its check.
+const duo = (await settled()).window;
+duo.fetch = blocked([]);
+
+// What St. Pete read like before #33. These strings are typed out, not built from the config.
+const STPETE_BEFORE = {
+  titles: {
+    "Just because": "Just because, in St. Pete for A and B",
+    Anniversary: "An anniversary in St. Pete for A and B",
+    Date: "A date in St. Pete for A and B",
+    Birthday: "A birthday in St. Pete for A and B",
+    other: "A day in St. Pete for A and B"
+  },
+  formLabel: "St. Petersburg",
+  metaLine: "Saturday, October 10, 2026 · St. Petersburg",
+  weatherUrl: "https://api.weather.gov/points/27.770,-82.640",
+  stormLine: "Saturday, 78°F, wind 10 mph E. Sunny. Florida storms usually pass. Duck inside, then pick up where you left off.",
+  directions: {
+    typed: "800 2nd Ave NE, FL",
+    withFl: "800 2nd Ave NE, FL",
+    withFlorida: "800 2nd Ave NE, Florida",
+    withLowerFl: "800 2nd Ave NE, fl",
+    none: "Dinner reservation, St. Petersburg, FL"
+  }
+};
+
+check("city: index.html names no city, region, coordinates or time zone, and never points at qa-fixtures", () => {
+  const found = (html.match(/Petersburg|St\. Pete|\bFL\b|27\.77|82\.64|America\/New_York|America\/Los_Angeles|nyParts|nowNY|qa-fixtures|qa-pacific|pacific-test-city/g) || []).concat(html.match(/florida|stpete/gi) || []);
+  assert(!found.length, "index.html still says: " + [...new Set(found)].join(", "));
+  assert((html.match(/var CATALOG_URL = "data\/stops\.json";/g) || []).length === 1, "CATALOG_URL isn't the one file");
+  assert((html.match(/fetch\(CATALOG_URL/g) || []).length === 1, "the places aren't fetched exactly once");
+  assert(!/<meta[^>]*(?:description)[^>]*(?:Pete|Florida)/i.test(html), "a meta description names a city");
+});
+
+check("city: St. Pete reads exactly as before (all five titles, form label, meta line, weather address 27.770,-82.640, storm line, anchor directions)", () => {
+  const sp = makePlan({ you: "A", them: "B" });
+  Object.entries(STPETE_BEFORE.titles).forEach(([occasion, title]) => {
+    assert(g.welcomeLine(Object.assign({}, sp, { occasion: occasion === "other" ? "" : occasion })) === title, occasion + ": " + g.welcomeLine(Object.assign({}, sp, { occasion })));
+  });
+  // The form's label.
+  resetPhone();
+  g.setMode("create");
+  g.plan = null;
+  g.fillForm(null);
+  assert($("city-fixed").textContent === STPETE_BEFORE.formLabel && !$("city-fixed").classList.contains("hidden"), "form label " + $("city-fixed").textContent);
+  assert($("city-pick").classList.contains("hidden") && $("city-pick").innerHTML === "", "a picker shows for one city");
+  // The meta line on the desk and on the first screen of the day.
+  creatorDesk({});
+  assert($("desk-top").textContent.includes(STPETE_BEFORE.metaLine), "desk: " + $("desk-top").textContent.slice(0, 160));
+  startPlay({});
+  assert(playText().includes(STPETE_BEFORE.metaLine), "curtain: " + playText().slice(0, 160));
+  assert(/An anniversary in St\. Pete\. One day\./.test(playText()), "curtain title: " + playText().slice(0, 160));
+  // The weather address.
+  const urls = [];
+  const realFetch = g.fetch;
+  g.fetch = blocked(urls);
+  try {
+    resetPhone();
+    g.weatherByDate = {};
+    g.openDay(makePlan({}), { mode: "play" });
+    assert(urls[0] === STPETE_BEFORE.weatherUrl, "weather address " + urls[0]);
+  } finally {
+    g.fetch = realFetch;
+  }
+  // The storm line on the plan B screen.
+  startPlay({});
+  g.act("begin");
+  g.act("iffy");
+  assert(playText().includes(STPETE_BEFORE.stormLine), "storm line: " + playText().slice(0, 300));
+  // Directions for a place the creator typed in.
+  const where = (typed) => { startPlay({ anchor: { name: "Dinner reservation", time: "18:30", where: typed } }); return g.anchorView().query; };
+  const asked = { typed: where("800 2nd Ave NE"), withFl: where("800 2nd Ave NE, FL"), withFlorida: where("800 2nd Ave NE, Florida"), withLowerFl: where("800 2nd Ave NE, fl"), none: where("") };
+  Object.keys(STPETE_BEFORE.directions).forEach((k) => assert(asked[k] === STPETE_BEFORE.directions[k], k + ": " + asked[k]));
+});
+
+check("city: the St. Pete config passes the schema, its time zone is real, and links with no city fall back to it", () => {
+  const validate = catalogValidator();
+  assert(validate(stopsFile), JSON.stringify(validate.errors && validate.errors.slice(0, 3)));
+  const noRain = clone(stopsFile);
+  delete noRain.rainLine;
+  assert(validate(noRain), "rainLine should be optional");
+  ["cityId", "short", "region", "regionNames", "timeZone", "weather", "sun"].forEach((key) => {
+    const bad = clone(stopsFile);
+    delete bad[key];
+    assert(!validate(bad), "the schema accepted a file with no " + key);
+  });
+  assert(!validate(Object.assign(clone(stopsFile), { surprise: true })), "the schema accepted an unknown top-level key");
+  new Intl.DateTimeFormat("en-US", { timeZone: stopsFile.timeZone });
+  const city = g.CITIES[stopsFile.cityId];
+  assert(city && g.DEFAULT_CITY === stopsFile.cityId && Object.keys(g.CITIES).join() === stopsFile.cityId, "St. Pete isn't the one loaded city: " + Object.keys(g.CITIES));
+  assert(city.name === stopsFile.city && city.short === stopsFile.short && city.timeZone === stopsFile.timeZone && city.rainLine === stopsFile.rainLine, "the page changed the config");
+  assert(city.weather.lat === 27.770 && city.weather.lon === -82.640 && city.sun.lat === 27.7706 && city.sun.lon === -82.6403, "weather and sun are not their own points");
+  assert(g.cityIdFor("") === "stpete" && g.cityIdFor(undefined) === "stpete" && g.cityIdFor("stpete") === "stpete" && g.cityIdFor("St. Petersburg") === "stpete", "id lookup");
+  assert(g.cityIdFor("nowhere") === null && g.cityIdFor("constructor") === null && g.cityIdFor("__proto__") === null && g.cityIdFor(7) === null, "an unknown city got an id");
+  g.STOPS.forEach((s) => assert(s.city === "stpete", s.id + " has no city"));
+  g.CATALOG.stops.forEach((e) => assert(e.city === undefined, e.id + " was changed in place"));
+  OLD_LINKS.forEach((link) => {
+    const plan = g.decodePlan(link.hash.replace(/^#(?:play\/)?/, ""));
+    assert(plan && plan.city === "stpete", link.built + ": opens in " + (plan && plan.city));
+  });
+  // A bad config fails the load. Reading changes nothing, so these can run on the suite's page.
+  const before = g.STOPS.length + "|" + Object.keys(g.CITIES) + "|" + Object.keys(g.STOP_BY_ID).length;
+  const asked = (edit) => { const f = clone(fixtureFile); edit(f); return throwsError(() => g.readCity(f)); };
+  assert(!throwsError(() => g.readCity(clone(fixtureFile))), "the fixture should read");
+  assert(asked((f) => { f.timeZone = "Mars/Olympus_Mons"; }), "a made-up time zone was accepted");
+  assert(asked((f) => { delete f.timeZone; }) && asked((f) => { f.timeZone = ""; }), "a missing time zone was accepted");
+  assert(!throwsError(() => { const f = clone(stopsFile); f.cityId = "stpete-copy"; f.city = "Copy (QA only)"; f.stops.forEach((s) => { s.id = "copy-" + s.id; }); g.readCity(f); }), "a file with a time zone should read");
+  assert(asked((f) => { delete f.cityId; }) && asked((f) => { f.cityId = "Not An Id"; }), "a missing or bad cityId was accepted");
+  assert(asked((f) => { f.cityId = "stpete"; }), "a city id that is already loaded was accepted");
+  assert(asked((f) => { f.city = "St. Petersburg"; }), "a city name that is already loaded was accepted");
+  assert(asked((f) => { delete f.short; }) && asked((f) => { delete f.region; }) && asked((f) => { f.regionNames = []; }), "a missing name or region was accepted");
+  assert(asked((f) => { delete f.weather; }) && asked((f) => { f.sun = { lat: 200, lon: 0 }; }), "a missing or impossible point was accepted");
+  assert(asked((f) => { f.stops[0].id = "kahwa"; }), "a stop id that another city already has was accepted");
+  assert(asked((f) => { f.stops[1].id = f.stops[0].id; }), "a stop id twice in one city was accepted");
+  assert(asked((f) => { delete f.stops[0].week; }), "a place with no week was accepted");
+  assert(before === g.STOPS.length + "|" + Object.keys(g.CITIES) + "|" + Object.keys(g.STOP_BY_ID).length, "reading a city changed the page");
+  // A city that fails halfway adds none of its places.
+  const half = clone(fixtureFile);
+  half.stops[2].week = null;
+  const nStops = fx.STOPS.length;
+  assert(throwsError(() => fx.addCity(Object.assign(half, { cityId: "qa-half", city: "Half City (QA only)" }))), "a bad place was accepted");
+  assert(fx.STOPS.length === nStops && !fx.CITIES["qa-half"], "a city that failed was partly kept");
+});
+
+check("city: a Pacific fixture city builds a day with its own title, label, weather address, directions and hours", () => {
+  fx.clockOverride = fxNoon;
+  fxUrls.length = 0;
+  fx.weatherByDate = {};
+  const p = fxPlan({ must: "coffee, walking, driving, dinner", anchor: { name: "Dinner reservation", time: "18:30", where: "9 Test Way" } });
+  const deck = fx.buildDeck(p);
+  const ids = Object.values(deck.pools).flat();
+  assert(ids.includes("qa-pacific-cafe") && ids.includes("qa-pacific-park"), "the fixture's places didn't come up: " + ids);
+  ids.forEach((id) => assert(/^qa-pacific-/.test(id), id + " is another city's place"));
+  assert(deck.park === false, "parking offered in a city with none");
+  // The same brief in St. Pete still builds the same deck, with the fixture loaded beside it.
+  const sp = fx.buildDeck(makePlan({ id: "sp1" }));
+  assert(JSON.stringify(sp) === JSON.stringify(deckOf({ id: "sp1" })), "the fixture changed a St. Pete deck");
+  assert(!deckPlaceIds(sp).some((id) => /^qa-pacific-/.test(id)), "a fixture place came up in St. Pete");
+  // The title and the city line.
+  fx.openDay(p, { mode: "create" });
+  const desk = fx.document.getElementById("desk-top").textContent;
+  assert(desk.includes("A date in Fixture City for A and B") && desk.includes("Saturday, October 10, 2026 · Fixture City (QA only)"), "desk: " + desk.slice(0, 200));
+  assert(!/St\. Pete|Petersburg/.test(desk), "desk still names St. Pete");
+  fx.openDay(p, { mode: "play" });
+  const curtain = fx.document.getElementById("play").textContent;
+  assert(/A date in Fixture City\. One day\./.test(curtain) && curtain.includes("· Fixture City (QA only)") && !/St\. Pete|Petersburg/.test(curtain), "curtain: " + curtain.slice(0, 200));
+  // The weather address, and a forecast that belongs to it.
+  assert(fxUrls[0] === "https://api.weather.gov/points/44.000,-124.500", "weather address " + fxUrls[0]);
+  assert(fx.weatherByDate["2026-10-10"].point === "44.000,-124.500", "forecast not tied to its point");
+  // Plan B has no storm line unless the city has one.
+  fx.act("begin");
+  fx.act("iffy");
+  const iffy = fx.document.getElementById("play").textContent;
+  assert(/ Duck inside, then pick up where you left off\./.test(iffy) && !/storms usually pass|Florida/.test(iffy), "iffy: " + iffy.slice(0, 200));
+  // Directions use the city's own region.
+  const query = (where) => { fx.plan.anchor.where = where; return fx.anchorView().query; };
+  assert(query("9 Test Way") === "9 Test Way, ZZ", "typed: " + query("9 Test Way"));
+  assert(query("9 Test Way, zz") === "9 Test Way, zz", "region already typed");
+  assert(query("9 Test Way, FL") === "9 Test Way, FL, ZZ", "another city's region isn't this one's");
+  assert(query("") === "Dinner reservation, Fixture City (QA only), ZZ", "no address: " + query(""));
+  // Hours: its own, with sunrise and sunset worked out at its own point.
+  const cafe = fx.stopView("qa-pacific-cafe"), late = fx.stopView("qa-pacific-late"), park = fx.stopView("qa-pacific-park");
+  assert(cafe.hours === "7am–5pm" && late.hours === "5pm–1am", cafe.hours + " / " + late.hours);
+  assert(/Closed/.test(fx.STOP_BY_ID["qa-pacific-late"].hours(fx.parseDate("2026-10-13"), "2026-10-13")), "the late counter is open on a Tuesday");
+  const day = fx.parseDate("2026-10-10"), here = fx.CITIES["qa-pacific"], sunrise = fx.sunriseHour(day, here), sunset = fx.sunsetHour(day, here);
+  assert(sunrise > 6.5 && sunrise < 8.5 && sunset > 17.5 && sunset < 19.5, "sunrise " + sunrise + ", sunset " + sunset);
+  assert(Math.abs(park.start - (sunrise - 0.5)) < 0.1 && Math.abs(park.end - (sunset + 0.5)) < 0.1, "park " + park.start + "–" + park.end);
+  assert(/opens 30 min before sunrise, closes 30 min after sunset/.test(park.hours), park.hours);
+  assert(Math.abs(fx.sunsetHour(day, fx.CITIES.stpete) - sunset) > 0.25, "sunset is the same as St. Pete's");
+  assert(fx.here() === here, "here() isn't the open day's city");
+});
+
+check("city: the fixture's clock runs on Pacific time for open now, closing buffers and after midnight", () => {
+  const was = process.env.TZ;
+  const sunrises = [];
+  try {
+    for (const tz of ["UTC", "Asia/Kolkata"]) {
+      process.env.TZ = tz;
+      const p = fxPlan({ id: "fx5", deck: fxDeck({ taste: ["qa-pacific-cafe", "qa-pacific-late"], drift: ["qa-pacific-park"] }) });
+      fx.weatherByDate = { "2026-10-10": { status: "ready", name: "Saturday", temp: "60°F", wind: "5 mph W", short: "Sunny", wet: false, fetchedAt: Date.now() } };
+      fx.openDay(p, { mode: "play" });
+      const clock = (stamp) => { fx.clockOverride = new Date(stamp); };
+      const label = tz + ": ";
+      // 11:30pm Pacific on the night is that night, whatever the phone's own zone says.
+      clock("2026-10-10T23:30:00-07:00");
+      const now = fx.cityNow();
+      assert(now.iso === "2026-10-10" && now.hour === 23.5, label + JSON.stringify(now));
+      assert(fx.isPlanDay() && fx.planHour() === 23.5, label + "the night isn't the plan night");
+      // Open now, then the closing buffer: a 20-minute coffee and a 15-minute walk before 5pm.
+      clock("2026-10-10T15:00:00-07:00");
+      assert(fx.offered("taste").includes("qa-pacific-cafe") && !fx.offered("taste").includes("qa-pacific-late"), label + "3pm: " + fx.offered("taste"));
+      clock("2026-10-10T16:30:00-07:00");
+      const cafe = fx.stopView("qa-pacific-cafe");
+      assert(fx.viewHour(cafe) === 16.5 && fx.openNow(cafe, "held") && fx.closingLine(cafe) === "Closes at 5pm. Not much time left.", label + "4:30pm: " + fx.closingLine(cafe));
+      clock("2026-10-10T16:50:00-07:00");
+      assert(!fx.offered("taste").includes("qa-pacific-cafe") && fx.openNow(fx.stopView("qa-pacific-cafe"), "held"), label + "4:50pm: the buffer didn't hold the cafe back: " + fx.offered("taste"));
+      clock("2026-10-10T17:10:00-07:00");
+      assert(!fx.openNow(fx.stopView("qa-pacific-cafe"), "held"), label + "5:10pm: the cafe is still open");
+      // After midnight on the plan night, the late counter is still open.
+      clock("2026-10-11T00:30:00-07:00");
+      assert(fx.cityNow().iso === "2026-10-11" && fx.planHour() === 24.5 && fx.stillHeldNight("2026-10-10") && !fx.isPlanDay(), label + "12:30am isn't the plan night");
+      const counter = fx.stopView("qa-pacific-late");
+      assert(fx.viewHour(counter) === 24.5 && fx.openNow(counter, "held") && fx.untilLine(counter) === "Open until 1am", label + "12:30am: " + fx.untilLine(counter));
+      clock("2026-10-11T01:30:00-07:00");
+      assert(!fx.openNow(fx.stopView("qa-pacific-late"), "held"), label + "1:30am: the late counter is still open");
+      sunrises.push(fx.sunriseHour(fx.parseDate("2026-10-10"), fx.CITIES["qa-pacific"]));
+    }
+  } finally {
+    if (was === undefined) delete process.env.TZ; else process.env.TZ = was;
+    fx.clockOverride = fxNoon;
+  }
+  assert(sunrises[0] === sunrises[1] && sunrises[0] > 6.5 && sunrises[0] < 8.5, "sunrise " + sunrises);
+});
+
+check("city: old #play/ links with no city open as St. Pete, the 8240ac1 St. Petersburg link still opens, new links carry city, and an unknown city shows the broken-link screen", () => {
+  // No city field at all.
+  const noCity = OLD_LINKS[OLD_LINKS.length - 1];
+  assert(/^40a974a/.test(noCity.built) && decodeLink(noCity.hash).city === undefined, "the 40a974a link has a city");
+  [g, fx].forEach((page) => {
+    const old = page.decodePlan(noCity.hash.replace(/^#play\//, ""));
+    assert(old && old.city === "stpete", "no city opened as " + (old && old.city));
+    assert(deckPlaceIds(old.deck).every((id) => page.STOP_BY_ID[id].city === "stpete"), "an old deck reaches outside St. Pete");
+    assert(old.deck.anchor.id === "bellabrava" && old.deck.anchor.alts.join() === "la-v-vietnamese,pin-wok-bowl" && old.deck.allergy === true, "the frozen deck changed");
+  });
+  resetPhone();
+  sunny("2026-10-10");
+  openLink(noCity.hash);
+  assert(g.mode === "play" && g.plan.city === "stpete" && /Alex and Riley/.test(playText()) && /· St\. Petersburg/.test(playText()), "the no-city link didn't open: " + playText().slice(0, 100));
+  // The oldest link says "St. Petersburg" and carries no deck.
+  assert(decodeLink(OLD_LINKS[0].hash).city === "St. Petersburg", "the 8240ac1 link doesn't say St. Petersburg");
+  resetPhone();
+  sunny("2026-10-10");
+  openLink(OLD_LINKS[0].hash);
+  assert(g.mode === "play" && g.plan.city === "stpete" && /· St\. Petersburg/.test(playText()), "the 8240ac1 link didn't open: " + playText().slice(0, 100));
+  // New links carry the city, and the deck stays version 1.
+  resetPhone();
+  g.setMode("create");
+  g.plan = null;
+  g.fillForm(null);
+  $("you").value = "A"; $("them").value = "B";
+  g.applyPills({ occasion: "Date", drink: "no", lean: "gems" });
+  g.renderKinds("Date", "easy");
+  $("budget-amount").value = "120";
+  $("date").value = "2026-10-10";
+  assert(g.submitForm() === true && g.plan.city === "stpete", "the form didn't make a St. Pete day");
+  const sent = decodeLink(g.shareUrl());
+  assert(sent.city === "stpete" && sent.deck.v === 1, "the new link: " + JSON.stringify(sent).slice(0, 120));
+  fx.openDay(fxPlan({}), { mode: "create" });
+  assert(decodeLink(fx.shareUrl()).city === "qa-pacific", "the fixture's link doesn't carry its city");
+  // An unknown city is a broken link, not a day in the wrong place.
+  const stray = g.encodePlan(Object.assign(g.linkPlan(g.plan), { city: "nowhere" }));
+  assert(g.decodePlan(stray) === null, "an unknown city decoded");
+  resetPhone();
+  openLink("#play/" + stray);
+  assert(g.plan === null && /This link didn't come through whole\./.test(playText()), "no broken-link screen: " + playText().slice(0, 100));
+  assert(locationState.hash === "#play/" + stray, "the broken link's hash changed");
+  // The fixture's own link means nothing to a page that never loaded it.
+  const fxLink = g.encodePlan(g.linkPlan(Object.assign(fxPlan({ deck: fxDeck({ taste: ["qa-pacific-cafe"] }) }), {})));
+  assert(g.decodePlan(fxLink) === null, "the suite's page opened a city it never loaded");
+  // A deck only keeps its own city's places, in both directions.
+  const mixed = { v: 1, anchor: { type: "stop", id: "bellabrava", time: 18, leave: 17.5, alts: ["qa-pacific-late", "la-v-vietnamese"] }, pools: { taste: ["qa-pacific-cafe", "kahwa"], drift: ["qa-pacific-park", "pier"], dig: [], soft: [] }, park: true };
+  const inFixture = fx.decodePlan(fx.encodePlan(Object.assign(fxPlan({}), { deck: mixed, skip: ["kahwa", "qa-pacific-park"] })));
+  assert(inFixture.deck.anchor.type === "none" && inFixture.deck.pools.taste.join() === "qa-pacific-cafe" && inFixture.deck.pools.drift.join() === "qa-pacific-park" && inFixture.deck.park === false, "a fixture deck kept St. Pete places: " + JSON.stringify(inFixture.deck));
+  assert(inFixture.skip.join() === "qa-pacific-park", "a fixture day's skips kept St. Pete places");
+  const inStPete = fx.decodePlan(fx.encodePlan(Object.assign(makePlan({}), { deck: mixed, skip: ["kahwa", "qa-pacific-park"] })));
+  assert(inStPete.deck.anchor.id === "bellabrava" && inStPete.deck.anchor.alts.join() === "la-v-vietnamese" && inStPete.deck.pools.taste.join() === "kahwa" && inStPete.deck.pools.drift.join() === "pier" && inStPete.deck.park === true, "a St. Pete deck kept fixture places: " + JSON.stringify(inStPete.deck));
+  assert(inStPete.skip.join() === "kahwa", "a St. Pete day's skips kept fixture places");
+  // The page says the same thing about a day it saved before the city was a field.
+  assert(g.decodePlan(g.encodePlan(makePlan({ city: "St. Petersburg" }))).city === "stpete" && g.decodePlan(g.encodePlan(makePlan({ city: "" }))).city === "stpete", "a saved day lost its city");
+});
+
+check("city: one real city shows no picker and the fixture doesn't count; two real cities show a picker that sets the day's city", () => {
+  duo.clockOverride = new Date("2026-10-10T23:30:00-07:00");
+  const doc = duo.document;
+  const el = (id) => doc.getElementById(id);
+  duo.addCity(clone(fixtureFile));
+  assert(duo.realCities().map((c) => c.cityId).join() === "stpete" && Object.keys(duo.CITIES).join() === "stpete,qa-pacific", "the fixture counted as a real city");
+  duo.setMode("create");
+  duo.plan = null;
+  duo.fillForm(null);
+  assert(el("city-pick").classList.contains("hidden") && el("city-pick").innerHTML === "", "a picker showed for one real city");
+  assert(!el("city-fixed").classList.contains("hidden") && el("city-fixed").textContent === "St. Petersburg", "the city label: " + el("city-fixed").textContent);
+  // A second real city: a test-only clone with its own ids.
+  const second = clone(fixtureFile);
+  Object.assign(second, { cityId: "qa-second", city: "Second City (QA only)", short: "Second City", fixture: false });
+  second.stops.forEach((s) => { s.id = s.id.replace("qa-pacific", "qa-second"); });
+  duo.addCity(second);
+  assert(duo.realCities().map((c) => c.cityId).join() === "stpete,qa-second", "real cities: " + duo.realCities().map((c) => c.cityId));
+  duo.plan = null;
+  duo.fillForm(null);
+  const buttons = () => [...doc.querySelectorAll("#city-pick button")];
+  assert(el("city-fixed").classList.contains("hidden") && !el("city-pick").classList.contains("hidden"), "the picker isn't showing");
+  assert(el("city-pick").getAttribute("role") === "group" && el("city-pick").getAttribute("aria-label") === "City", "the picker isn't a labelled group");
+  assert(buttons().map((b) => b.textContent).join("|") === "St. Petersburg|Second City (QA only)", "buttons: " + buttons().map((b) => b.textContent));
+  assert(buttons().map((b) => b.getAttribute("aria-pressed")).join() === "true,false" && duo.pickedCityId() === "stpete", "the first city isn't the pick");
+  // The date can run from "today" in the picked city's own zone: it is still Oct 10 on the Pacific coast.
+  assert(el("date").getAttribute("min") === "2026-10-11" && el("date").getAttribute("max") === "2026-10-14", "St. Pete's dates: " + el("date").getAttribute("min"));
+  clickOn(duo, buttons()[1]);
+  assert(buttons().map((b) => b.getAttribute("aria-pressed")).join() === "false,true" && duo.pickedCityId() === "qa-second", "the click didn't pick the city");
+  assert(el("date").getAttribute("min") === "2026-10-10" && el("date").getAttribute("max") === "2026-10-13", "the dates didn't follow the pick: " + el("date").getAttribute("min"));
+  // The form never reads the pick as a drink or a lean.
+  assert(!doc.querySelector("#city-pick [data-group], #city-pick [data-value]"), "the picker borrows the form's pill hooks");
+  el("you").value = "A"; el("them").value = "B";
+  duo.applyPills({ occasion: "Date", drink: "no", lean: "gems" });
+  duo.renderKinds("Date", "easy");
+  assert(duo.pickedCityId() === "qa-second", "filling the pills moved the city");
+  el("budget-amount").value = "120";
+  el("date").value = "2026-10-10";
+  assert(duo.submitForm() === true && duo.plan.city === "qa-second", "the day's city: " + (duo.plan && duo.plan.city));
+  assert(decodeLink(duo.shareUrl()).city === "qa-second" && duo.here().cityId === "qa-second", "the link or the clock didn't follow the city");
+  assert(el("desk-top").textContent.includes("A date in Second City for A and B") && el("desk-top").textContent.includes("· Second City (QA only)"), "desk: " + el("desk-top").textContent.slice(0, 160));
+  duo.fillForm(duo.plan);
+  assert(duo.pickedCityId() === "qa-second" && buttons().map((b) => b.getAttribute("aria-pressed")).join() === "false,true", "Change the day lost the city");
+  // Back to St. Pete: the day on the Pacific clock is already past by New York's.
+  clickOn(duo, buttons()[0]);
+  el("date").value = "2026-10-10";
+  assert(duo.submitForm() === false && /today or a date ahead/.test(el("form-err").textContent), "a date before St. Pete's today was accepted");
+});
+
+check("city: the fixture file passes the schema, every place has a source and a check date, and the page never loads it on its own", () => {
+  const validate = catalogValidator();
+  assert(validate(fixtureFile), JSON.stringify(validate.errors && validate.errors.slice(0, 3)));
+  assert(fixtureFile.fixture === true && fixtureFile.rainLine === undefined && fixtureFile.cityId === "qa-pacific", "the fixture's config");
+  assert(fixtureFile.timeZone === "America/Los_Angeles" && fixtureFile.weather.lat === 44.000 && fixtureFile.weather.lon === -124.500 && fixtureFile.sun.lat === 44.000 && fixtureFile.sun.lon === -124.500, "the fixture's place on the map");
+  assert(fixtureFile.stops.map((s) => s.id).join() === "qa-pacific-cafe,qa-pacific-park,qa-pacific-late", "the fixture's places");
+  fixtureFile.stops.forEach((s) => {
+    assert(/^https:\/\/example\.invalid\//.test(s.source), s.id + " has a real-looking source");
+    assert(typeof s.hoursChecked === "string" && g.realDay(s.hoursChecked), s.id + " has no real check date");
+    assert(/^QA Fixture /.test(s.name) && s.hint === "Test fixture. Not a real place.", s.id + " could pass for a real place");
+    assert(!stopsFile.stops.some((e) => e.id === s.id), s.id + " is also a St. Pete place");
+  });
+  assert(fixtureFile.cityId !== stopsFile.cityId && fixtureFile.city !== stopsFile.city, "the fixture shares a city with the file");
+  assert(fixtureFile.stops[2].week["6"].join() === "17,25" && [0, 1, 2, 3, 4, 5].every((d) => fixtureFile.stops[2].week[d] === null), "the late counter isn't Saturday only");
+  // Nothing loads it but a test that asks.
+  assert(askedFor.length === 1 && /data\/stops\.json$/.test(askedFor[0]), "the page asked for " + askedFor.join(", "));
+  [g, plainPage.window].forEach((page) => {
+    assert(Object.keys(page.CITIES).join() === "stpete" && !page.STOPS.some((s) => /^qa-pacific/.test(s.id)), "a page loaded the fixture on its own");
+  });
+  assert(!html.includes("qa-fixtures") && (html.match(/addCity\(/g) || []).length === 1, "index.html reaches for another city file");
+});
+
+check("city: docs/adding-a-city.md names every config field, source and hoursChecked", () => {
+  const fields = Object.keys(stopsSchema.properties).filter((k) => k !== "$schema" && k !== "stops");
+  assert(fields.join() === "city,cityId,short,region,regionNames,timeZone,weather,sun,rainLine,fixture", "the schema's fields: " + fields);
+  fields.forEach((k) => assert(cityDoc.includes("`" + k + "`"), "the doc doesn't name " + k));
+  ["`source`", "`hoursChecked`", "data/<cityId>.json", "data/stops.json", "`loadCatalog`", "#50"].forEach((word) => assert(cityDoc.includes(word), "the doc doesn't say " + word));
+  assert(/fetches only `data\/stops\.json`/.test(cityDoc) && /not loaded until `loadCatalog` fetches it/.test(cityDoc), "the doc doesn't say a second file isn't loaded yet");
+  assert(!/no code change/i.test(cityDoc), "the doc says a new city needs no code change");
+  assert(/permanent/i.test(cityDoc) && /unique/i.test(cityDoc) && /IANA/.test(cityDoc) && /3 decimals/.test(cityDoc) && /first/i.test(cityDoc), "the doc is missing a rule");
+  assert(/19 original places/.test(cityDoc) && /null/.test(cityDoc), "the doc doesn't say who may leave hoursChecked null");
+  assert(fs.readFileSync(new URL("./README.md", import.meta.url), "utf8").includes("docs/adding-a-city.md"), "the README doesn't link the doc");
 });
 
 const failed = results.filter((r) => r.startsWith("FAIL"));

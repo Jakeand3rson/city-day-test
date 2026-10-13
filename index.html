@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#FAFAFA" />
-  <meta name="description" content="A nudge for a day out in St. Pete, not a rigid plan. Pick what's calling, reveal one place, go." />
+  <meta name="description" content="A nudge for a day out, not a rigid plan. Pick what's calling, reveal one place, go." />
   <title>City Day</title>
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="City Day" />
   <meta property="og:title" content="City Day" />
-  <meta property="og:description" content="A nudge for a day out in St. Pete, not a rigid plan. Pick what's calling, reveal one place, go." />
+  <meta property="og:description" content="A nudge for a day out, not a rigid plan. Pick what's calling, reveal one place, go." />
   <meta property="og:url" content="https://jakeand3rson.github.io/city-day-test/" />
   <meta property="og:image" content="https://jakeand3rson.github.io/city-day-test/og-image.png" />
   <meta property="og:image:width" content="1200" />
@@ -17,7 +17,7 @@
   <meta property="og:image:alt" content="City Day: a sun over a low skyline and the water" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="City Day" />
-  <meta name="twitter:description" content="A nudge for a day out in St. Pete, not a rigid plan." />
+  <meta name="twitter:description" content="A nudge for a day out, not a rigid plan." />
   <meta name="twitter:image" content="https://jakeand3rson.github.io/city-day-test/og-image.png" />
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
@@ -466,7 +466,8 @@
         </label>
         <div class="group">
           <p>City</p>
-          <div class="city-fixed">St. Petersburg</div>
+          <div class="city-fixed" id="city-fixed"></div>
+          <div class="pills hidden" id="city-pick" role="group" aria-label="City"></div>
           <p class="meta" style="margin-top:0.35rem">This test only.</p>
         </div>
         <details class="set" id="set-box">
@@ -598,26 +599,27 @@
       return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
     }
 
-    function nyParts(date) {
+    // The clock is the city's own, so a day on the Pacific coast runs on Pacific time wherever the phone is.
+    function cityParts(date, city) {
       var o = {};
       new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
+        timeZone: (city || here()).timeZone, year: "numeric", month: "2-digit", day: "2-digit",
         hour: "2-digit", minute: "2-digit", hour12: false
       }).formatToParts(date).forEach(function (part) { o[part.type] = part.value; });
       return { iso: o.year + "-" + o.month + "-" + o.day, hour: (Number(o.hour) % 24) + Number(o.minute) / 60 };
     }
 
-    function nowNY() {
-      return nyParts(clockOverride || new Date());
+    function cityNow(city) {
+      return cityParts(clockOverride || new Date(), city);
     }
 
     function isPlanDay() {
-      return !!plan && nowNY().iso === plan.date;
+      return !!plan && cityNow().iso === plan.date;
     }
 
     // Friends often open the link the day before. Those taps must not write the real day.
     function beforePlanDay() {
-      return !!plan && nowNY().iso < plan.date;
+      return !!plan && cityNow().iso < plan.date;
     }
 
     function dayStartsLine() {
@@ -635,7 +637,7 @@
     // (until 6am) still counts as the plan night: 12:30am is hour 24.5.
     function planHour() {
       if (!plan) return null;
-      var now = nowNY();
+      var now = cityNow();
       if (now.iso === plan.date) return now.hour;
       if (now.iso === addDays(plan.date, 1) && now.hour < 6) return now.hour + 24;
       return null;
@@ -649,7 +651,7 @@
 
     // A card revealed on the plan night is still that night after midnight.
     function stillHeldNight(iso) {
-      var now = nowNY();
+      var now = cityNow();
       if (now.iso === iso) return true;
       return !!plan && iso === plan.date && now.iso === addDays(plan.date, 1) && now.hour < 6;
     }
@@ -662,7 +664,7 @@
 
     // "today", "on Saturday" this week, or "on Saturday, October 24" further out.
     function dayPhrase(iso) {
-      var today = nowNY().iso;
+      var today = cityNow().iso;
       if (iso === today) return "today";
       var d = parseDate(iso);
       var weekday = d.toLocaleDateString("en-US", { weekday: "long" });
@@ -682,18 +684,18 @@
       return h12 + (mm ? ":" + (mm < 10 ? "0" : "") + mm : "") + suffix;
     }
 
-    // Sunrise over downtown St. Pete (NOAA approximation), as a local hour.
-    function sunriseHour(d) {
-      return sunEvent(d, -1);
+    // Sunrise over the city's sun point (NOAA approximation), as a local hour.
+    function sunriseHour(d, city) {
+      return sunEvent(d, -1, city);
     }
 
-    // Sunset over downtown St. Pete (NOAA approximation), as a local hour.
-    function sunsetHour(d) {
-      return sunEvent(d, 1);
+    // Sunset over the city's sun point (NOAA approximation), as a local hour.
+    function sunsetHour(d, city) {
+      return sunEvent(d, 1, city);
     }
 
-    function sunEvent(d, which) {
-      var rad = Math.PI / 180, lat = 27.7706, lng = -82.6403;
+    function sunEvent(d, which, city) {
+      var rad = Math.PI / 180, lat = city.sun.lat, lng = city.sun.lon;
       var n = Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000);
       var g = 2 * Math.PI / 365 * (n - 1);
       var eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
@@ -701,7 +703,7 @@
       var ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl)) / rad;
       var utcMin = 720 - 4 * (lng - which * ha) - eq;
       var at = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) + utcMin * 60000);
-      return nyParts(at).hour;
+      return cityParts(at, city).hour;
     }
 
     function esc(s) {
@@ -718,9 +720,42 @@
 
     // The places live in data/stops.json (shape: data/stops.schema.json). loadCatalog() fills these
     // before anything else runs, so nothing here reads STOPS until the file has loaded.
+    // Every city's places share one list, and each place knows its city (s.city).
     var STOPS = [];
     var STOP_BY_ID = {};
     var CATALOG = null;
+    // Each city's config by cityId, in the order they loaded. A link with no city opens in the first.
+    var CITIES = {};
+    var DEFAULT_CITY = null;
+
+    // A known id, a city's own name (an older saved day carries the full name), or nothing (the first city).
+    // Anything else is null: a deck must never play against another city's places.
+    function cityIdFor(value) {
+      var v = value == null ? "" : String(value);
+      if (!v) return DEFAULT_CITY;
+      if (Object.prototype.hasOwnProperty.call(CITIES, v)) return v;
+      return Object.keys(CITIES).filter(function (id) { return CITIES[id].name === v; })[0] || null;
+    }
+
+    function cityOf(p) {
+      return CITIES[cityIdFor(p.city)];
+    }
+
+    // The open day's city. With no day open, the city picked on the form.
+    function here() {
+      return CITIES[plan ? cityIdFor(plan.city) : pickedCityId()];
+    }
+
+    // The test-only fixture city is never offered.
+    function realCities() {
+      return Object.keys(CITIES).map(function (id) { return CITIES[id]; }).filter(function (c) { return c.fixture !== true; });
+    }
+
+    // The city's parking place, or null when it has none.
+    function parkingId(cid) {
+      var found = STOPS.filter(function (s) { return s.parking === true && s.city === (cid || cityOf(plan).cityId); })[0];
+      return found ? found.id : null;
+    }
 
     function hoursRange(w) {
       return fmtHour(w[0]) + "–" + fmtHour(w[1]);
@@ -757,11 +792,12 @@
       });
     }
 
-    function weekStop(raw) {
+    function weekStop(raw, city) {
       if (!raw || typeof raw.id !== "string" || !raw.week || typeof raw.week !== "object") throw new Error("A place is missing its id or its week.");
       if (typeof raw.why !== "string" && typeof raw.whyText !== "string") throw new Error(raw.id + " has no line about it.");
       checkPlace(raw);
       var e = Object.assign({}, raw);
+      e.city = city.cityId;
       // skipDates: days the source lists shorter hours or an event that this schema can't hold.
       // The place isn't offered then, so nobody is sent somewhere that has already closed.
       var closed = (e.closedDates || []).concat(e.skipDates || []);
@@ -771,13 +807,13 @@
         if (onDate[iso]) return onDate[iso].start;
         var w = day(d);
         if (!w) return 0;
-        return e.opensBeforeSunrise != null ? Math.round((sunriseHour(d) - e.opensBeforeSunrise) * 12) / 12 : w[0];
+        return e.opensBeforeSunrise != null ? Math.round((sunriseHour(d, city) - e.opensBeforeSunrise) * 12) / 12 : w[0];
       }
       function closes(d, iso) {
         if (onDate[iso]) return onDate[iso].end;
         var w = day(d);
         if (!w) return 0;
-        return e.closesAfterSunset != null ? Math.round((sunsetHour(d) + e.closesAfterSunset) * 12) / 12 : w[1];
+        return e.closesAfterSunset != null ? Math.round((sunsetHour(d, city) + e.closesAfterSunset) * 12) / 12 : w[1];
       }
       // openDates is an event's only days, and months is a season.
       e.isOpen = function (d, iso) {
@@ -828,6 +864,52 @@
     var CATALOG_URL = "data/stops.json";
     var CATALOG_WAIT_MS = 15000;
 
+    function isText(v) {
+      return typeof v === "string" && v.length > 0;
+    }
+
+    function isPoint(v) {
+      return !!v && typeof v === "object" && typeof v.lat === "number" && Math.abs(v.lat) <= 90 && typeof v.lon === "number" && Math.abs(v.lon) <= 180;
+    }
+
+    // One city file in, checked and converted. Nothing is saved here: keepCity() does that.
+    function readCity(data) {
+      if (!data || !Array.isArray(data.stops) || !data.stops.length) throw new Error("The places file is empty.");
+      if (!isText(data.city) || !isText(data.short) || !isText(data.region) || !isText(data.cityId) || !/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(data.cityId)) throw new Error("The places file doesn't say which city it is.");
+      if (!Array.isArray(data.regionNames) || !data.regionNames.length || !data.regionNames.every(isText)) throw new Error(data.cityId + " doesn't say how its region is written.");
+      if (!isPoint(data.weather) || !isPoint(data.sun)) throw new Error(data.cityId + " is missing where it is.");
+      if (data.rainLine != null && !isText(data.rainLine)) throw new Error(data.cityId + " has a rain line that isn't text.");
+      if (data.fixture != null && typeof data.fixture !== "boolean") throw new Error(data.cityId + " has a fixture flag that isn't true or false.");
+      if (CITIES[data.cityId] || cityIdFor(data.city)) throw new Error(data.cityId + " is already loaded.");
+      if (!isText(data.timeZone)) throw new Error(data.cityId + " doesn't say its time zone.");
+      // An unknown time zone throws here, so a mistyped one fails the load instead of the clock.
+      new Intl.DateTimeFormat("en-US", { timeZone: data.timeZone });
+      var city = {
+        cityId: data.cityId, name: data.city, short: data.short, region: data.region, regionNames: data.regionNames,
+        timeZone: data.timeZone, weather: data.weather, sun: data.sun, rainLine: data.rainLine || "", fixture: data.fixture === true
+      };
+      var made = [], seen = {};
+      data.stops.forEach(function (raw) {
+        var s = weekStop(raw, city);
+        if (seen[s.id] || STOP_BY_ID[s.id]) throw new Error(s.id + " is in the places twice.");
+        seen[s.id] = true;
+        made.push(s);
+      });
+      return { data: data, city: city, stops: made };
+    }
+
+    function keepCity(made) {
+      if (!CATALOG) CATALOG = made.data;
+      CITIES[made.city.cityId] = made.city;
+      if (!DEFAULT_CITY) DEFAULT_CITY = made.city.cityId;
+      made.stops.forEach(function (s) { STOPS.push(s); STOP_BY_ID[s.id] = s; });
+    }
+
+    // Another city's file, by hand. The page itself only loads data/stops.json.
+    function addCity(data) {
+      keepCity(readCity(data));
+    }
+
     // Gets the places from data/stops.json. All or nothing: STOPS stays empty unless every place
     // converts, and a file that arrives after the wait is over is ignored.
     function loadCatalog() {
@@ -841,17 +923,9 @@
         if (!res.ok) throw new Error("The places came back " + res.status + ".");
         return res.json();
       }).then(function (data) {
-        if (!data || !Array.isArray(data.stops) || !data.stops.length) throw new Error("The places file is empty.");
-        var made = [], seen = {};
-        data.stops.forEach(function (raw) {
-          var s = weekStop(raw);
-          if (seen[s.id]) throw new Error(s.id + " is in the places twice.");
-          seen[s.id] = true;
-          made.push(s);
-        });
+        var made = readCity(data);
         if (gaveUp) return;
-        CATALOG = data;
-        made.forEach(function (s) { STOPS.push(s); STOP_BY_ID[s.id] = s; });
+        keepCity(made);
       });
       function done() { if (timer !== null) clearTimeout(timer); }
       return Promise.race([load, timeout]).then(done, function (e) { done(); throw e; });
@@ -903,11 +977,11 @@
     function welcomeLine(p) {
       var who = [p.you, p.them].filter(Boolean).join(" and ");
       var tail = who ? " for " + who : "";
-      if (p.occasion === "Just because") return "Just because, in St. Pete" + tail;
-      if (p.occasion === "Anniversary") return "An anniversary in St. Pete" + tail;
-      if (p.occasion === "Date") return "A date in St. Pete" + tail;
-      if (p.occasion === "Birthday") return "A birthday in St. Pete" + tail;
-      return "A day in St. Pete" + tail;
+      if (p.occasion === "Just because") return "Just because, in " + cityOf(p).short + tail;
+      if (p.occasion === "Anniversary") return "An anniversary in " + cityOf(p).short + tail;
+      if (p.occasion === "Date") return "A date in " + cityOf(p).short + tail;
+      if (p.occasion === "Birthday") return "A birthday in " + cityOf(p).short + tail;
+      return "A day in " + cityOf(p).short + tail;
     }
 
     function kindLabel(p) {
@@ -1175,6 +1249,7 @@
     }
 
     function stopAllowed(p, s, d, iso, cap, wants, avoids) {
+      if (s.city !== cityIdFor(p.city)) return false;
       if ((p.skip || []).indexOf(s.id) !== -1) return false;
       if (avoids.museums && (s.tags || []).indexOf("museum") !== -1) return false;
       // Places that need a reservation only come in when the note asks for that kind of thing.
@@ -1263,7 +1338,7 @@
         }).slice(0, 2).map(function (s) { return s.id; });
         if (alts.length) anchor.alts = alts;
       }
-      var deck = { v: 1, anchor: anchor, pools: pools, park: !!wants.parking };
+      var deck = { v: 1, anchor: anchor, pools: pools, park: !!wants.parking && !!parkingId(cityIdFor(p.city)) };
       // Jake's decision, 2026-10-08: the create-screen checkbox is the only allergy trigger.
       // The share link carries that yes/no. It does not carry the note or which allergen.
       if (p.allergy === true) deck.allergy = true;
@@ -1305,7 +1380,7 @@
       var s = STOP_BY_ID[id];
       var d = parseDate(plan.date);
       var iso = isoDate(d);
-      var now = nowNY();
+      var now = cityNow();
       var clock = planHour();
       // 12:30am on the plan's calendar date can still be the night before's hours.
       if (now.iso === plan.date && now.hour < 6 && spillClose(s, addDays(plan.date, -1), now.hour)) {
@@ -1377,6 +1452,12 @@
       return dinnerIds().filter(function (id) { return id !== pick && dinnerFits(id, h); });
     }
 
+    // Does a typed place already name the region, short or long?
+    function regionNamed(where) {
+      var names = cityOf(plan).regionNames.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); });
+      return new RegExp("(?:" + names.join("|") + ")\\b", "i").test(where);
+    }
+
     function anchorView() {
       var a = ensureDeck(plan).anchor;
       if (!a || a.type === "none") return null;
@@ -1384,7 +1465,7 @@
         var where = plan.anchor.where || "";
         return {
           id: "anchor", custom: true, name: plan.anchor.name, time: a.time, leave: a.leave,
-          address: where, query: where ? where + (/fl\b|florida/i.test(where) ? "" : ", FL") : plan.anchor.name + ", St. Petersburg, FL",
+          address: where, query: where ? where + (regionNamed(where) ? "" : ", " + cityOf(plan).region) : plan.anchor.name + ", " + cityOf(plan).name + ", " + cityOf(plan).region,
           hint: "Already set for " + fmtHour(a.time) + ". Leave by about " + fmtHour(a.leave) + ".",
           why: "The one fixed point of the day."
         };
@@ -1413,7 +1494,7 @@
 
     function anchorLine() {
       var a = anchorView();
-      var sun = "Sunset is about " + fmtHour(sunsetHour(parseDate(plan.date))) + ".";
+      var sun = "Sunset is about " + fmtHour(sunsetHour(parseDate(plan.date), cityOf(plan))) + ".";
       if (!a) return sun;
       if (mode === "play" && anchorLate() && !anchorDone()) return dinnerLateLine() + " " + sun;
       if (mode === "play" && !anchorOffered()) return (a.custom ? a.name : "Dinner") + ": done. " + sun;
@@ -1476,7 +1557,7 @@
       return line;
     }
 
-    function applyForecast(iso, forecast) {
+    function applyForecast(iso, forecast, point) {
       var periods = (forecast && forecast.properties && forecast.properties.periods) || [];
       var day = null;
       periods.forEach(function (per) {
@@ -1487,7 +1568,7 @@
         if (!day && per && periodDate(per.startTime) === iso) day = per;
       });
       if (!day) {
-        weatherByDate[iso] = { status: "later", fetchedAt: Date.now() };
+        weatherByDate[iso] = { status: "later", fetchedAt: Date.now(), point: point };
         return;
       }
       var blob = (day.name || "") + " " + (day.shortForecast || "") + " " + (day.detailedForecast || "");
@@ -1499,7 +1580,8 @@
         wind: wind || "—",
         short: day.shortForecast || "No short forecast",
         wet: forecastMentionsWet(blob),
-        fetchedAt: Date.now()
+        fetchedAt: Date.now(),
+        point: point
       };
     }
 
@@ -1512,25 +1594,29 @@
       return false;
     }
 
+    // A forecast belongs to the place it was read for. One saved without a place counts as a match.
     function loadWeather(iso) {
+      var where = here().weather;
+      var point = where.lat.toFixed(3) + "," + where.lon.toFixed(3);
       var existing = weatherByDate[iso];
+      if (existing && existing.point && existing.point !== point) existing = null;
       if (existing && !weatherStale(existing)) return;
-      if (iso < nowNY().iso) {
-        weatherByDate[iso] = { status: "past" };
+      if (iso < cityNow().iso) {
+        weatherByDate[iso] = { status: "past", point: point };
         return;
       }
       // Keep showing the forecast we have while a fresh one loads.
       var keep = existing && existing.status === "ready" ? existing : null;
-      weatherByDate[iso] = keep ? Object.assign({}, keep, { fetchedAt: Date.now() }) : { status: "loading", fetchedAt: Date.now() };
-      nwsGet("https://api.weather.gov/points/27.770,-82.640").then(function (point) {
-        var forecastUrl = point && point.properties && point.properties.forecast;
+      weatherByDate[iso] = keep ? Object.assign({}, keep, { fetchedAt: Date.now() }) : { status: "loading", fetchedAt: Date.now(), point: point };
+      nwsGet("https://api.weather.gov/points/" + point).then(function (found) {
+        var forecastUrl = found && found.properties && found.properties.forecast;
         if (!forecastUrl) throw new Error("no forecast url");
         return nwsGet(forecastUrl);
       }).then(function (forecast) {
-        applyForecast(iso, forecast);
+        applyForecast(iso, forecast, point);
         if (plan && plan.date === iso && !typingPanel()) render();
       }).catch(function () {
-        weatherByDate[iso] = keep ? Object.assign({}, keep, { fetchedAt: Date.now() }) : { status: "error", fetchedAt: Date.now() };
+        weatherByDate[iso] = keep ? Object.assign({}, keep, { fetchedAt: Date.now() }) : { status: "error", fetchedAt: Date.now(), point: point };
         if (plan && plan.date === iso && !typingPanel()) render();
       });
     }
@@ -1542,30 +1628,32 @@
       return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
     }
 
-    function cleanDeck(raw) {
+    // A deck only keeps places from its own city: it never plays against another city's list.
+    function cleanDeck(raw, cid) {
+      function ours(id) { return !!STOP_BY_ID[id] && STOP_BY_ID[id].city === cid; }
       if (!raw || typeof raw !== "object" || !raw.pools || typeof raw.pools !== "object") return null;
       var pools = {};
       FEEL_ORDER.forEach(function (f) {
         var list = Array.isArray(raw.pools[f]) ? raw.pools[f] : [];
         pools[f] = list.map(String).filter(function (id) {
-          return STOP_BY_ID[id] && STOP_BY_ID[id].feel === f;
+          return ours(id) && STOP_BY_ID[id].feel === f;
         }).slice(0, 4);
       });
       var a = raw.anchor && typeof raw.anchor === "object" ? raw.anchor : { type: "none" };
       var anchor = { type: "none" };
       if (a.reason === "not_asked" || a.reason === "none_fit") anchor.reason = a.reason;
       var t = Number(a.time), leave = Number(a.leave);
-      if (a.type === "stop" && STOP_BY_ID[a.id] && STOP_BY_ID[a.id].dinner && t >= 0 && t < 24) {
+      if (a.type === "stop" && ours(a.id) && STOP_BY_ID[a.id].dinner && t >= 0 && t < 24) {
         anchor = { type: "stop", id: a.id, time: t, leave: isFinite(leave) ? leave : t - 0.5 };
         var inPools = FEEL_ORDER.reduce(function (all, f) { return all.concat(pools[f]); }, []);
         var alts = (Array.isArray(a.alts) ? a.alts : []).map(String).filter(function (id, i, all) {
-          return id !== a.id && all.indexOf(id) === i && STOP_BY_ID[id] && STOP_BY_ID[id].dinner && inPools.indexOf(id) === -1;
+          return id !== a.id && all.indexOf(id) === i && ours(id) && STOP_BY_ID[id].dinner && inPools.indexOf(id) === -1;
         }).slice(0, 2);
         if (alts.length) anchor.alts = alts;
       } else if (a.type === "custom" && t >= 0 && t < 24) {
         anchor = { type: "custom", time: t, leave: isFinite(leave) ? leave : t - 0.5 };
       }
-      var out = { v: 1, anchor: anchor, pools: pools, park: !!raw.park };
+      var out = { v: 1, anchor: anchor, pools: pools, park: !!raw.park && !!parkingId(cid) };
       if (raw.allergy === true) out.allergy = true;
       return out;
     }
@@ -1577,6 +1665,9 @@
       var json = decodeURIComponent(escape(atob(b64)));
       var obj = JSON.parse(json);
       if (!obj || typeof obj !== "object") return null;
+      var cid = cityIdFor(obj.city);
+      if (!cid) return null;
+      obj.city = cid;
       if (!obj.date || !parseDate(obj.date)) return null;
       if (["Anniversary", "Date", "Birthday", "Just because"].indexOf(obj.occasion) === -1) return null;
       if (["yes", "no", "either"].indexOf(obj.drink) === -1) return null;
@@ -1594,7 +1685,7 @@
         var budgetNum = Number(obj.budgetAmount);
         obj.budgetAmount = isFinite(budgetNum) && budgetNum >= 0 ? String(Math.round(budgetNum)) : "";
       }
-      obj.skip = Array.isArray(obj.skip) ? obj.skip.map(String).filter(function (id) { return STOP_BY_ID[id]; }) : [];
+      obj.skip = Array.isArray(obj.skip) ? obj.skip.map(String).filter(function (id) { return STOP_BY_ID[id] && STOP_BY_ID[id].city === cid; }) : [];
       if (obj.anchor && typeof obj.anchor === "object" && obj.anchor.name && parseClock(obj.anchor.time) !== null) {
         obj.anchor = {
           name: String(obj.anchor.name).slice(0, 80),
@@ -1604,10 +1695,9 @@
       } else {
         obj.anchor = null;
       }
-      obj.deck = cleanDeck(obj.deck);
+      obj.deck = cleanDeck(obj.deck, cid);
       if (obj.deck && obj.deck.anchor.type === "custom" && !obj.anchor) obj.deck.anchor = { type: "none" };
       obj.surprise = !!obj.surprise;
-      obj.city = "St. Petersburg";
       if (!obj.id) obj.id = uid();
       obj.id = String(obj.id).slice(0, 24);
       return obj;
@@ -1625,7 +1715,7 @@
     function linkPlan(p) {
       if (!p.deck) return p;
       var o = {};
-      ["id", "you", "them", "occasion", "kind", "date", "drink", "lean", "anchor", "deck"].forEach(function (k) {
+      ["id", "you", "them", "occasion", "kind", "date", "city", "drink", "lean", "anchor", "deck"].forEach(function (k) {
         if (p[k] != null) o[k] = p[k];
       });
       return o;
@@ -1804,7 +1894,7 @@
 
     function listPromoted() {
       if (playState().trail.length >= 3) return true;
-      return isPlanDay() && nowNY().hour >= 15;
+      return isPlanDay() && cityNow().hour >= 15;
     }
 
     function pickRandom(list) {
@@ -1843,7 +1933,7 @@
       st.pending = view.pending || "";
       st.feel = view.feel || "";
       st.panel = view.pending ? panel : "";
-      st.heldOn = view.pending ? nowNY().iso : "";
+      st.heldOn = view.pending ? cityNow().iso : "";
       savePlay();
     }
 
@@ -1983,7 +2073,7 @@
       var lines = [welcomeLine(plan), formatWhen(parseDate(plan.date)), ""];
       playState().trail.forEach(function (t) {
         var when = new Date(t.at);
-        var at = isNaN(when) ? "" : fmtHour(nyParts(when).hour) + "  ";
+        var at = isNaN(when) ? "" : fmtHour(cityParts(when, cityOf(plan)).hour) + "  ";
         var mark = t.rating === "love" ? " (loved it)" : t.rating === "no" ? " (not for us)" : t.rating === "fine" ? " (fine)" : "";
         lines.push(at + t.name + mark + (t.found ? " — found it ourselves" : "") + (t.note ? ": " + t.note : ""));
       });
@@ -2005,7 +2095,7 @@
       if (!trail.length) lines.push("- We didn't log any stops.");
       trail.forEach(function (t) {
         var when = new Date(t.at);
-        var at = isNaN(when) ? "" : fmtHour(nyParts(when).hour) + " ";
+        var at = isNaN(when) ? "" : fmtHour(cityParts(when, cityOf(plan)).hour) + " ";
         var mark = t.rating === "love" ? " (loved it)" : t.rating === "no" ? " (not for us)" : t.rating === "fine" ? " (fine)" : "";
         lines.push("- " + at + t.name + mark + (t.found ? ", found it ourselves" : "") + (t.note ? ": " + t.note : ""));
       });
@@ -2150,7 +2240,7 @@
           '<p class="kicker">A little something</p>' +
           "<h1>For " + esc(who || "you") + ".</h1>" +
           '<p class="lede">' + esc(welcomeLine(Object.assign({}, plan, { you: "", them: "" }))) + ". One day. You choose what comes next.</p>" +
-          '<p class="meta">' + esc(formatWhen(parseDate(plan.date))) + " · St. Petersburg</p>" +
+          '<p class="meta">' + esc(formatWhen(parseDate(plan.date))) + " · " + esc(cityOf(plan).name) + "</p>" +
           '<p class="meta">' + esc(weatherLine(plan.date)) + "</p>" +
         "</div>" +
         '<p class="note">Pick what\'s calling, reveal one place, go. When you get there, pick again. Want options instead? Show the list any time.</p>' +
@@ -2165,7 +2255,7 @@
     }
 
     function startHtml() {
-      var v = stopView("parking");
+      var v = stopView(parkingId());
       return (
         pipsHtml() +
         '<div class="hero">' +
@@ -2221,7 +2311,7 @@
       html += '<p class="meta" style="margin-top:1.2rem">' + esc(weatherLine(plan.date)) + "</p>";
       // Once dinner (or the main event) is checked in, nothing is left open, or the day has passed,
       // the day is winding down: point to where the feedback lives.
-      var wound = (a && !anchorOffered()) || !buttons || plan.date < nowNY().iso;
+      var wound = (a && !anchorOffered()) || !buttons || plan.date < cityNow().iso;
       if (wound) {
         html += '<div class="test-note" style="margin-top:1.2rem"><p><strong>How did it go?</strong> It\'s an early test, and ' + esc(FEEDBACK_TO) + " wants to hear what worked and what didn't.</p>" +
           '<button type="button" class="btn btn-primary" data-act="trail">Tell ' + esc(FEEDBACK_TO) + " how it went</button></div>";
@@ -2311,7 +2401,7 @@
       var inside = liveIds().filter(function (id) { return visited.indexOf(id) === -1 && !STOP_BY_ID[id].outdoor; }).map(stopView)
         .filter(function (v) { return openNow(v, "inside"); });
       var html = '<div class="card reveal"><div class="stamp peach">Plan B</div><p class="place">Soft landing</p>' +
-        '<p class="why">' + esc(weatherLine(plan.date)) + " Florida storms usually pass. Duck inside, then pick up where you left off.</p></div>";
+        '<p class="why">' + esc(weatherLine(plan.date)) + (cityOf(plan).rainLine ? " " + esc(cityOf(plan).rainLine) : "") + " Duck inside, then pick up where you left off.</p></div>";
       html += inside.length
         ? "<h3>" + (planHour() !== null ? "Indoors, open now" : "Indoors on the day") + "</h3>" + inside.map(function (v) { return cardHtml(v, { here: true }); }).join("")
         : '<p class="note">Nothing indoors on the list has enough time left right now. A café or a shop doorway works. Wait it out and check back.</p>';
@@ -2327,11 +2417,11 @@
       if (a && anchorOffered()) {
         html += '<p class="why">Head toward ' + esc(a.name) + " early. " + (a.custom ? "It's set for " + esc(fmtHour(a.time)) + "." : "Dinner around " + esc(fmtHour(a.time)) + ", earlier if they'll seat you.") + "</p>" + dirBtn(a, "Directions to " + a.name);
       } else if (a) {
-        html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : anchorDone() ? "Dinner's done." : esc(dinnerLateLine())) + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
+        html += '<p class="why">' + (a.custom ? esc(a.name) + ": done." : anchorDone() ? "Dinner's done." : esc(dinnerLateLine())) + " Stop whenever it feels done. Sunset is about " + esc(fmtHour(sunsetHour(parseDate(plan.date), cityOf(plan)))) + ".</p>";
       } else {
-        html += '<p class="why">No fixed point on this one, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date)))) + ".</p>";
+        html += '<p class="why">No fixed point on this one, so stop whenever it feels done. Sunset is about ' + esc(fmtHour(sunsetHour(parseDate(plan.date), cityOf(plan)))) + ".</p>";
       }
-      if (ensureDeck(plan).park) html += dirBtn(stopView("parking"), "Back to the car");
+      if (ensureDeck(plan).park) html += dirBtn(stopView(parkingId()), "Back to the car");
       html += '<button type="button" class="btn btn-ghost" data-act="trail">See our day so far</button>' +
         '<button type="button" class="skip" data-act="back">Not yet. Back to choosing</button></div>';
       html += feedbackHtml();
@@ -2367,7 +2457,7 @@
       } else {
         html += '<ol class="trail">' + trail.map(function (t) {
           var when = new Date(t.at);
-          var at = isNaN(when) ? "" : fmtHour(nyParts(when).hour);
+          var at = isNaN(when) ? "" : fmtHour(cityParts(when, cityOf(plan)).hour);
           var mark = t.rating === "love" ? "Loved it" : t.rating === "no" ? "Not for us" : t.rating === "fine" ? "Fine" : "";
           var map = t.lat != null ? ' · <a href="' + esc(mapsUrl(t.lat + "," + t.lng)) + '" target="_blank" rel="noopener">map</a>' : "";
           return "<li><strong>" + esc(t.name) + "</strong>" +
@@ -2440,7 +2530,7 @@
       var a = anchorView();
       var html = '<svg class="city" viewBox="0 0 360 170" role="img" aria-label="Sun over a low skyline and the water"><use href="#skyline"/></svg>';
       html += '<p class="kicker">Creator desk</p><h1>' + esc(welcomeLine(plan)) + "</h1>";
-      html += '<p class="meta">' + esc(formatWhen(d)) + " · St. Petersburg</p>";
+      html += '<p class="meta">' + esc(formatWhen(d)) + " · " + esc(cityOf(plan).name) + "</p>";
       html += '<p class="note">' + esc(weatherLine(plan.date)) + "</p>";
       html += '<p class="note">' + esc(planLine(plan)) + "</p>";
       if (!datedCount()) html += '<p class="note">No dated event is verified for this day. The day uses places with standing hours that are open that date.</p>';
@@ -2584,12 +2674,43 @@
       });
     }
 
+    // The date can only be today through a few days out, by the clock in the picked city.
+    function setDateRange() {
+      var today = cityNow(CITIES[pickedCityId()]).iso;
+      document.getElementById("date").setAttribute("min", today);
+      document.getElementById("date").setAttribute("max", addDays(today, PLAN_AHEAD_DAYS));
+    }
+
+    // One city shows its name. Two or more real cities show a button each.
+    function renderCityPick(p) {
+      var cities = realCities();
+      var fixed = document.getElementById("city-fixed"), pick = document.getElementById("city-pick");
+      if (cities.length < 2) {
+        pick.classList.add("hidden");
+        pick.innerHTML = "";
+        fixed.classList.remove("hidden");
+        fixed.textContent = cities.length ? cities[0].name : "";
+      } else {
+        var chosen = cityIdFor(p && p.city);
+        fixed.classList.add("hidden");
+        pick.classList.remove("hidden");
+        pick.innerHTML = cities.map(function (c) {
+          return '<button type="button" data-city="' + esc(c.cityId) + '" aria-pressed="' + (c.cityId === chosen ? "true" : "false") + '">' + esc(c.name) + "</button>";
+        }).join("");
+      }
+      setDateRange();
+    }
+
+    function pickedCityId() {
+      var on = document.querySelector('#city-pick [aria-pressed="true"]');
+      return on ? on.getAttribute("data-city") : cityIdFor(plan && plan.city);
+    }
+
     function fillForm(p) {
       document.getElementById("you").value = p && p.you || "";
       document.getElementById("them").value = p && p.them || "";
       document.getElementById("date").value = p && p.date || "";
-      document.getElementById("date").setAttribute("min", nowNY().iso);
-      document.getElementById("date").setAttribute("max", addDays(nowNY().iso, PLAN_AHEAD_DAYS));
+      renderCityPick(p);
       document.getElementById("must").value = p && p.must || "";
       document.getElementById("budget-amount").value = p && p.budgetAmount || "";
       var an = p && p.anchor;
@@ -2624,9 +2745,9 @@
       if (!/^\d+(?:\.\d+)?$/.test(amount)) missing.push(amount ? "a budget in dollars, like 150" : "a budget");
       if (missing.length) {
         problem = "Still needed: " + (missing.length > 1 ? missing.slice(0, -1).join(", ") + (missing.length > 2 ? "," : "") + " and " + missing[missing.length - 1] : missing[0]) + ".";
-      } else if (date < nowNY().iso) {
+      } else if (date < cityNow(CITIES[pickedCityId()]).iso) {
         problem = "Pick today or a date ahead. The day checks what is open on that date.";
-      } else if (date > addDays(nowNY().iso, PLAN_AHEAD_DAYS)) {
+      } else if (date > addDays(cityNow(CITIES[pickedCityId()]).iso, PLAN_AHEAD_DAYS)) {
         problem = "For this test, pick today or one of the next " + PLAN_AHEAD_DAYS + " days. That's as far ahead as we can check hours and the forecast for now.";
       } else if ((anName || anTime || anWhere) && (!anName || parseClock(anTime) === null)) {
         problem = "For something already set, add what it is and the time. Or clear those fields.";
@@ -2648,7 +2769,7 @@
         kind: pills.kind,
         custom: "",
         date: date,
-        city: "St. Petersburg",
+        city: pickedCityId(),
         drink: pills.drink,
         style: "mystery",
         lean: pills.lean,
@@ -2679,6 +2800,15 @@
           renderKinds(btn.getAttribute("data-value"), kindOn ? kindOn.getAttribute("data-value") : "");
         }
       });
+    });
+
+    document.getElementById("city-pick").addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-city]");
+      if (!btn) return;
+      btn.parentNode.querySelectorAll("[data-city]").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      setDateRange();
     });
 
     document.getElementById("kinds").addEventListener("click", function (e) {

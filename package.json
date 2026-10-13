@@ -1,7 +1,7 @@
 {
   "name": "city-day-test",
   "version": "1.0.0",
-  "description": "A free test of making a day in St. Petersburg. No payment and no account.",
+  "description": "A free test of City Day, a nudge for a day out. No payment and no account.",
   "scripts": {
     "test": "node qa-verify.mjs"
   },

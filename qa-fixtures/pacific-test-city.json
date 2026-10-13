@@ -1,0 +1,17 @@
+{
+  "$schema": "../data/stops.schema.json",
+  "city": "Fixture City (QA only)",
+  "cityId": "qa-pacific",
+  "short": "Fixture City",
+  "region": "ZZ",
+  "regionNames": ["zz"],
+  "timeZone": "America/Los_Angeles",
+  "weather": { "lat": 44.000, "lon": -124.500 },
+  "sun": { "lat": 44.000, "lon": -124.500 },
+  "fixture": true,
+  "stops": [
+    {"id": "qa-pacific-cafe", "name": "QA Fixture Cafe", "feel": "taste", "meal": "coffee", "tags": ["coffee", "cafe"], "costBand": "cheap", "cost": null, "address": "1 Test Way, Fixture City", "query": "QA Fixture Cafe, 1 Test Way, Fixture City", "source": "https://example.invalid/qa-pacific-cafe", "week": {"0": [7, 17], "1": [7, 17], "2": [7, 17], "3": [7, 17], "4": [7, 17], "5": [7, 17], "6": [7, 17]}, "closedDates": [], "hoursChecked": "2026-10-09", "hint": "Test fixture. Not a real place.", "whyText": "QA fixture cafe, open {hours} {on}."},
+    {"id": "qa-pacific-park", "name": "QA Fixture Park", "feel": "drift", "tags": ["park", "walking"], "outdoor": true, "costBand": null, "cost": null, "address": "2 Test Way, Fixture City", "query": "QA Fixture Park, 2 Test Way, Fixture City", "source": "https://example.invalid/qa-pacific-park", "week": {"0": [7, 20], "1": [7, 20], "2": [7, 20], "3": [7, 20], "4": [7, 20], "5": [7, 20], "6": [7, 20]}, "closedDates": [], "opensBeforeSunrise": 0.5, "closesAfterSunset": 0.5, "hoursText": "Opens 30 minutes before sunrise and closes 30 minutes after sunset.", "hoursChecked": "2026-10-09", "lister": "The fixture's parks page lists", "hint": "Test fixture. Not a real place.", "why": "A QA fixture park that opens and closes by the sun."},
+    {"id": "qa-pacific-late", "name": "QA Fixture Late Counter", "feel": "taste", "meal": "dinner", "dinner": true, "tags": ["dinner", "late"], "costBand": "cheap", "cost": null, "address": "3 Test Way, Fixture City", "query": "QA Fixture Late Counter, 3 Test Way, Fixture City", "source": "https://example.invalid/qa-pacific-late", "week": {"0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": [17, 25]}, "closedDates": [], "hoursText": "Sat 5pm–1am", "hoursChecked": "2026-10-09", "hint": "Test fixture. Not a real place.", "whyText": "QA fixture late counter, open {hours} {on}."}
+  ]
+}
