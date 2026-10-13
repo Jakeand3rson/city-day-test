@@ -3369,6 +3369,272 @@ check("play: passing and shuffling name no place, mood or category (#62)", () =>
   });
 });
 
+// --- #65: See all places in one mood ---
+
+const seeAllText = (page, feel) => {
+  const lab = page.FEELS[feel].label;
+  return "See all " + lab.charAt(0).toLowerCase() + lab.slice(1) + " options";
+};
+const pickRows = () => [...$("play").querySelectorAll('.picks [data-act="pick"]')];
+const rowIds = () => pickRows().map((b) => b.getAttribute("data-arg"));
+const commitButtons = () => [...$("play").querySelectorAll(".card button")];
+
+check("play: after a mood, See all [mood] options is a ghost button between Shuffle and Different feeling, built from FEELS (#65)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 2);
+  g.act("feel", feel);
+  const buttons = commitButtons();
+  const acts = buttons.map((b) => b.getAttribute("data-act"));
+  const see = buttons.find((b) => b.getAttribute("data-act") === "options");
+  assert(see && see.classList.contains("btn") && see.classList.contains("btn-ghost") && !see.classList.contains("btn-primary"), "no ghost See all button: " + acts);
+  assert(see.textContent === seeAllText(g, feel), "label: " + see.textContent);
+  assert(acts.join() === "reveal,shuffle,options,back", "order: " + acts);
+  assert(!g.optionsHtml.toString().includes("data-act=\"here\""), "the list has a We're here");
+  // Another mood's button reads from its own label.
+  const other = g.FEEL_ORDER.find((f) => f !== feel && g.moodQueue(f).length);
+  if (other) {
+    g.act("back");
+    g.act("feel", other);
+    assert($("play").querySelector('[data-act="options"]').textContent === seeAllText(g, other), "other label");
+  }
+});
+
+check("play: See all shows even when a feeling has one place left, and Reveal stays the one primary button (#65)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 2);
+  const open = g.offered(feel).slice();
+  open.slice(1).forEach((id) => g.playState().skip.push(id));
+  g.savePlay();
+  assert(g.offered(feel).length === 1, "setup: one place left");
+  g.act("feel", feel);
+  const acts = commitButtons().map((b) => b.getAttribute("data-act"));
+  assert(acts.includes("options") && !acts.includes("shuffle"), "one place left: " + acts);
+  const primary = [...$("play").querySelectorAll(".btn-primary")];
+  assert(primary.length === 1 && primary[0].getAttribute("data-act") === "reveal", "primary buttons: " + primary.map((b) => b.textContent));
+  g.act("options");
+  assert(g.view.panel === "options" && rowIds().join() === open[0], "one row expected: " + rowIds());
+});
+
+check("play: Real dinner gets no See all button (#65)", () => {
+  startPlay({ date: "2026-10-10", kind: "celebrate", budgetAmount: "300", must: "dinner" });
+  g.clockOverride = new Date("2026-10-10T12:00:00-04:00");
+  g.act("begin");
+  assert(g.anchorOffered(), "setup: no dinner on offer");
+  g.act("feel", g.FEELS && Object.keys(g.FEELS).find((f) => !g.FEEL_ORDER.includes(f)));
+  assert(g.view.panel === "commit" && g.view.pending, "setup: dinner commit screen " + g.view.panel);
+  assert(!$("play").querySelector('[data-act="options"]') && g.seeAllHtml() === "", "dinner has a See all button");
+  g.act("options");
+  g.act("back");
+  assert(g.view.panel === "feel" || g.view.panel === "commit", "panel " + g.view.panel);
+});
+
+check("play: the mood list is exactly that feeling's queue: open, unvisited, not turned down, passed ones last and marked (#65)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 4);
+  const open = g.offered(feel).slice();
+  g.act("feel", feel);
+  const first = passOnPending(g);
+  g.act("back");
+  g.act("feel", feel);
+  g.act("reveal");
+  const second = g.view.pending;
+  g.act("back");
+  g.act("list");
+  const visited = open.find((id) => ![first, second].includes(id));
+  g.act("here", visited);
+  const never = open.find((id) => ![first, second, visited].includes(id));
+  g.act("skip", never);
+  g.act("back");
+  g.act("feel", feel);
+  g.act("options");
+  assert(g.view.panel === "options", "panel " + g.view.panel);
+  const want = expectedQueue(g, feel, [first, second]).filter((id) => id !== visited && id !== never);
+  assert(want.length >= 2 && rowIds().join() === want.join(), "rows " + rowIds() + " want " + want);
+  assert(!rowIds().includes(visited) && !rowIds().includes(never), "a visited or turned-down place is listed");
+  const marked = pickRows().filter((b) => /Passed earlier/.test(b.textContent)).map((b) => b.getAttribute("data-arg"));
+  assert(marked.join() === [first, second].join(), "passed marks: " + marked);
+  assert(rowIds().slice(-2).join() === [first, second].join(), "passed ones aren't last");
+  assert(/Tap one to go with it\./.test(playText()) && $("play").querySelector("h1").textContent === g.FEELS[feel].label, "heading or lede");
+  assert(!$("play").querySelector('[data-act="here"]') && !$("play").querySelector("a[href]"), "the list has directions or We're here");
+  assert(g.playState().skip.includes(never) && g.playState().passed.join() === [first, second].join(), "opening the list changed what was saved");
+});
+
+check("play: each mood list row shows the name, why, hours or closing time, and the allergy line when the deck has one (#65)", () => {
+  playOnTheDay();
+  g.plan.deck.allergy = true;
+  const withLine = g.FEEL_ORDER.find((f) => g.moodQueue(f).some((id) => g.allergyLine(g.stopView(id))));
+  assert(withLine, "setup: no feeling with an allergy line");
+  [withLine, ...g.FEEL_ORDER.filter((f) => f !== withLine && g.moodQueue(f).length)].forEach((feel) => {
+    g.act("feel", feel);
+    g.act("options");
+    const ids = g.moodQueue(feel);
+    assert(ids.length && rowIds().join() === ids.join(), "rows: " + rowIds());
+    pickRows().forEach((b) => {
+      const v = g.stopView(b.getAttribute("data-arg"));
+      const t = b.textContent;
+      const when = g.closingLine(v) || v.hours;
+      const line = g.allergyLine(v);
+      assert(t.includes(v.name) && t.includes(v.why), "name or why missing for " + v.id);
+      assert(!when || t.includes(when), "hours missing for " + v.id);
+      assert(line ? t.includes(line) : !/allerg/i.test(t), "allergy line for " + v.id + ": " + t);
+    });
+    g.act("back");
+    g.act("back");
+  });
+  g.plan.deck.allergy = false;
+  g.act("feel", withLine);
+  g.act("options");
+  assert(!/allerg/i.test(playText()), "an allergy line shows on a deck without one");
+  // The card keeps its own allergy line.
+  g.plan.deck.allergy = true;
+  const id = g.moodQueue(withLine).find((x) => g.allergyLine(g.stopView(x)));
+  g.act("pick", id);
+  assert($("play").querySelector(".reveal").innerHTML.includes('<p class="meta">' + g.allergyLine(g.stopView(id)) + "</p>"), "the card lost its allergy line");
+});
+
+check("play: tapping a mood list row reveals that place on the normal card, and check-in and the next mood still work (#65)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 3);
+  g.act("feel", feel);
+  g.act("options");
+  const target = rowIds()[2];
+  const row = pickRows()[2];
+  assert(target && row, "setup: a third row");
+  g.act("pick", target);
+  assert(g.view.panel === "reveal" && g.view.pending === target, "panel " + g.view.panel);
+  assert(g.playState().panel === "reveal" && g.playState().pending === target, "the reveal wasn't held");
+  assert($("play").querySelector(".reveal .place").textContent === g.stopView(target).name, "not the normal card");
+  assert($("play").querySelector('[data-act="here"]') && $("play").querySelector('[data-act="pass"]') && $("play").querySelector('a[href]'), "card lost its buttons");
+  g.act("here", target);
+  assert(g.playState().trail.length === 1 && g.playState().trail[0].id === target && g.view.panel === "feel", "check-in");
+  const next = g.FEEL_ORDER.find((f) => g.moodQueue(f).length);
+  g.act("feel", next);
+  assert(g.view.panel === "commit" && g.view.pending !== target && g.moodQueue(next).includes(g.view.pending), "the next mood didn't pick");
+  g.act("options");
+  assert(!rowIds().includes(target), "a checked-in place is still listed");
+  // Not this after a list pick works like any reveal.
+  const again = rowIds()[0];
+  g.act("pick", again);
+  g.act("pass", again);
+  assert(g.playState().passed.includes(again) && g.view.panel === "commit", "Not this after a list pick");
+});
+
+check("play: a mood list row that was checked in, turned down or closed in the meantime is not revealed (#65)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 4);
+  g.act("feel", feel);
+  g.act("options");
+  const ids = rowIds();
+  const [a, b, c] = ids;
+  const staleTry = (id, why) => {
+    const before = g.playState().trail.length;
+    g.act("pick", id);
+    assert(g.view.panel !== "reveal" && g.playState().panel !== "reveal", why + ": revealed " + id);
+    assert(g.playState().trail.length === before && g.playState().passed.length === 0, why + ": wrote something");
+  };
+  g.playState().trail.push({ id: a, name: g.stopView(a).name, at: new Date().toISOString(), rating: "", found: false });
+  g.savePlay();
+  staleTry(a, "checked in");
+  assert(g.view.panel === "options" && !rowIds().includes(a), "stale tap should show the list again, without it: " + g.view.panel);
+  g.playState().skip.push(b);
+  g.savePlay();
+  staleTry(b, "turned down");
+  assert(g.view.panel === "options" && !rowIds().includes(b), "turned down still listed");
+  // Close the place for the day: a time past its end.
+  const closing = g.moodQueue(feel).find((id) => g.stopView(id).end != null && g.stopView(id).end < 24);
+  assert(closing, "setup: a place with a closing time");
+  g.clockOverride = new Date(g.plan.date + "T" + String(Math.floor(g.stopView(closing).end)).padStart(2, "0") + ":50:00-04:00");
+  assert(!g.moodQueue(feel).includes(closing), "setup: still open");
+  staleTry(closing, "closed");
+  g.act("back");
+  g.act("reveal");
+  assert(g.view.panel === "reveal" && ![a, b, closing].includes(g.view.pending), "Reveal after a stale tap showed " + g.view.pending);
+  g.act("back");
+  // Nothing left at all: back to choosing, no pending.
+  g.clockOverride = new Date(g.plan.date + "T12:00:00-04:00");
+  g.moodQueue(feel).forEach((id) => g.playState().skip.push(id));
+  g.savePlay();
+  g.view.pending = c;
+  g.act("pick", c);
+  assert(g.view.panel === "feel" && !g.view.pending && g.playState().panel === "", "an empty list should go back to choosing: " + g.view.panel);
+});
+
+check("play: Back from the mood list returns to the same veiled pick and records no pass, even after a reload (#65)", () => {
+  const p = playOnTheDay();
+  const feel = moodWith(g, 3);
+  g.act("feel", feel);
+  const veiled = g.view.pending;
+  const name = g.stopView(veiled).name;
+  g.act("options");
+  assert(g.view.panel === "options" && g.playState().panel === "commit" && g.playState().pending === veiled, "the list should not hold a card");
+  g.act("back");
+  assert(g.view.panel === "commit" && g.view.pending === veiled, "back didn't return to the same pick: " + g.view.pending);
+  assert(!playText().includes(name) && !g.playState().passed.length && !g.playState().skip.length, "back showed the place or wrote a pass");
+  assert(g.playState().panel === "commit" && g.playState().pending === veiled, "the veiled pick wasn't kept");
+  // A reload from the list lands on the veil, same place.
+  g.act("options");
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  g.clockOverride = new Date(p.date + "T12:00:00-04:00");
+  g.render();
+  assert(g.view.panel === "commit" && g.view.pending === veiled && !playText().includes(name), "reload didn't return to the veiled pick: " + g.view.panel);
+  assert(g.playState().passed.length === 0, "reload recorded a pass");
+});
+
+check("play: the full list still shows every open place across more than one feeling (#65)", () => {
+  playOnTheDay();
+  const open = g.FEEL_ORDER.filter((f) => g.offered(f).length);
+  assert(open.length > 1, "setup: more than one feeling");
+  g.act("list");
+  const html = playText();
+  open.forEach((f) => g.offered(f).forEach((id) => assert(html.includes(g.stopView(id).name), "the list is missing " + id)));
+  assert(!$("play").querySelector(".picks") && /Back to the mystery/.test(playText()), "the list changed");
+  g.act("back");
+  assert(g.view.panel === "feel", "panel " + g.view.panel);
+});
+
+check("standard: old #play/ links still open the mood list and reveal from it (#65)", () => {
+  OLD_LINKS.forEach((link) => {
+    resetPhone();
+    sunny("2026-10-10");
+    openLink(link.hash);
+    g.act("begin");
+    const feel = g.FEEL_ORDER.find((f) => g.moodQueue(f).length);
+    assert(feel, link.built + ": no feeling");
+    g.act("feel", feel);
+    assert($("play").querySelector('[data-act="options"]'), link.built + ": no See all");
+    g.act("options");
+    const ids = g.moodQueue(feel);
+    assert(g.view.panel === "options" && rowIds().join() === ids.join(), link.built + ": rows " + rowIds());
+    g.act("pick", ids[ids.length - 1]);
+    assert(g.view.panel === "reveal" && g.view.pending === ids[ids.length - 1], link.built + ": no reveal");
+    g.act("here", g.view.pending);
+    assert(g.playState().trail.length === 1, link.built + ": We're here didn't log");
+  });
+});
+
+check("play: the mood list names no place, mood or category (#65)", () => {
+  const stops = JSON.parse(fs.readFileSync(new URL("./data/stops.json", import.meta.url), "utf8")).stops.concat(fixtureFile.stops);
+  const words = new Set();
+  stops.forEach((s) => {
+    [s.id, s.feel, s.meal, s.costBand, s.menuFocus].concat(s.tags || []).forEach((w) => { if (typeof w === "string" && w) words.add(w.toLowerCase()); });
+  });
+  g.FEEL_ORDER.concat(Object.keys(g.FEELS), ["surprise"]).forEach((w) => words.add(w));
+  assert(words.size > 40 && words.has(g.FEEL_ORDER[0]), "setup: too few words to scan for: " + words.size);
+  [g.seeAllHtml, g.optionsHtml, g.openOptions, g.pickOption].forEach((fn) => {
+    assert(typeof fn === "function", "a function to scan is missing");
+    const source = fn.toString();
+    const quoted = [...source.matchAll(/(["'])((?:(?!\1)[^\\\n])*)\1/g)].map((m) => m[2].toLowerCase());
+    const hits = quoted.filter((q) => words.has(q));
+    assert(!hits.length, fn.name + " names " + hits.join(", "));
+  });
+});
+
+check("friends: mood list rows are at least 44px tall (#65)", () => {
+  const css = [...document.querySelectorAll("style")].map((x) => x.textContent).join("\n");
+  const rules = [...css.matchAll(/\.picks button\s*\{([^}]*)\}/g)];
+  assert(rules.some((r) => /min-height:\s*44px/.test(r[1])), "no 44px min-height on .picks button");
+});
+
 const failed = results.filter((r) => r.startsWith("FAIL"));
 console.log("\n--- summary ---");
 console.log(results.length - failed.length + " passed, " + failed.length + " failed");
