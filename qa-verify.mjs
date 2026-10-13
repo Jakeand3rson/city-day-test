@@ -120,7 +120,7 @@ g.clockOverride = PINNED;
 // A check about the day before sets g.keepEarlyClock.
 const rawAct = g.act.bind(g);
 g.act = function (name, arg) {
-  const early = (name === "here" || name === "skip") && g.plan && !g.keepEarlyClock && g.cityNow().iso < g.plan.date;
+  const early = (name === "here" || name === "skip" || name === "pass") && g.plan && !g.keepEarlyClock && g.cityNow().iso < g.plan.date;
   const prev = g.clockOverride;
   if (early) g.clockOverride = new Date(g.plan.date + "T12:00:00-04:00");
   try { return rawAct(name, arg); }
@@ -477,11 +477,15 @@ check("play: a day-early We're here or Not this waits until the plan date", () =
     assert(id && /This day starts on Saturday, October 10\./.test(playText()), playText().slice(0, 500));
     g.act("here", id);
     assert(g.playState().trail.length === 0 && g.view.panel === "reveal" && g.view.pending === id, "early We're here wrote " + JSON.stringify(g.playState().trail));
-    g.act("skip", id);
-    assert(g.playState().skip.length === 0 && g.view.pending === id, "early Not this skipped " + g.playState().skip);
+    g.act("pass", id);
+    assert(g.playState().passed.length === 0 && g.playState().skip.length === 0 && g.view.pending === id, "early Not this wrote " + g.playState().passed + " / " + g.playState().skip);
+    g.act("back");
+    assert(g.playState().passed.length === 0 && g.playState().skip.length === 0, "early Back to choosing wrote " + g.playState().passed);
+    g.act("feel", "taste");
+    g.act("reveal");
     g.clockOverride = new Date("2026-10-10T09:00:00-04:00");
     g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
-    assert(g.playState().trail.length === 0 && g.playState().skip.length === 0, "the early taps carried onto Saturday");
+    assert(g.playState().trail.length === 0 && g.playState().skip.length === 0 && g.playState().passed.length === 0, "the early taps carried onto Saturday");
     assert(!/This day starts/.test(playText()), "Saturday still says the day hasn't started");
     g.keepEarlyClock = false;
     g.act("begin");
@@ -502,20 +506,20 @@ check("play: Not this, try again swaps in another from the same feeling", () => 
   g.act("feel", "taste");
   g.act("reveal");
   const first = g.view.pending;
-  g.act("skip", first);
-  assert(g.playState().skip.includes(first), "skip saved");
+  g.act("pass", first);
+  assert(g.playState().passed.includes(first), "pass saved");
   assert(g.view.panel === "commit" && g.view.pending && g.view.pending !== first, "panel " + g.view.panel + " pending " + g.view.pending);
   assert(g.plan.deck.pools.taste.includes(g.view.pending), "replacement from the same feeling");
 });
 
-check("play: Not this says another place is lined up, and that place stays off", () => {
+check("play: Not this lines up another place, and the passed place comes back later (#62)", () => {
   startPlay({ date: "2026-10-10", must: "coffee, gelato, market" });
   g.act("begin");
   g.act("feel", "taste");
   g.act("reveal");
   const first = g.view.pending;
   const before = playText();
-  g.act("skip", first);
+  g.act("pass", first);
   assert(/Another place is lined up\./.test(playText()), playText().slice(0, 400));
   assert(!/Another place is lined up\./.test(before), "the line was already there");
   assert(g.view.panel === "commit" && g.view.pending !== first, "still veiled, new pending " + g.view.pending);
@@ -526,14 +530,243 @@ check("play: Not this says another place is lined up, and that place stays off",
     seen.add(id);
     g.act("reveal");
     assert(!/Another place is lined up\./.test(playText()), "reveal should name the place");
-    g.act("skip", id);
+    g.act("pass", id);
     guard++;
   }
-  assert(g.playState().skip.includes(first) && !g.offered("taste").includes(first), "offered again: " + g.offered("taste"));
+  assert(g.view.panel === "commit" && g.view.pending === first, "the passed place didn't come back once the others were passed too: " + g.view.pending);
+  assert(g.playState().passed.includes(first) && !g.playState().skip.includes(first) && g.offered("taste").includes(first), "a passed place left the pool: " + g.offered("taste"));
   g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
   g.act("begin");
   g.act("feel", "taste");
-  assert(g.playState().skip.includes(first) && !g.offered("taste").includes(first), "came back after reload");
+  assert(g.playState().passed.includes(first) && !g.playState().skip.includes(first) && g.offered("taste").includes(first), "passed place gone after reload");
+});
+
+// --- #62: Not now and Never are different things ---
+
+// A day played on its plan date at noon, so the hours filter is on and every tap writes.
+// The feeling is picked at runtime: the first one with enough places on offer. Nothing is named.
+function playOnTheDay(overrides) {
+  const p = startPlay(Object.assign({ date: "2026-10-10" }, overrides || {}));
+  g.clockOverride = new Date(p.date + "T12:00:00-04:00");
+  g.act("begin");
+  return p;
+}
+
+function moodWith(page, min) {
+  const feel = page.FEEL_ORDER.find((f) => page.offered(f).length >= min);
+  assert(feel, "no feeling has " + min + " open places to try this with: " + page.FEEL_ORDER.map((f) => page.offered(f).length));
+  return feel;
+}
+
+// Reveal the lined-up place, then tap Not this. Returns the place that was passed.
+function passOnPending(page) {
+  page.act("reveal");
+  const id = page.view.pending;
+  page.act("pass", id);
+  return id;
+}
+
+// What the next pick should be if the phone has seen the places in `passedOrder`, written without moodQueue.
+function expectedQueue(page, feel, passedOrder) {
+  const open = page.offered(feel);
+  return open.filter((id) => !passedOrder.includes(id)).concat(passedOrder.filter((id) => open.includes(id)));
+}
+
+check("play: a place you pass on comes back at the next pick of that feeling (#62)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 2);
+  const open = g.offered(feel).slice();
+  g.act("feel", feel);
+  const seen = [];
+  for (let i = 0; i < open.length; i++) {
+    seen.push(passOnPending(g));
+    assert(g.playState().skip.length === 0, "Not this made a permanent no: " + g.playState().skip);
+    if (i < open.length - 1) assert(g.view.panel === "commit" && !seen.includes(g.view.pending), "an unseen place should be next: " + g.view.pending);
+  }
+  assert(g.playState().passed.join() === seen.join(), "passed isn't in the order passed: " + g.playState().passed);
+  assert(g.view.panel === "commit" && g.view.pending === seen[0], "the first place passed on should come back first, got " + g.view.pending);
+  assert(new Set(seen).size === open.length, "a place showed twice before every place showed once");
+  g.act("back");
+  g.act("feel", feel);
+  assert(g.view.pending === seen[0], "the next pick of the feeling isn't the oldest pass");
+});
+
+check("play: the next pick of a feeling shows unseen places before passed ones (#62)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 3);
+  const open = g.offered(feel).slice();
+  const mine = [];
+  g.act("feel", feel);
+  assert(g.view.pending === open[0], "the first pick isn't the deck's first open place");
+  mine.push(passOnPending(g));
+  // Different feeling, then the same one again: the unseen place is first, in the deck's order.
+  g.act("back");
+  g.act("feel", feel);
+  assert(g.view.pending === expectedQueue(g, feel, mine)[0] && !mine.includes(g.view.pending), "a passed place came before an unseen one: " + g.view.pending);
+  // Back to choosing from a revealed card is a pass too, and the pass goes to the end.
+  g.act("reveal");
+  const second = g.view.pending;
+  g.act("back");
+  mine.push(second);
+  assert(g.playState().passed.join() === mine.join(), "Back to choosing from a reveal should pass: " + g.playState().passed);
+  g.act("feel", feel);
+  assert(!mine.includes(g.view.pending), "a passed place came before the last unseen one");
+  assert(g.view.pending === expectedQueue(g, feel, mine)[0], "not the deck's next unseen place");
+  // Passing again moves the place to the end, and a repeat never doubles it.
+  g.act("reveal");
+  const third = g.view.pending;
+  g.act("back");
+  mine.push(third);
+  g.act("feel", feel);
+  assert(g.view.pending === mine[0], "after every place was passed on, the oldest pass should be first");
+  g.act("reveal");
+  g.act("back");
+  assert(g.playState().passed.join() === mine.slice(1).concat(mine[0]).join(), "passing again should move it to the end: " + g.playState().passed);
+  // Back from a hidden card writes nothing.
+  g.act("feel", feel);
+  const before = g.playState().passed.join();
+  g.act("back");
+  assert(g.playState().passed.join() === before && g.playState().skip.length === 0, "Different feeling from a hidden card wrote something");
+});
+
+check("play: the same feeling can be picked again while it has open, unvisited places (#62)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 1);
+  const button = () => playHtml().includes('data-act="feel" data-arg="' + feel + '"');
+  g.act("feel", feel);
+  const first = passOnPending(g);
+  g.act("back");
+  assert(button(), "the feeling's button went away after a pass");
+  g.act("feel", feel);
+  assert(g.view.panel === "commit" && g.offered(feel).includes(g.view.pending), "the feeling couldn't be picked again");
+  g.act("reveal");
+  g.act("back");
+  g.act("feel", feel);
+  assert(g.view.panel === "commit", "picked a third time and nothing came");
+  assert(g.offered(feel).includes(first), "a passed place isn't on offer");
+});
+
+check("play: Shuffle cycles every open, unvisited place in the feeling, passed ones included, then loops (#62)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 3);
+  const open = g.offered(feel).slice();
+  g.act("feel", feel);
+  const passedOne = passOnPending(g);
+  g.act("back");
+  g.act("feel", feel);
+  const start = g.view.pending;
+  const passedBefore = g.playState().passed.join();
+  const order = [start];
+  for (let i = 1; i < open.length; i++) {
+    g.act("shuffle");
+    assert(g.view.panel === "commit", "Shuffle left the hidden card");
+    order.push(g.view.pending);
+  }
+  assert(new Set(order).size === open.length && order.every((id) => open.includes(id)), "Shuffle missed a place or showed one twice: " + order);
+  assert(order.includes(passedOne), "the passed place wasn't in the cycle");
+  assert(order.join() === expectedQueue(g, feel, [passedOne]).join(), "Shuffle isn't unseen first, then passed: " + order);
+  g.act("shuffle");
+  assert(g.view.pending === start, "Shuffle didn't loop back to the start");
+  assert(g.playState().passed.join() === passedBefore && g.playState().skip.length === 0, "Shuffle wrote something");
+  // A card that isn't in the queue any more goes to the front.
+  g.view.pending = "";
+  g.act("shuffle");
+  assert(g.view.pending === order[0], "a card that fell out of the queue should restart at the front");
+});
+
+check("play: visited and Not for us places never come back that day, even after a reload (#62)", () => {
+  const p = playOnTheDay();
+  const feel = moodWith(g, 3);
+  const open = g.offered(feel).slice();
+  g.act("feel", feel);
+  const visited = g.view.pending;
+  g.act("here", visited);
+  g.act("list");
+  const never = g.offered(feel)[0];
+  g.act("skip", never);
+  g.act("feel", feel);
+  const passed = passOnPending(g);
+  assert(!g.playState().passed.includes(visited) && !g.playState().passed.includes(never), "a visited or turned-down place was written as passed");
+  const check = () => {
+    const state = g.playState();
+    assert(state.skip.includes(never) && state.passed.includes(passed) && state.trail.some((t) => t.id === visited), "state lost: " + JSON.stringify(state));
+    assert(!g.offered(feel).includes(visited) && !g.offered(feel).includes(never) && g.offered(feel).includes(passed), "offered: " + g.offered(feel));
+    g.act("back");
+    for (let i = 0; i < open.length + 2; i++) {
+      g.act("feel", feel);
+      assert(g.view.pending !== visited && g.view.pending !== never, "a place we're done with came back: " + g.view.pending);
+      g.act("shuffle");
+      assert(g.view.pending !== visited && g.view.pending !== never, "Shuffle brought back a place we're done with");
+      g.act("back");
+    }
+  };
+  check();
+  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+  g.clockOverride = new Date(p.date + "T12:00:00-04:00");
+  g.act("begin");
+  check();
+});
+
+check("play: a feeling's button hides only when nothing in it is open, unvisited, and not turned down (#62)", () => {
+  playOnTheDay();
+  const feel = moodWith(g, 3);
+  const open = g.offered(feel).slice();
+  const button = () => playHtml().includes('data-act="feel" data-arg="' + feel + '"');
+  g.act("feel", feel);
+  for (let i = 0; i < open.length; i++) {
+    passOnPending(g);
+    g.act("back");
+    assert(button(), "the button hid after passing on place " + (i + 1) + " of " + open.length);
+  }
+  assert(g.playState().passed.length === open.length && g.playState().skip.length === 0, "setup: every place passed on, none turned down");
+  // Visit all but the last, which is turned down from the list.
+  g.act("list");
+  open.slice(0, -1).forEach((id) => {
+    g.act("here", id);
+    assert(button(), "the button hid with a place still open");
+  });
+  assert(g.offered(feel).length === 1 && g.offered(feel)[0] === open[open.length - 1], "setup: one place left");
+  g.act("skip", open[open.length - 1]);
+  g.act("back");
+  assert(g.offered(feel).length === 0 && !button(), "the button should hide when nothing is open, unvisited and not turned down");
+});
+
+check("standard: old #play/ links and old phone skips still play after #62", () => {
+  OLD_LINKS.forEach((link) => {
+    resetPhone();
+    sunny("2026-10-10");
+    openLink(link.hash);
+    assert(g.mode === "play" && g.plan, link.built + ": didn't open");
+    assert(Array.isArray(g.playState().passed) && g.playState().passed.length === 0, link.built + ": passed isn't an empty list");
+    const feel = g.FEEL_ORDER.find((f) => g.offered(f).length >= 2);
+    assert(feel, link.built + ": no feeling with two places");
+    const never = g.offered(feel)[0], legacy = g.offered(feel)[1];
+    // A phone from before #62: its skips, its legacy skip key, and no passed field at all.
+    store["cityday-play-state-" + g.plan.id] = JSON.stringify({ started: true, skip: [never], trail: [] });
+    store["cityday-play-skip-" + g.plan.id] = JSON.stringify([legacy]);
+    openLink(link.hash);
+    const state = g.playState();
+    assert(state.passed.length === 0 && state.skip.includes(never) && state.skip.includes(legacy), link.built + ": old phone state: " + JSON.stringify(state));
+    assert(!g.offered(feel).includes(never) && !g.offered(feel).includes(legacy), link.built + ": an old skip came back");
+    // A link that carries skip still feeds plan.skip, and stays permanent.
+    const raw = JSON.parse(Buffer.from(link.hash.replace(/^#play\//, "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+    const carried = g.decodePlan(g.encodePlan(Object.assign(raw, { skip: [never] })));
+    assert(carried.skip.includes(never), link.built + ": the link's skip was dropped");
+    g.act("begin");
+    g.act("feel", feel);
+    g.act("reveal");
+    const id = g.view.pending;
+    assert(id && id !== never, link.built + ": revealed a skipped place");
+    g.act("here", id);
+    assert(g.playState().trail.length === 1 && g.playState().trail[0].id === id, link.built + ": We're here didn't log");
+  });
+  resetPhone();
+  sunny("2026-10-10");
+  openLink(OLD_LINKS[0].hash);
+  g.plan.skip = [g.offered(g.FEEL_ORDER.find((f) => g.offered(f).length))[0]];
+  const carried = g.plan.skip[0];
+  g.act("begin");
+  g.FEEL_ORDER.forEach((f) => { assert(!g.offered(f).includes(carried), "plan.skip didn't hold"); assert(!g.moodQueue(f).includes(carried), "plan.skip came back in a queue"); });
 });
 
 check("play: Chapter 0 parking when the note mentions driving", () => {
@@ -752,16 +985,16 @@ check("review: a preview on the creator's phone never touches the real day", () 
   g.act("begin");
   g.act("feel", "taste");
   g.act("reveal");
-  g.act("skip", g.view.pending);
+  g.act("pass", g.view.pending);
   g.act("reveal");
   g.act("here", g.view.pending);
-  assert(g.playState().trail.length === 1, "preview trail recorded");
+  assert(g.playState().trail.length === 1 && g.playState().passed.length === 1, "preview trail recorded");
   locationState.hash = "";
   locationState.search = "?create=" + encodeURIComponent(p.id);
   g.boot();
   assert(JSON.stringify(g.liveIds()) === JSON.stringify(before), "desk changed after preview: " + g.liveIds());
   openLink("#play/" + enc);
-  assert(g.view.panel === "curtain" && g.playState().trail.length === 0 && g.playState().skip.length === 0, "real day starts clean");
+  assert(g.view.panel === "curtain" && g.playState().trail.length === 0 && g.playState().skip.length === 0 && g.playState().passed.length === 0, "real day starts clean");
   // A second Play it here starts a fresh preview.
   openLink("");
   click($("open-guest"));
@@ -2953,6 +3186,53 @@ check("city: docs/adding-a-city.md names every config field, source and hoursChe
   assert(/permanent/i.test(cityDoc) && /unique/i.test(cityDoc) && /IANA/.test(cityDoc) && /3 decimals/.test(cityDoc) && /first/i.test(cityDoc), "the doc is missing a rule");
   assert(/19 original places/.test(cityDoc) && /null/.test(cityDoc), "the doc doesn't say who may leave hoursChecked null");
   assert(fs.readFileSync(new URL("./README.md", import.meta.url), "utf8").includes("docs/adding-a-city.md"), "the README doesn't link the doc");
+});
+
+check("city: in a second city, a place you pass on comes back (#62)", () => {
+  fx.clockOverride = fxNoon;
+  fx.weatherByDate = {};
+  // The day is already over in the fixture's own clock, so no hours filter and no day-early guard.
+  const p = fxPlan({ id: "fx62", date: "2026-10-03", must: "coffee, walking" });
+  p.deck = fx.buildDeck(p);
+  const feel = fx.FEEL_ORDER.find((f) => (p.deck.pools[f] || []).length >= 2);
+  assert(feel, "the fixture has no feeling with two places in the deck: " + JSON.stringify(p.deck.pools));
+  const fileIds = fixtureFile.stops.filter((s) => s.feel === feel).map((s) => s.id);
+  assert(p.deck.pools[feel].length >= 2 && p.deck.pools[feel].every((id) => fileIds.includes(id)), "a place from outside the fixture file is in the pool: " + p.deck.pools[feel]);
+  const wanted = p.deck.pools[feel].slice();
+  fx.weatherByDate = { [p.date]: { status: "ready", name: "Saturday", temp: "60°F", wind: "5 mph W", short: "Sunny", wet: false, fetchedAt: Date.now() } };
+  fx.openDay(p, { mode: "play" });
+  assert(!fx.beforePlanDay() && fx.offered(feel).length === wanted.length, "setup: " + fx.offered(feel));
+  fx.act("begin");
+  fx.act("feel", feel);
+  const seen = [];
+  for (let i = 0; i < wanted.length; i++) {
+    fx.act("reveal");
+    seen.push(fx.view.pending);
+    fx.act("pass", fx.view.pending);
+  }
+  assert(new Set(seen).size === wanted.length, "a place showed twice before each had shown once: " + seen);
+  assert(fx.playState().skip.length === 0 && fx.playState().passed.join() === seen.join(), "passed: " + fx.playState().passed);
+  assert(fx.view.panel === "commit" && fx.view.pending === seen[0], "the passed place didn't come back: " + fx.view.pending);
+  fx.act("reveal");
+  fx.act("here", fx.view.pending);
+  assert(fx.playState().trail.length === 1, "We're here in the second city didn't log");
+});
+
+check("play: passing and shuffling name no place, mood or category (#62)", () => {
+  const stops = JSON.parse(fs.readFileSync(new URL("./data/stops.json", import.meta.url), "utf8")).stops.concat(fixtureFile.stops);
+  const words = new Set();
+  stops.forEach((s) => {
+    [s.id, s.feel, s.meal, s.costBand, s.menuFocus].concat(s.tags || []).forEach((w) => { if (typeof w === "string" && w) words.add(w.toLowerCase()); });
+  });
+  g.FEEL_ORDER.concat(Object.keys(g.FEELS), ["surprise"]).forEach((w) => words.add(w));
+  assert(words.size > 40 && words.has(g.FEEL_ORDER[0]), "setup: too few words to scan for: " + words.size);
+  [g.moodQueue, g.passHere, g.shuffleFeel].forEach((fn) => {
+    assert(typeof fn === "function", "a function to scan is missing");
+    const source = fn.toString();
+    const quoted = [...source.matchAll(/(["'])((?:(?!\1)[^\\\n])*)\1/g)].map((m) => m[2].toLowerCase());
+    const hits = quoted.filter((q) => words.has(q));
+    assert(!hits.length, fn.name + " names " + hits.join(", "));
+  });
 });
 
 const failed = results.filter((r) => r.startsWith("FAIL"));

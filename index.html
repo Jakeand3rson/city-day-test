@@ -1761,11 +1761,12 @@
     }
 
     function playState() {
-      if (!plan) return { skip: [], trail: [] };
+      if (!plan) return { skip: [], passed: [], trail: [] };
       if (playCache && playCache.key === playKey()) return playCache.state;
       var st = readJSON(playKey(), {});
       if (!st || typeof st !== "object") st = {};
       st.skip = Array.isArray(st.skip) ? st.skip.map(String) : [];
+      st.passed = Array.isArray(st.passed) ? st.passed.map(String) : [];
       st.trail = Array.isArray(st.trail) ? st.trail : [];
       var old = previewing ? [] : readJSON(OLD_SKIP_PREFIX + plan.id, []);
       if (Array.isArray(old)) old.forEach(function (id) { if (st.skip.indexOf(String(id)) === -1) st.skip.push(String(id)); });
@@ -1876,6 +1877,14 @@
       });
     }
 
+    // The next picks for a feeling: places not seen yet, in the deck's order, then passed ones, oldest pass first.
+    function moodQueue(feel, how) {
+      var passed = playState().passed;
+      var open = offered(feel, how);
+      return open.filter(function (id) { return passed.indexOf(id) === -1; })
+        .concat(passed.filter(function (id) { return open.indexOf(id) !== -1; }));
+    }
+
     function anchorDone() {
       var a = anchorView();
       return !!a && visitedIds().indexOf(a.id) !== -1;
@@ -1912,11 +1921,19 @@
         if (!anchorOffered()) return go("feel");
         view.pending = "anchor";
       } else {
-        var options = offered(feel);
-        if (!options.length) return go("feel");
-        var others = options.filter(function (id) { return id !== view.pending; });
-        view.pending = pickRandom(others.length ? others : options);
+        var queue = moodQueue(feel);
+        if (!queue.length) return go("feel");
+        view.pending = queue[0];
       }
+      holdCard("commit");
+      go("commit");
+    }
+
+    function shuffleFeel() {
+      var queue = moodQueue(view.feel);
+      if (!queue.length) return go("feel");
+      var i = queue.indexOf(view.pending);
+      view.pending = i === -1 ? queue[0] : queue[(i + 1) % queue.length];
       holdCard("commit");
       go("commit");
     }
@@ -1946,9 +1963,9 @@
     // The clock may have moved since the commit screen was drawn.
     function revealNow() {
       if (!cardStillGood(view.pending, view.feel)) {
-        var options = view.feel && view.feel !== "anchor" ? offered(view.feel) : [];
+        var options = view.feel && view.feel !== "anchor" ? moodQueue(view.feel) : [];
         if (!options.length) { holdCard(""); view.pending = null; return go("feel"); }
-        view.pending = pickRandom(options);
+        view.pending = options[0];
       }
       holdCard("reveal");
       go("reveal");
@@ -1984,6 +2001,29 @@
       } else {
         if (view.panel !== "list") { view.pending = null; holdCard(""); }
         go(view.panel === "list" ? "list" : "feel");
+      }
+    }
+
+    function markPassed(id) {
+      var st = playState();
+      st.passed = st.passed.filter(function (p) { return p !== id; }).concat(id);
+      savePlay();
+    }
+
+    // "Not this. Try again" is only for now: the place stays on offer and comes back after the unseen ones.
+    function passHere(id) {
+      if (beforePlanDay()) return go(view.panel === "list" ? "list" : "reveal");
+      markPassed(id);
+      var options = moodQueue(view.feel).filter(function (p) { return p !== id; });
+      if (options.length) {
+        view.pending = options[0];
+        view.linedUp = true;
+        holdCard("commit");
+        go("commit");
+      } else {
+        view.pending = null;
+        holdCard("");
+        go("feel");
       }
     }
 
@@ -2032,13 +2072,15 @@
       if (name === "parked") { st.parked = true; savePlay(); return go("feel"); }
       if (name === "feel") return chooseFeel(arg);
       if (name === "reveal") return revealNow();
-      if (name === "shuffle") return view.feel === "anchor" ? shuffleDinner() : chooseFeel(view.feel);
+      if (name === "shuffle") return view.feel === "anchor" ? shuffleDinner() : shuffleFeel();
       if (name === "back") {
+        if (view.panel === "reveal" && FEEL_ORDER.indexOf(view.feel) !== -1 && STOP_BY_ID[view.pending] && !beforePlanDay()) markPassed(view.pending);
         if (view.panel === "commit" || view.panel === "reveal") { view.pending = null; holdCard(""); }
         return go("feel");
       }
       if (name === "here") return markHere(arg);
       if (name === "skip") return skipHere(arg);
+      if (name === "pass") return passHere(arg);
       if (name === "rate") return rateLast(arg);
       if (name === "list") return go("list");
       if (name === "iffy") return go("iffy");
@@ -2099,7 +2141,10 @@
         var mark = t.rating === "love" ? " (loved it)" : t.rating === "no" ? " (not for us)" : t.rating === "fine" ? " (fine)" : "";
         lines.push("- " + at + t.name + mark + (t.found ? ", found it ourselves" : "") + (t.note ? ": " + t.note : ""));
       });
-      var skipped = playState().skip.filter(function (id) { return STOP_BY_ID[id]; }).map(function (id) { return STOP_BY_ID[id].name; });
+      var gone = visitedIds();
+      var skipped = playState().skip.concat(playState().passed)
+        .filter(function (id, i, all) { return STOP_BY_ID[id] && all.indexOf(id) === i && gone.indexOf(id) === -1; })
+        .map(function (id) { return STOP_BY_ID[id].name; });
       if (skipped.length) lines.push("Passed on: " + skipped.join(", "));
       lines.push("", "Best moment:", "", "What felt off or broken:", "", "Would you use it again?", "");
       return lines.join("\n");
@@ -2372,7 +2417,7 @@
           dirBtn(v) +
           dayStartsHtml() +
           '<button type="button" class="btn btn-cyan" data-act="here" data-arg="' + esc(v.id) + '">We\'re here / on our way</button>' +
-          (isAnchor ? "" : '<button type="button" class="btn btn-ghost" data-act="skip" data-arg="' + esc(v.id) + '">Not this. Try again</button>') +
+          (isAnchor ? "" : '<button type="button" class="btn btn-ghost" data-act="pass" data-arg="' + esc(v.id) + '">Not this. Try again</button>') +
           '<button type="button" class="skip" data-act="back">Back to choosing</button>' +
         "</div>"
       );
