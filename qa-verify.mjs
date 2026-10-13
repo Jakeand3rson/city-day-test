@@ -6,16 +6,27 @@ import Ajv2020 from "ajv/dist/2020.js";
 
 const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
 const stopsFile = JSON.parse(fs.readFileSync(new URL("./data/stops.json", import.meta.url), "utf8"));
+const kirklandFile = JSON.parse(fs.readFileSync(new URL("./data/kirkland.json", import.meta.url), "utf8"));
+const citiesFile = JSON.parse(fs.readFileSync(new URL("./data/cities.json", import.meta.url), "utf8"));
 const stopsSchema = JSON.parse(fs.readFileSync(new URL("./data/stops.schema.json", import.meta.url), "utf8"));
 
-// The page asks for data/stops.json by a relative path. This is the only address that answers.
+// The page asks for data/cities.json, then for each file it lists, by relative paths. These are the
+// only addresses that answer.
+const LIST_URL = /(^|\/)data\/cities\.json(\?|$)/;
 const STOPS_URL = /(^|\/)data\/stops\.json(\?|$)/;
-const served = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(JSON.parse(JSON.stringify(stopsFile))) });
+const KIRKLAND_URL = /(^|\/)data\/kirkland\.json(\?|$)/;
+const reply = (data) => () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(JSON.parse(JSON.stringify(data))) });
+const served = reply(stopsFile);
+const servedList = reply(citiesFile);
+const servedKirkland = reply(kirklandFile);
+// A page that must be one city is handed a list with St. Pete alone.
+const stpeteOnly = reply(["data/stops.json"]);
 
 // One page in its own global. linkedom windows share state with each other, so each page gets a
-// plain global that borrows linkedom's pieces. fetchStops answers the page's request for the places
-// file (served by default), and every other address, like the weather, stays blocked.
-function makePage({ fetchStops = served, hash = "", store = {}, timers = { setTimeout, clearTimeout } } = {}) {
+// plain global that borrows linkedom's pieces. fetchList, fetchStops and fetchKirkland answer the
+// page's requests for the list of cities and the two real files (all served by default), and every
+// other address, like the weather, stays blocked. asked collects each address the page requested.
+function makePage({ fetchList = servedList, fetchStops = served, fetchKirkland = servedKirkland, asked = [], hash = "", store = {}, timers = { setTimeout, clearTimeout } } = {}) {
   const { window: dom, document } = parseHTML(html);
   const window = {};
   const builtins = new Set(vm.runInNewContext("Object.getOwnPropertyNames(globalThis)"));
@@ -67,7 +78,9 @@ function makePage({ fetchStops = served, hash = "", store = {}, timers = { setTi
     btoa: (s) => Buffer.from(s, "binary").toString("base64"),
     atob: (s) => Buffer.from(s, "base64").toString("binary"),
     fetch: async (url, opts) => {
-      if (STOPS_URL.test(String(url))) return fetchStops(url, opts);
+      if (LIST_URL.test(String(url))) { asked.push(String(url)); return fetchList(url, opts); }
+      if (STOPS_URL.test(String(url))) { asked.push(String(url)); return fetchStops(url, opts); }
+      if (KIRKLAND_URL.test(String(url))) { asked.push(String(url)); return fetchKirkland(url, opts); }
       throw new Error("network blocked in QA");
     },
     setTimeout: timers.setTimeout,
@@ -2628,6 +2641,8 @@ const hung = makePage({
   fetchStops: () => new Promise((resolve) => { answerLate = () => resolve({ ok: true, status: 200, json: () => Promise.resolve(JSON.parse(JSON.stringify(stopsFile))) }); }),
   timers: { setTimeout: (fn, ms) => { fireTimer = { fn, ms }; return 1; }, clearTimeout() { fireTimer = null; } }
 });
+// The list answers at once, so the page is waiting on the first city's file.
+await new Promise((resolve) => setTimeout(resolve, 20));
 const hungWhileWaiting = { plan: hung.window.plan, stops: hung.window.STOPS.length, loading: !!hung.document.getElementById("loading"), aboutHidden: hung.document.getElementById("screen-about").classList.contains("hidden"), hash: hung.locationState.hash, replaceState: hung.writes.replaceState };
 const timerMs = fireTimer && fireTimer.ms;
 fireTimer.fn();
@@ -2699,10 +2714,11 @@ check("catalog file: the schema rejects a missing required field and an unknown 
   assert(validate(file), "the real file stopped passing");
 });
 
-check("catalog file: ids are unique, and the page loaded every entry in file order", () => {
+check("catalog file: ids are unique across both files, and the page loaded every entry in list order", () => {
   const ids = stopsFile.stops.map((e) => e.id);
-  assert(new Set(ids).size === ids.length, "duplicate ids");
-  assert(JSON.stringify(g.STOPS.map((s) => s.id)) === JSON.stringify(ids), "the page's places aren't the file's, in order");
+  const all = ids.concat(kirklandFile.stops.map((e) => e.id));
+  assert(new Set(ids).size === ids.length && new Set(all).size === all.length, "duplicate ids");
+  assert(JSON.stringify(g.STOPS.map((s) => s.id)) === JSON.stringify(all), "the page's places aren't the files', in list order");
   assert(g.CATALOG.stops.length === ids.length && g.CATALOG.city === "St. Petersburg", "the loaded catalog isn't the file");
   ids.forEach((id) => assert(g.STOP_BY_ID[id] && g.STOP_BY_ID[id].id === id, id + " isn't looked up by id"));
   // The loaded JSON stays plain data: the page converts a copy.
@@ -2714,10 +2730,10 @@ check("catalog file: no catalog is left in index.html", () => {
   for (const text of ["var PLACES", "CLOSED_DALI", "CLOSED_MFA", "CLOSED_MOREAN", "CLOSED_GLASS", "GLASS_EARLY", "daliHours", "daliEnd", "benchHours", "inList"]) {
     assert(!html.includes(text), "index.html still has " + text);
   }
-  for (const e of stopsFile.stops) {
+  for (const e of stopsFile.stops.concat(kirklandFile.stops)) {
     assert(!html.includes(e.address) && !html.includes(e.query), e.id + " is still written into index.html");
   }
-  assert(/fetch\(CATALOG_URL, \{ cache: "no-cache" \}\)/.test(html) && /var CATALOG_URL = "data\/stops\.json";/.test(html), "the page doesn't ask for data/stops.json by a relative path");
+  assert(/fetch\(url, \{ cache: "no-cache" \}\)/.test(html) && /var CATALOG_URL = "data\/cities\.json";/.test(html), "the page doesn't ask for data/cities.json by a relative path");
   assert(/<section id="screen-about" class="hidden">/.test(html) && /Loading the places…/.test(html), "the page doesn't hold the first screen until the places load");
 });
 
@@ -2867,7 +2883,7 @@ const clickOn = (page, el) => el.dispatchEvent(new page.Event("click", { bubbles
 
 // The page with the fixture added, on a Pacific clock. fxUrls is every address it asked for.
 const fxUrls = [];
-const fx = (await settled()).window;
+const fx = (await settled({ fetchList: stpeteOnly })).window;
 fx.fetch = blocked(fxUrls);
 fx.addCity(clone(fixtureFile));
 const fxNoon = new Date("2026-10-07T12:00:00-07:00");
@@ -2875,13 +2891,13 @@ fx.clockOverride = fxNoon;
 const fxPlan = (overrides) => makePlan(Object.assign({ id: "fx1", city: "qa-pacific", occasion: "Date", must: "coffee, walking, dinner" }, overrides || {}));
 const fxDeck = (pools) => ({ v: 1, anchor: { type: "none" }, pools: Object.assign({ taste: [], drift: [], dig: [], soft: [] }, pools), park: false });
 
-// A page that only ever loads data/stops.json, and asks for nothing else but the places.
+// A page that loads only what the list says, and asks for nothing else but those files.
 const askedFor = [];
-const plainPage = makePage({ fetchStops: (url) => { askedFor.push(String(url)); return served(); } });
+const plainPage = makePage({ asked: askedFor });
 await plainPage.window.CATALOG_READY;
 
-// Two real cities, for the picker. The second is a test-only clone, loaded inside its check.
-const duo = (await settled()).window;
+// One real city, for the picker. The second is a test-only clone, loaded inside its check.
+const duo = (await settled({ fetchList: stpeteOnly })).window;
 duo.fetch = blocked([]);
 
 check("deck: a feeling with fewer than 6 fitting places gets all of them, in any city (#62)", () => {
@@ -2998,8 +3014,11 @@ const STPETE_BEFORE = {
 check("city: index.html names no city, region, coordinates or time zone, and never points at qa-fixtures", () => {
   const found = (html.match(/Petersburg|St\. Pete|\bFL\b|27\.77|82\.64|America\/New_York|America\/Los_Angeles|nyParts|nowNY|qa-fixtures|qa-pacific|pacific-test-city/g) || []).concat(html.match(/florida|stpete/gi) || []);
   assert(!found.length, "index.html still says: " + [...new Set(found)].join(", "));
-  assert((html.match(/var CATALOG_URL = "data\/stops\.json";/g) || []).length === 1, "CATALOG_URL isn't the one file");
-  assert((html.match(/fetch\(CATALOG_URL/g) || []).length === 1, "the places aren't fetched exactly once");
+  assert((html.match(/var CATALOG_URL = "data\/cities\.json";/g) || []).length === 1, "CATALOG_URL isn't the list of cities");
+  assert((html.match(/getJSON\(CATALOG_URL\)/g) || []).length === 1, "the list of cities isn't read exactly once");
+  assert((html.match(/fetch\(url, \{ cache: "no-cache" \}\)/g) || []).length === 1 && (html.match(/\bfetch\(/g) || []).length === 2, "the files aren't fetched in one place");
+  const named = (html.match(/kirkland|Washington/gi) || []).concat(html.match(/\bWA\b/g) || [], html.includes(String(kirklandFile.weather.lat)) ? ["the Kirkland latitude"] : [], html.includes(String(kirklandFile.weather.lon)) ? ["the Kirkland longitude"] : []);
+  assert(!named.length, "index.html still says: " + [...new Set(named)].join(", "));
   assert(!/<meta[^>]*(?:description)[^>]*(?:Pete|Florida)/i.test(html), "a meta description names a city");
 });
 
@@ -3013,8 +3032,9 @@ check("city: St. Pete reads exactly as before (all five titles, form label, meta
   g.setMode("create");
   g.plan = null;
   g.fillForm(null);
-  assert($("city-fixed").textContent === STPETE_BEFORE.formLabel && !$("city-fixed").classList.contains("hidden"), "form label " + $("city-fixed").textContent);
-  assert($("city-pick").classList.contains("hidden") && $("city-pick").innerHTML === "", "a picker shows for one city");
+  const pick = [...document.querySelectorAll("#city-pick button")];
+  assert($("city-fixed").classList.contains("hidden") && !$("city-pick").classList.contains("hidden"), "the picker isn't showing for two cities");
+  assert(pick.length === 2 && pick[0].textContent === STPETE_BEFORE.formLabel && pick[0].getAttribute("aria-pressed") === "true" && g.pickedCityId() === "stpete", "form label " + pick.map((b) => b.textContent + "=" + b.getAttribute("aria-pressed")));
   // The meta line on the desk and on the first screen of the day.
   creatorDesk({});
   assert($("desk-top").textContent.includes(STPETE_BEFORE.metaLine), "desk: " + $("desk-top").textContent.slice(0, 160));
@@ -3058,12 +3078,13 @@ check("city: the St. Pete config passes the schema, its time zone is real, and l
   assert(!validate(Object.assign(clone(stopsFile), { surprise: true })), "the schema accepted an unknown top-level key");
   new Intl.DateTimeFormat("en-US", { timeZone: stopsFile.timeZone });
   const city = g.CITIES[stopsFile.cityId];
-  assert(city && g.DEFAULT_CITY === stopsFile.cityId && Object.keys(g.CITIES).join() === stopsFile.cityId, "St. Pete isn't the one loaded city: " + Object.keys(g.CITIES));
+  assert(city && g.DEFAULT_CITY === stopsFile.cityId && Object.keys(g.CITIES).join() === stopsFile.cityId + "," + kirklandFile.cityId, "St. Pete isn't the first of the loaded cities: " + Object.keys(g.CITIES));
   assert(city.name === stopsFile.city && city.short === stopsFile.short && city.timeZone === stopsFile.timeZone && city.rainLine === stopsFile.rainLine, "the page changed the config");
   assert(city.weather.lat === 27.770 && city.weather.lon === -82.640 && city.sun.lat === 27.7706 && city.sun.lon === -82.6403, "weather and sun are not their own points");
   assert(g.cityIdFor("") === "stpete" && g.cityIdFor(undefined) === "stpete" && g.cityIdFor("stpete") === "stpete" && g.cityIdFor("St. Petersburg") === "stpete", "id lookup");
   assert(g.cityIdFor("nowhere") === null && g.cityIdFor("constructor") === null && g.cityIdFor("__proto__") === null && g.cityIdFor(7) === null, "an unknown city got an id");
-  g.STOPS.forEach((s) => assert(s.city === "stpete", s.id + " has no city"));
+  const stpeteIds = stopsFile.stops.map((e) => e.id);
+  g.STOPS.filter((s) => stpeteIds.includes(s.id)).forEach((s) => assert(s.city === "stpete", s.id + " has no city"));
   g.CATALOG.stops.forEach((e) => assert(e.city === undefined, e.id + " was changed in place"));
   OLD_LINKS.forEach((link) => {
     const plan = g.decodePlan(link.hash.replace(/^#(?:play\/)?/, ""));
@@ -3303,9 +3324,9 @@ check("city: the fixture file passes the schema, every place has a source and a 
   assert(fixtureFile.cityId !== stopsFile.cityId && fixtureFile.city !== stopsFile.city, "the fixture shares a city with the file");
   assert(fixtureFile.stops[2].week["6"].join() === "17,25" && [0, 1, 2, 3, 4, 5].every((d) => fixtureFile.stops[2].week[d] === null), "the late counter isn't Saturday only");
   // Nothing loads it but a test that asks.
-  assert(askedFor.length === 1 && /data\/stops\.json$/.test(askedFor[0]), "the page asked for " + askedFor.join(", "));
+  assert(askedFor.join() === "data/cities.json,data/stops.json,data/kirkland.json", "the page asked for " + askedFor.join(", "));
   [g, plainPage.window].forEach((page) => {
-    assert(Object.keys(page.CITIES).join() === "stpete" && !page.STOPS.some((s) => /^qa-pacific/.test(s.id)), "a page loaded the fixture on its own");
+    assert(Object.keys(page.CITIES).join() === "stpete,kirkland" && !page.STOPS.some((s) => /^qa-pacific/.test(s.id)), "a page loaded the fixture on its own");
   });
   assert(!html.includes("qa-fixtures") && (html.match(/addCity\(/g) || []).length === 1, "index.html reaches for another city file");
 });
@@ -3314,12 +3335,257 @@ check("city: docs/adding-a-city.md names every config field, source and hoursChe
   const fields = Object.keys(stopsSchema.properties).filter((k) => k !== "$schema" && k !== "stops");
   assert(fields.join() === "city,cityId,short,region,regionNames,timeZone,weather,sun,rainLine,fixture", "the schema's fields: " + fields);
   fields.forEach((k) => assert(cityDoc.includes("`" + k + "`"), "the doc doesn't name " + k));
-  ["`source`", "`hoursChecked`", "data/<cityId>.json", "data/stops.json", "`loadCatalog`", "#50"].forEach((word) => assert(cityDoc.includes(word), "the doc doesn't say " + word));
-  assert(/fetches only `data\/stops\.json`/.test(cityDoc) && /not loaded until `loadCatalog` fetches it/.test(cityDoc), "the doc doesn't say a second file isn't loaded yet");
+  ["`source`", "`hoursChecked`", "data/<cityId>.json", "data/stops.json", "data/cities.json", "`loadCatalog`"].forEach((word) => assert(cityDoc.includes(word), "the doc doesn't say " + word));
+  assert(/`data\/stops\.json` stays first/.test(cityDoc) && /never removed/.test(cityDoc), "the doc doesn't say stops.json comes first and a listed city is never removed");
+  assert(!/only real city so far|fetches only|#50/.test(cityDoc), "the doc still has the one-city wording");
   assert(!/no code change/i.test(cityDoc), "the doc says a new city needs no code change");
   assert(/permanent/i.test(cityDoc) && /unique/i.test(cityDoc) && /IANA/.test(cityDoc) && /3 decimals/.test(cityDoc) && /first/i.test(cityDoc), "the doc is missing a rule");
   assert(/19 original places/.test(cityDoc) && /null/.test(cityDoc), "the doc doesn't say who may leave hoursChecked null");
   assert(fs.readFileSync(new URL("./README.md", import.meta.url), "utf8").includes("docs/adding-a-city.md"), "the README doesn't link the doc");
+});
+
+// --- #50: Kirkland, the second real city ---
+
+const kirklandIds = kirklandFile.stops.map((e) => e.id);
+const stpetePage = (await settled({ fetchList: stpeteOnly })).window;
+// What the page does with a day it opens with nothing to answer the weather: asks for the forecast point.
+const weatherAddress = (page, plan) => {
+  const urls = [];
+  const realFetch = page.fetch;
+  page.fetch = blocked(urls);
+  try {
+    resetPhone();
+    page.weatherByDate = {};
+    page.openDay(plan, { mode: "play" });
+  } finally {
+    page.fetch = realFetch;
+  }
+  return urls[0];
+};
+const pointOf = (file) => file.weather.lat.toFixed(3) + "," + file.weather.lon.toFixed(3);
+
+check("kirkland: data/cities.json lists data/stops.json first, then data/kirkland.json, and nothing from qa-fixtures", () => {
+  const raw = fs.readFileSync(new URL("./data/cities.json", import.meta.url), "utf8").trim();
+  assert(raw[0] === "[" && Array.isArray(citiesFile), "the list isn't a bare array");
+  assert(citiesFile[0] === "data/stops.json" && citiesFile[1] === "data/kirkland.json", "the list starts " + citiesFile.slice(0, 2));
+  assert(new Set(citiesFile).size === citiesFile.length, "a path is listed twice");
+  citiesFile.forEach((f) => {
+    assert(typeof f === "string" && /^data\/[a-z][a-z0-9-]*\.json$/.test(f), f + " isn't a data/<name>.json path");
+    assert(!/qa-|fixture/i.test(f), f + " is a test-only file");
+    assert(fs.existsSync(new URL("./" + f, import.meta.url)), f + " isn't there");
+  });
+});
+
+check("kirkland: data/kirkland.json passes data/stops.schema.json, its cityId is kirkland, and its time zone is real", () => {
+  const validate = catalogValidator();
+  assert(validate(kirklandFile), JSON.stringify((validate.errors || []).slice(0, 3)));
+  assert(kirklandFile.cityId === "kirkland" && kirklandFile.fixture === undefined, "the config says " + kirklandFile.cityId);
+  assert(typeof kirklandFile.timeZone === "string" && Intl.supportedValuesOf("timeZone").includes(kirklandFile.timeZone), "the time zone isn't a real one: " + kirklandFile.timeZone);
+  new Intl.DateTimeFormat("en-US", { timeZone: kirklandFile.timeZone });
+  const city = g.CITIES.kirkland;
+  assert(city && city.name === kirklandFile.city && city.timeZone === kirklandFile.timeZone && city.fixture === false, "the page didn't read the file's config");
+  assert(g.realCities().map((c) => c.cityId).join() === "stpete,kirkland", "real cities: " + g.realCities().map((c) => c.cityId));
+  assert(new Set(kirklandIds).size === kirklandIds.length && !kirklandIds.some((id) => stopsFile.stops.some((e) => e.id === id)), "a Kirkland id repeats or is a St. Pete id");
+  g.STOPS.filter((s) => kirklandIds.includes(s.id)).forEach((s) => assert(s.city === "kirkland", s.id + " isn't a Kirkland place"));
+  assert(kirklandFile.stops.every((e) => e.city === undefined) && g.STOPS.filter((s) => kirklandIds.includes(s.id)).length === kirklandIds.length, "a Kirkland place is missing or was changed in place");
+});
+
+check("kirkland: every place has an https source and a real hoursChecked date, never null", () => {
+  kirklandFile.stops.forEach((e) => {
+    assert(/^https:\/\/[^\s/]+\.[^\s/]+/.test(e.source || ""), e.id + " has no https source");
+    assert(typeof e.hoursChecked === "string" && g.realDay(e.hoursChecked), e.id + " has no real check date: " + e.hoursChecked);
+  });
+});
+
+check("kirkland: each feel (taste, drift, dig, soft) has at least 6 places not tagged museum, and every weekday has one open", () => {
+  const everyday = (f) => kirklandFile.stops.filter((e) => e.feel === f && !e.bar && !e.booking && !e.openDates && !e.months && (e.tags || []).indexOf("museum") === -1);
+  ["taste", "drift", "dig", "soft"].forEach((f) => {
+    const list = everyday(f);
+    assert(list.length >= 6, f + " has only " + list.length + " everyday places");
+    for (let day = 0; day <= 6; day++) {
+      assert(list.some((e) => e.week[String(day)]), f + " has nothing open on weekday " + day);
+    }
+  });
+  // A cheap, a mid and a nice dinner, each open into the evening on a weekday.
+  ["cheap", "mid", "nice"].forEach((band) => {
+    const dinners = kirklandFile.stops.filter((e) => e.dinner === true && e.costBand === band && !e.bar && [1, 2, 3, 4, 5].some((d) => e.week[String(d)] && e.week[String(d)][1] >= 20));
+    assert(dinners.length >= 1, "no " + band + " dinner open to 8pm on a weekday");
+  });
+});
+
+check("kirkland: picking Kirkland on the create screen builds a Kirkland-only day; not picking it builds the same St. Pete deck", () => {
+  const buttons = () => [...document.querySelectorAll("#city-pick button")];
+  const brief = (date, must) => ({ you: "A", them: "B", occasion: "Date", kind: "easy", lean: "gems", drink: "no", budgetAmount: "40", must, date, allergy: false });
+  // The form only takes a date up to three days after the city's today.
+  const fillAndSend = (pickKirkland, date, must) => {
+    resetPhone();
+    g.clockOverride = new Date(date === "2026-10-13" ? "2026-10-10T12:00:00-07:00" : PINNED);
+    g.setMode("create");
+    g.plan = null;
+    g.fillForm(null);
+    assert(buttons().map((b) => b.textContent).join("|") === "St. Petersburg|Kirkland", "buttons: " + buttons().map((b) => b.textContent));
+    if (pickKirkland) clickOn(g, buttons()[1]);
+    assert(g.pickedCityId() === (pickKirkland ? "kirkland" : "stpete"), "the pick didn't take");
+    $("you").value = "A"; $("them").value = "B";
+    g.applyPills({ occasion: "Date", drink: "no", lean: "gems" });
+    g.renderKinds("Date", "easy");
+    $("budget-amount").value = "40";
+    $("date").value = date;
+    $("must").value = must;
+    assert(g.submitForm() === true, "the form said: " + $("form-err").textContent);
+    return g.plan;
+  };
+  try {
+    for (const date of ["2026-10-10", "2026-10-13"]) {
+      for (const must of ["", "no museums"]) {
+        const label = date + " " + JSON.stringify(must) + ": ";
+        const day = fillAndSend(true, date, must);
+        assert(day.city === "kirkland" && decodeLink(g.shareUrl()).city === "kirkland" && g.here().cityId === "kirkland", label + "the day isn't Kirkland's");
+        const ids = deckPlaceIds(day.deck);
+        assert(ids.length > 0 && ids.every((id) => kirklandIds.includes(id)), label + "a place from somewhere else: " + ids);
+        assert(g.POOL_MAX === 6, "the mood cap from #62 isn't on this page");
+        Object.entries(day.deck.pools).forEach(([feel, list]) => assert(list.length >= 1 && list.length <= g.POOL_MAX, label + feel + " has " + list.length + " places"));
+        ids.forEach((id) => assert(g.STOP_BY_ID[id].isOpen(g.parseDate(date), date), label + id + " is closed that day"));
+        assert(day.deck.park === false && day.deck.anchor.type === "none", label + "a Kirkland day got parking or a dinner it wasn't asked for: " + JSON.stringify(day.deck.anchor));
+        assert(weatherAddress(g, day) === "https://api.weather.gov/points/" + pointOf(kirklandFile), label + "weather address " + weatherAddress(g, day));
+        const same = fillAndSend(false, date, must);
+        assert(same.city === "stpete" && decodeLink(g.shareUrl()).city === "stpete", label + "the day isn't St. Pete's");
+        assert(JSON.stringify(same.deck) === JSON.stringify(g.buildDeck(makePlan(brief(date, must)))), label + "the St. Pete deck changed with Kirkland loaded");
+        assert(!deckPlaceIds(same.deck).some((id) => kirklandIds.includes(id)), label + "a Kirkland place came up in St. Pete");
+        assert(weatherAddress(g, same) === STPETE_BEFORE.weatherUrl, label + "St. Pete weather address");
+      }
+    }
+  } finally {
+    resetPhone();
+  }
+  // Kirkland's own clock: 11:30pm there is still Oct 10, and 2:30am Oct 11 in St. Pete's.
+  g.clockOverride = new Date("2026-10-10T23:30:00-07:00");
+  assert(g.cityNow(g.CITIES.kirkland).iso === "2026-10-10" && g.cityNow(g.CITIES.stpete).iso === "2026-10-11", "the clocks");
+  g.clockOverride = PINNED;
+});
+
+check("kirkland: old #play/ links still open as St. Pete with their frozen decks while Kirkland is loaded", () => {
+  assert(g.CITIES.kirkland && g.DEFAULT_CITY === "stpete", "Kirkland isn't loaded, or isn't second");
+  OLD_LINKS.forEach((link) => {
+    const encoded = link.hash.replace(/^#(?:play\/)?/, "");
+    const old = g.decodePlan(encoded);
+    assert(old && old.city === "stpete", link.built + ": opens in " + (old && old.city));
+    const raw = decodeLink(link.hash).deck;
+    if (raw) assert(JSON.stringify(deckPlaceIds(old.deck).sort()) === JSON.stringify(deckPlaceIds(raw).sort()), link.built + ": the frozen deck changed");
+    assert(JSON.stringify(old.deck) === JSON.stringify(stpetePage.decodePlan(encoded).deck), link.built + ": a different deck than a St. Pete-only page reads");
+    resetPhone();
+    sunny("2026-10-10");
+    openLink(link.hash);
+    assert(g.mode === "play" && g.plan && g.plan.city === "stpete" && /· St\. Petersburg/.test(playText()), link.built + ": didn't open as St. Pete");
+    if (raw) assert(JSON.stringify(g.plan.deck) === JSON.stringify(old.deck), link.built + ": the opened deck isn't the frozen one");
+    deckPlaceIds(g.plan.deck || { anchor: null, pools: {} }).forEach((id) => assert(!kirklandIds.includes(id), link.built + ": reaches into Kirkland: " + id));
+  });
+  resetPhone();
+});
+
+// A page that is told the list or a file is wrong, and what is left of it.
+async function brokenKirkland(options) {
+  const phone = savedDay();
+  const before = JSON.stringify(phone);
+  const page = await settled(Object.assign({ hash: linkOnPhone, store: phone }, options));
+  return { page, phone, before };
+}
+
+const kirklandBroken = {
+  "Kirkland's file is missing": { fetchKirkland: replies({ ok: false, status: 404, json: () => Promise.resolve({}) }) },
+  "Kirkland's request fails": { fetchKirkland: offline },
+  "Kirkland's file isn't JSON": { fetchKirkland: replies({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError("Unexpected token <")) }) },
+  "Kirkland's file has no places": { fetchKirkland: replies({ ok: true, status: 200, json: () => Promise.resolve(Object.assign(clone(kirklandFile), { stops: [] })) }) },
+  "Kirkland has no time zone": { fetchKirkland: () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(Object.assign(clone(kirklandFile), { timeZone: undefined })) }) },
+  "Kirkland's time zone isn't a real one": { fetchKirkland: () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(Object.assign(clone(kirklandFile), { timeZone: "Mars/Olympus_Mons" })) }) },
+  "one Kirkland place can't be read": { fetchKirkland: () => { const f = clone(kirklandFile); delete f.stops[3].week; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(f) }); } },
+  "a Kirkland id is in its file twice": { fetchKirkland: () => { const f = clone(kirklandFile); f.stops[1].id = f.stops[0].id; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(f) }); } },
+  "Kirkland has a St. Pete place's id": { fetchKirkland: () => { const f = clone(kirklandFile); f.stops[0].id = "kahwa"; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(f) }); } },
+  "Kirkland has St. Pete's city id": { fetchKirkland: () => { const f = clone(kirklandFile); f.cityId = "stpete"; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(f) }); } },
+  "Kirkland has St. Pete's city name": { fetchKirkland: () => { const f = clone(kirklandFile); f.city = "St. Petersburg"; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(f) }); } },
+  "the list's request fails": { fetchList: offline },
+  "the list is missing": { fetchList: replies({ ok: false, status: 404, json: () => Promise.resolve([]) }) },
+  "the list isn't JSON": { fetchList: replies({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError("Unexpected token <")) }) },
+  "the list is empty": { fetchList: reply([]) },
+  "the list isn't a list": { fetchList: reply({ files: ["data/stops.json"] }) },
+  "the list has a path that isn't a city file": { fetchList: reply(["data/stops.json", "../elsewhere.json"]) },
+  "the list has a web address": { fetchList: reply(["data/stops.json", "https://example.com/data/kirkland.json"]) },
+  "the list has a path in a folder": { fetchList: reply(["data/stops.json", "data/qa/kirkland.json"]) },
+  "the list has a path in capitals": { fetchList: reply(["data/stops.json", "data/Kirkland.json"]) },
+  "the list has something that isn't a path": { fetchList: reply(["data/stops.json", 7]) },
+  "the list names a file twice": { fetchList: reply(["data/stops.json", "data/kirkland.json", "data/stops.json"]) }
+};
+const askedStray = [];
+await settled({ asked: askedStray, fetchList: reply(["data/stops.json", "../elsewhere.json"]) });
+const kirklandBrokenPages = {};
+for (const [why, options] of Object.entries(kirklandBroken)) kirklandBrokenPages[why] = await brokenKirkland(options);
+
+check("kirkland: a bad Kirkland file or a bad cities list fails the load like a bad St. Pete file, and changes nothing", () => {
+  assert(Object.keys(kirklandBrokenPages).length >= 20, "too few broken cases");
+  for (const [why, { page, phone, before }] of Object.entries(kirklandBrokenPages)) {
+    const w = page.window, doc = page.document;
+    const text = doc.getElementById("play").textContent;
+    assert(w.STOPS.length === 0 && Object.keys(w.STOP_BY_ID).length === 0 && Object.keys(w.CITIES).length === 0 && w.CATALOG === null && w.DEFAULT_CITY === null, why + ": some places or cities loaded anyway (St. Pete too?)");
+    assert(w.plan === null && w.mode === "play", why + ": a day was built");
+    assert(/Hmm/.test(text) && /The places didn't load\./.test(text) && /Your link is fine\. Nothing in it has changed\./.test(text), why + ": " + text);
+    assert(doc.querySelector('#play [role="alert"]') && doc.getElementById("catalog-retry"), why + ": not announced, or no way to try again");
+    assert(!doc.getElementById("loading"), why + ": still says loading");
+    assert(page.writes.replaceState === 0 && page.locationState.hash === linkOnPhone, why + ": touched the link");
+    assert(JSON.stringify(phone) === before, why + ": wrote to the phone's storage");
+  }
+  // A bad list asks for no city file at all, and a bad path is never fetched.
+  assert(askedStray.join() === "data/cities.json", "asked for " + askedStray);
+  // readCity also takes the cities read earlier in the same load, which aren't saved yet.
+  const earlier = stpetePage.readCity(clone(kirklandFile));
+  const state = () => stpetePage.STOPS.length + "|" + Object.keys(stpetePage.CITIES) + "|" + Object.keys(stpetePage.STOP_BY_ID).length;
+  const was = state();
+  assert(earlier.city.cityId === "kirkland" && was === stopsFile.stops.length + "|stpete|" + stopsFile.stops.length, "reading a city saved it");
+  const renamed = (change) => {
+    const f = clone(kirklandFile);
+    Object.assign(f, { cityId: "elsewhere", city: "Elsewhere (QA only)" });
+    f.stops.forEach((e) => { e.id = "elsewhere-" + e.id; });
+    change(f);
+    return throwsError(() => stpetePage.readCity(f, [earlier]));
+  };
+  assert(throwsError(() => stpetePage.readCity(clone(kirklandFile), [earlier])), "the same city twice was accepted");
+  assert(!renamed(() => {}), "a different city read earlier shouldn't block");
+  assert(renamed((f) => { f.city = kirklandFile.city; }), "a city name that an earlier file has was accepted");
+  assert(renamed((f) => { f.cityId = kirklandFile.cityId; }), "a city id that an earlier file has was accepted");
+  assert(renamed((f) => { f.stops[4].id = kirklandIds[4]; }), "a stop id that an earlier file has was accepted");
+  assert(state() === was, "reading a city changed the page");
+});
+
+check("kirkland: drinks stay opt-in: every bar, brewery, winery or taproom is marked bar", () => {
+  const drinky = /\b(?:bar|brewery|brewing|winery|taproom|tap room|cidery|distillery|tavern|pub|beer garden|cocktails?)\b/i;
+  const pastryBar = /croissant bar/i;
+  const sells = kirklandFile.stops.filter((e) => drinky.test((e.tags || []).join(" ")) || (drinky.test(e.name) && !pastryBar.test(e.name)));
+  assert(sells.length >= 1, "no drinking place to check");
+  sells.forEach((e) => assert(e.bar === true && g.STOP_BY_ID[e.id].bar === true, e.id + " serves drinks but isn't marked bar"));
+  // A day that said no to drinks never offers one, on any day of the week or for any note.
+  for (const date of ["2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15"]) {
+    for (const must of ["", "beer, drinks, brewery", "coffee, tacos, art, walking, music"]) {
+      const deck = deckOf({ city: "kirkland", date, must, drink: "no", kind: "celebrate", budgetAmount: "300" });
+      deckPlaceIds(deck).forEach((id) => assert(!g.STOP_BY_ID[id].bar, date + " " + must + ": a bar came up on a no-drinks day: " + id));
+    }
+  }
+  const yes = deckOf({ city: "kirkland", date: "2026-10-10", must: "", drink: "yes", budgetAmount: "300" });
+  assert(deckPlaceIds(yes).every((id) => kirklandIds.includes(id)), "a yes-drinks Kirkland day left Kirkland");
+});
+
+check("kirkland: the arts center gallery is closed between the exhibitions its page lists (#50)", () => {
+  const gallery = g.STOP_BY_ID["kirkland-arts-center-gallery"];
+  const open = (iso) => gallery.isOpen(g.parseDate(iso), iso);
+  assert(!open("2026-10-14") && !open("2026-11-21"), "open between exhibitions");
+  assert(open("2026-10-17"), "closed during Northwest Designer Craft Artists");
+  const raw = kirklandFile.stops.find((e) => e.id === "kirkland-arts-center-gallery");
+  assert(raw.closedDates.length === 0 && raw.skipDates.join() === ["2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-11-21", "2026-11-22"].concat(Array.from({ length: 10 }, (_, i) => "2026-12-" + (22 + i))).join(), "the gaps: " + raw.skipDates);
+});
+
+check("kirkland: Parklane's posted hours right now are 11am to 6pm (#50)", () => {
+  const raw = kirklandFile.stops.find((e) => e.id === "kirkland-parklane-gallery");
+  assert(raw.week["6"].join() === "11,18", "Saturday is " + raw.week["6"]);
+  assert(raw.hoursText.includes("11am \u2013 6pm") && raw.hoursText.includes("April 1"), "hoursText: " + raw.hoursText);
+  assert(raw.hoursChecked === "2026-10-13", "checked " + raw.hoursChecked);
 });
 
 check("city: in a second city, a place you pass on comes back (#62)", () => {

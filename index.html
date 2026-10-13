@@ -97,6 +97,10 @@
       color: var(--ink);
       border-radius: 999px;
       padding: 0.55rem 0.9rem;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       font: inherit;
       font-size: 0.95rem;
       cursor: pointer;
@@ -720,8 +724,8 @@
 
     // ---------- the catalog ----------
 
-    // The places live in data/stops.json (shape: data/stops.schema.json). loadCatalog() fills these
-    // before anything else runs, so nothing here reads STOPS until the file has loaded.
+    // The places live in one file per city, listed in data/cities.json (shape: data/stops.schema.json).
+    // loadCatalog() fills these before anything else runs, so nothing here reads STOPS until every file has loaded.
     // Every city's places share one list, and each place knows its city (s.city).
     var STOPS = [];
     var STOP_BY_ID = {};
@@ -765,7 +769,7 @@
 
     // Parks open and close by the sun ("30 minutes before sunrise"), so those times are worked
     // out for the date rather than guessed. Closing times past midnight are written as 25, 27...
-    // Every place in data/stops.json comes through here, and the page only ever uses the result.
+    // Every place in every city file comes through here, and the page only ever uses the result.
     // week is the window City Day offers, which is not always the source's own label: hoursLabel
     // (one text, or one per weekday) is what shows. dateHours changes one date's window and label.
     function realDay(iso) {
@@ -863,7 +867,8 @@
       return e;
     }
 
-    var CATALOG_URL = "data/stops.json";
+    var CATALOG_URL = "data/cities.json";
+    var CITY_FILE = /^data\/[a-z][a-z0-9-]*\.json$/;
     var CATALOG_WAIT_MS = 15000;
 
     function isText(v) {
@@ -875,7 +880,9 @@
     }
 
     // One city file in, checked and converted. Nothing is saved here: keepCity() does that.
-    function readCity(data) {
+    // earlier is the cities read before this one in the same load, which aren't saved yet.
+    function readCity(data, earlier) {
+      earlier = earlier || [];
       if (!data || !Array.isArray(data.stops) || !data.stops.length) throw new Error("The places file is empty.");
       if (!isText(data.city) || !isText(data.short) || !isText(data.region) || !isText(data.cityId) || !/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(data.cityId)) throw new Error("The places file doesn't say which city it is.");
       if (!Array.isArray(data.regionNames) || !data.regionNames.length || !data.regionNames.every(isText)) throw new Error(data.cityId + " doesn't say how its region is written.");
@@ -883,6 +890,7 @@
       if (data.rainLine != null && !isText(data.rainLine)) throw new Error(data.cityId + " has a rain line that isn't text.");
       if (data.fixture != null && typeof data.fixture !== "boolean") throw new Error(data.cityId + " has a fixture flag that isn't true or false.");
       if (CITIES[data.cityId] || cityIdFor(data.city)) throw new Error(data.cityId + " is already loaded.");
+      if (earlier.some(function (m) { return m.city.cityId === data.cityId || m.city.name === data.city; })) throw new Error(data.cityId + " is already loaded.");
       if (!isText(data.timeZone)) throw new Error(data.cityId + " doesn't say its time zone.");
       // An unknown time zone throws here, so a mistyped one fails the load instead of the clock.
       new Intl.DateTimeFormat("en-US", { timeZone: data.timeZone });
@@ -893,7 +901,7 @@
       var made = [], seen = {};
       data.stops.forEach(function (raw) {
         var s = weekStop(raw, city);
-        if (seen[s.id] || STOP_BY_ID[s.id]) throw new Error(s.id + " is in the places twice.");
+        if (seen[s.id] || STOP_BY_ID[s.id] || earlier.some(function (m) { return m.stops.some(function (o) { return o.id === s.id; }); })) throw new Error(s.id + " is in the places twice.");
         seen[s.id] = true;
         made.push(s);
       });
@@ -907,27 +915,37 @@
       made.stops.forEach(function (s) { STOPS.push(s); STOP_BY_ID[s.id] = s; });
     }
 
-    // Another city's file, by hand. The page itself only loads data/stops.json.
+    // A test-only city's data, by hand. The page itself only loads the files data/cities.json lists.
     function addCity(data) {
       keepCity(readCity(data));
     }
 
-    // Gets the places from data/stops.json. All or nothing: STOPS stays empty unless every place
-    // converts, and a file that arrives after the wait is over is ignored.
+    function getJSON(url) {
+      return fetch(url, { cache: "no-cache" }).then(function (res) {
+        if (!res.ok) throw new Error("The places came back " + res.status + ".");
+        return res.json();
+      });
+    }
+
+    // Gets the places from every file data/cities.json lists, the first city first. All or nothing:
+    // STOPS stays empty unless every place in every file converts, and files that arrive after the
+    // wait is over are ignored.
     function loadCatalog() {
       var timer = null, gaveUp = false;
       var timeout = new Promise(function (resolve, reject) {
         timer = setTimeout(function () { gaveUp = true; reject(new Error("The places took too long.")); }, CATALOG_WAIT_MS);
       });
       var load = Promise.resolve().then(function () {
-        return fetch(CATALOG_URL, { cache: "no-cache" });
-      }).then(function (res) {
-        if (!res.ok) throw new Error("The places came back " + res.status + ".");
-        return res.json();
-      }).then(function (data) {
-        var made = readCity(data);
+        return getJSON(CATALOG_URL);
+      }).then(function (list) {
+        if (!Array.isArray(list) || !list.length || !list.every(function (f) { return typeof f === "string" && CITY_FILE.test(f); }) ||
+            list.some(function (f, i) { return list.indexOf(f) !== i; })) throw new Error("The list of cities is broken.");
+        return Promise.all(list.map(getJSON));
+      }).then(function (files) {
+        var made = [];
+        files.forEach(function (data) { made.push(readCity(data, made)); });
         if (gaveUp) return;
-        keepCity(made);
+        made.forEach(keepCity);
       });
       function done() { if (timer !== null) clearTimeout(timer); }
       return Promise.race([load, timeout]).then(done, function (e) { done(); throw e; });
