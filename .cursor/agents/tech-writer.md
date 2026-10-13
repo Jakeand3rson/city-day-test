@@ -1,7 +1,7 @@
 ---
 name: tech-writer
 description: Drafts City Day PR descriptions (template plus proof table) and keeps CONTRIBUTING.md and docs/SDLC.md current, in plain English. Returns drafts to the Engineering Manager, who opens or edits the PR.
-model: claude-haiku-5-5
+model: composer-2.5[fast=false]
 readonly: false
 is_background: false
 ---

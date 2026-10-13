@@ -1,7 +1,7 @@
 ---
 name: security-privacy-reviewer
 description: Scans every City Day diff for personal info, secrets, tokens, tracking, and copied third-party content. Tells the Engineering Manager to block the PR if it finds any. Returns PASS or BLOCK findings; does not post to GitHub.
-model: claude-haiku-5-5
+model: composer-2.5[fast=false]
 readonly: true
 is_background: false
 ---
