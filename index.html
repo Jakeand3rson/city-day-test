@@ -940,6 +940,9 @@
       anchor: { label: "Real dinner", sub: "When hunger means business", kicker: "Dinner track", title: "Hunger gets a destination.", lede: "Still under wraps." }
     };
     var FEEL_ORDER = ["taste", "drift", "dig", "soft"];
+    // Most places one feeling can hold. It may only go up: cleanDeck uses it too, so lowering it
+    // would cut places from links already sent.
+    var POOL_MAX = 6;
 
     // ---------- reading the brief ----------
 
@@ -1298,7 +1301,7 @@
       });
     }
 
-    // The deck: one fixed point, up to three places per feeling, and parking if needed.
+    // The deck: one fixed point, up to six places per feeling (fewer when fewer fit), and parking if needed.
     function buildDeck(p) {
       var d = parseDate(p.date);
       var iso = isoDate(d);
@@ -1323,7 +1326,7 @@
             (tagScore(b, text) - tagScore(a, text)) ||
             (leanRank(a) - leanRank(b)) ||
             (hashOf(seed + a.id) % 97) - (hashOf(seed + b.id) % 97);
-        }).slice(0, 3).map(function (s) { return s.id; });
+        }).slice(0, POOL_MAX).map(function (s) { return s.id; });
       });
       if (anchor.type === "stop") {
         // Up to two other dinners for Shuffle on the day: the same price band first, then one band
@@ -1637,7 +1640,7 @@
         var list = Array.isArray(raw.pools[f]) ? raw.pools[f] : [];
         pools[f] = list.map(String).filter(function (id) {
           return ours(id) && STOP_BY_ID[id].feel === f;
-        }).slice(0, 4);
+        }).slice(0, POOL_MAX);
       });
       var a = raw.anchor && typeof raw.anchor === "object" ? raw.anchor : { type: "none" };
       var anchor = { type: "none" };

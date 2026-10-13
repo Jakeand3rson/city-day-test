@@ -218,6 +218,14 @@ function startPlay(overrides) {
 const playText = () => $("play").textContent;
 const playHtml = () => $("play").innerHTML;
 
+// Runs fn with a different pool cap on a page, then puts the cap back to 6.
+function withPoolMax(n, fn, page) {
+  const w = page || g;
+  w.POOL_MAX = n;
+  try { return fn(); }
+  finally { w.POOL_MAX = 6; }
+}
+
 const results = [];
 function check(name, fn) {
   try {
@@ -232,12 +240,13 @@ function check(name, fn) {
 
 // --- the deck ---
 
-check("deck: up to 3 per feeling, no repeats, anchor not in pools, all open that date", () => {
+check("deck: up to 6 per feeling, no repeats, anchor not in pools, all open that date (#62)", () => {
+  assert(g.POOL_MAX === 6, "the cap is " + g.POOL_MAX);
   for (const date of ["2026-10-10", "2026-10-13", "2026-10-17", "2027-03-06"]) {
     const deck = deckOf({ date, must: "coffee, tacos, art, walking, music", kind: "celebrate", budgetAmount: "300" });
     const ids = allIds(deck);
     assert(new Set(ids).size === ids.length, date + " repeats: " + ids);
-    Object.values(deck.pools).forEach((list) => assert(list.length <= 3, date + " pool too big"));
+    Object.values(deck.pools).forEach((list) => assert(list.length <= g.POOL_MAX, date + " pool too big"));
     if (deck.anchor.id) assert(!ids.includes(deck.anchor.id), date + " anchor in pools");
     const d = g.parseDate(date);
     ids.forEach((id) => assert(g.STOP_BY_ID[id].isOpen(d, date), date + " closed stop " + id));
@@ -617,6 +626,12 @@ check("play: the next pick of a feeling shows unseen places before passed ones (
   const third = g.view.pending;
   g.act("back");
   mine.push(third);
+  while (mine.length < open.length) {
+    g.act("feel", feel);
+    g.act("reveal");
+    mine.push(g.view.pending);
+    g.act("back");
+  }
   g.act("feel", feel);
   assert(g.view.pending === mine[0], "after every place was passed on, the oldest pass should be first");
   g.act("reveal");
@@ -907,10 +922,11 @@ check("desk: Not for us on the desk swaps the next place in", () => {
   g.plan.surprise = false;
   g.render();
   const target = g.plan.deck.pools.taste[0];
-  assert(g.plan.deck.pools.taste.length === 3, "precondition: a full taste pool");
+  const eligible = withPoolMax(99, () => g.buildDeck(g.plan).pools.taste.length);
+  assert(g.plan.deck.pools.taste.length === g.POOL_MAX, "precondition: a full taste pool");
   click($("desk-top").querySelector('[data-desk-skip="' + target + '"]'));
   assert(!g.liveIds().includes(target), "removed");
-  assert(g.plan.deck.pools.taste.length === 3 && !g.plan.deck.pools.taste.includes(target), "the next place stepped in: " + g.plan.deck.pools.taste);
+  assert(g.plan.deck.pools.taste.length === Math.min(eligible - 1, g.POOL_MAX) && !g.plan.deck.pools.taste.includes(target), "the next place stepped in: " + g.plan.deck.pools.taste);
   const saved = JSON.parse(window.localStorage.getItem("cityday-test-v1")).plans[g.plan.id];
   assert(saved.skip.includes(target), "saved");
   assert(/Copy the link again/.test($("save-note").textContent), "told the copied link is stale");
@@ -1094,9 +1110,12 @@ check("review: a place that closed between commit and reveal is not revealed", (
   g.act("begin");
   g.act("feel", "dig");
   assert(g.view.panel === "commit" && g.view.pending, "commit at 3:20");
+  const committed = g.view.pending;
   g.clockOverride = new Date("2026-10-10T17:40:00-04:00");
+  assert(!g.offered("dig").includes(committed), "the committed place should have closed by 5:40");
   g.act("reveal");
-  assert(g.view.panel === "feel" && !g.view.pending, "panel " + g.view.panel + " pending " + g.view.pending);
+  assert(g.view.pending !== committed, "revealed a place that had closed: " + g.view.pending);
+  assert(g.view.panel === "feel" ? !g.view.pending : g.offered("dig").includes(g.view.pending), "panel " + g.view.panel + " pending " + g.view.pending);
 });
 
 check("review: a second tab does not wipe the first tab's stops", () => {
@@ -1178,11 +1197,12 @@ check("review: Plan B lists only what is open right now on the day", () => {
   g.clockOverride = new Date("2026-10-13T09:05:00-04:00");
   g.act("begin");
   g.act("iffy");
-  assert(!/Museum of Fine Arts|The Dalí Museum/.test(playText()), "lists places that open at 10");
+  const listed = () => Array.from($("play").querySelectorAll("h2")).map((h) => h.textContent);
+  assert(!listed().some((n) => /Museum of Fine Arts|The Dalí Museum/.test(n)), "lists places that open at 10");
   g.clockOverride = new Date("2026-10-13T10:30:00-04:00");
   g.act("back");
   g.act("iffy");
-  assert(/Museum of Fine Arts|The Dalí Museum/.test(playText()), "at 10:30 the museums are open");
+  assert(listed().some((n) => /Museum of Fine Arts|The Dalí Museum/.test(n)), "at 10:30 the museums are open");
   g.clockOverride = PINNED;
 });
 
@@ -2717,15 +2737,40 @@ check("catalog file: every whyText uses only {hours} {on} {occ} {when}, and hour
   assert(stop.why({ iso: "2026-10-13", hours: "9am–5pm", on: "today" }) === "Costs $& and $1, open 9am–5pm today.", stop.why({ iso: "2026-10-13", hours: "9am–5pm", on: "today" }));
 });
 
-check("catalog file: same decks for the same brief and date as before the move", () => {
+check("catalog file: with the old cap of 3, the same decks for the same brief and date as before the move", () => {
   assert(probes.briefs().length === beforeMove.deckCount, "the brief list changed");
-  const now = probes.decks();
+  const now = withPoolMax(3, () => probes.decks());
   beforeMove.decks.forEach((x) => {
     const at = probes.briefs().findIndex((b) => JSON.stringify(b) === JSON.stringify(x.brief));
     assert(at >= 0, "a saved brief is gone: " + JSON.stringify(x.brief));
     assert(JSON.stringify(now[at]) === JSON.stringify(x.deck), "a deck changed for " + JSON.stringify(x.brief) + ": " + JSON.stringify(now[at]));
   });
   assert(probes.sha(now) === beforeMove.deckDigest, "some of the " + beforeMove.deckCount + " decks changed");
+});
+
+// The full list for each probe brief, from a cap so high it never cuts. This is the app's own filter and sort.
+const fullDecks = () => withPoolMax(99, () => probes.decks());
+
+check("deck: a feeling with 6 or more fitting places gets 6 (#62)", () => {
+  const full = fullDecks();
+  const now = probes.decks();
+  let big = 0;
+  now.forEach((deck, i) => g.FEEL_ORDER.forEach((f) => {
+    const all = full[i].pools[f];
+    if (all.length < 6) return;
+    big++;
+    assert(deck.pools[f].length === 6, "a pool with " + all.length + " fitting got " + deck.pools[f].length);
+    assert(JSON.stringify(deck.pools[f]) === JSON.stringify(all.slice(0, 6)), "not the first six of the full list: " + deck.pools[f]);
+  }));
+  assert(big > 0, "no probe brief had a pool with six or more fitting places");
+});
+
+check("catalog file: new decks keep the old three picks first in each feeling (#62)", () => {
+  const old = withPoolMax(3, () => probes.decks());
+  const now = probes.decks();
+  now.forEach((deck, i) => g.FEEL_ORDER.forEach((f) => {
+    assert(JSON.stringify(deck.pools[f].slice(0, 3)) === JSON.stringify(old[i].pools[f]), "the first three changed in " + f + ": " + deck.pools[f] + " vs " + old[i].pools[f]);
+  }));
 });
 
 check("catalog file: hand-written stops read the same hours and lines as before", () => {
@@ -2838,6 +2883,95 @@ await plainPage.window.CATALOG_READY;
 // Two real cities, for the picker. The second is a test-only clone, loaded inside its check.
 const duo = (await settled()).window;
 duo.fetch = blocked([]);
+
+check("deck: a feeling with fewer than 6 fitting places gets all of them, in any city (#62)", () => {
+  const full = fullDecks();
+  const now = probes.decks();
+  let small = 0;
+  now.forEach((deck, i) => g.FEEL_ORDER.forEach((f) => {
+    const all = full[i].pools[f];
+    if (all.length >= 6) return;
+    small++;
+    assert(JSON.stringify(deck.pools[f]) === JSON.stringify(all), "a small pool lost places: " + deck.pools[f] + " of " + all);
+  }));
+  assert(small > 0, "no St. Pete probe brief had a pool with fewer than six fitting places");
+  // The Pacific fixture page: its pools are small.
+  fx.clockOverride = fxNoon;
+  const briefs = [];
+  for (const date of ["2026-10-09", "2026-10-10", "2026-10-11", "2026-10-13", "2026-10-17"]) {
+    for (const must of ["", "coffee, walking, dinner", "coffee", "walking"]) for (const kind of ["away", "celebrate", "easy"]) briefs.push({ date, must, kind });
+  }
+  let fxSmall = 0;
+  briefs.forEach((b) => {
+    const all = withPoolMax(99, () => fx.buildDeck(fxPlan(b)), fx);
+    const deck = fx.buildDeck(fxPlan(b));
+    fx.FEEL_ORDER.forEach((f) => {
+      if (all.pools[f].length >= 6) return;
+      if (all.pools[f].length) fxSmall++;
+      assert(JSON.stringify(deck.pools[f]) === JSON.stringify(all.pools[f]), "a small pool lost places: " + deck.pools[f]);
+    });
+  });
+  assert(fxSmall > 0, "the fixture page never had a filled pool under six");
+  assert(fx.POOL_MAX === 6 && g.POOL_MAX === 6, "the cap wasn't put back");
+});
+
+check("link: decks saved before #62 stay frozen at their size when opened (#62)", () => {
+  const realBuild = g.buildDeck;
+  let built = 0;
+  g.buildDeck = function () { built++; return realBuild.apply(this, arguments); };
+  try {
+    // The wrapper has to be what the page calls, or the count below means nothing.
+    g.ensureDeck(makePlan({ id: "probe" }));
+    assert(built === 1, "the page doesn't call the wrapped buildDeck");
+    built = 0;
+    beforeMove.decks.forEach((x) => {
+      const p = makePlan(x.brief);
+      p.deck = x.deck;
+      const opened = g.decodePlan(g.encodePlan(g.linkPlan(p)));
+      assert(JSON.stringify(opened.deck) === JSON.stringify(x.deck), "a saved deck changed when opened: " + JSON.stringify(x.brief));
+    });
+    for (const x of beforeMove.decks.filter((_, i) => i % 45 === 0)) {
+      const p = makePlan(x.brief);
+      p.deck = x.deck;
+      sunny(p.date);
+      built = 0;
+      openLink("#play/" + g.encodePlan(g.linkPlan(p)));
+      assert(built === 0, "a link with a deck called buildDeck");
+      assert(g.mode === "play" && JSON.stringify(g.plan.deck) === JSON.stringify(x.deck), "an opened link played a different deck");
+    }
+    OLD_LINKS.forEach((link) => {
+      const raw = decodeLink(link.hash);
+      resetPhone();
+      sunny("2026-10-10");
+      built = 0;
+      openLink(link.hash);
+      assert(g.mode === "play" && g.plan, link.built + ": didn't open");
+      if (!raw.deck) return;
+      assert(built === 0, link.built + ": a link with a deck called buildDeck");
+      Object.keys(raw.deck.pools).forEach((f) => {
+        assert(g.plan.deck.pools[f].length === raw.deck.pools[f].length, link.built + ": the " + f + " pool went from " + raw.deck.pools[f].length + " to " + g.plan.deck.pools[f].length);
+      });
+    });
+  } finally {
+    g.buildDeck = realBuild;
+  }
+});
+
+check("link: a 6-place pool rides in the link whole (#62)", () => {
+  const probe = probes.briefs().map((b) => makePlan(b)).map((p) => { p.deck = g.buildDeck(p); return p; })
+    .find((p) => g.FEEL_ORDER.some((f) => p.deck.pools[f].length === 6));
+  assert(probe, "no probe brief made a six-place pool");
+  const feel = g.FEEL_ORDER.find((f) => probe.deck.pools[f].length === 6);
+  const back = g.decodePlan(g.encodePlan(g.linkPlan(probe)));
+  assert(JSON.stringify(back.deck) === JSON.stringify(probe.deck), "the deck changed on the way: " + JSON.stringify(back.deck.pools[feel]));
+  const used = Object.values(probe.deck.pools).flat();
+  const extra = g.STOPS.find((s) => s.feel === feel && s.city === probe.city && !used.includes(s.id) && (!probe.deck.anchor.id || s.id !== probe.deck.anchor.id));
+  assert(extra, "no seventh place of the same feeling to add");
+  const seven = JSON.parse(JSON.stringify(probe));
+  seven.deck.pools[feel].push(extra.id);
+  const cut = g.decodePlan(g.encodePlan(g.linkPlan(seven)));
+  assert(JSON.stringify(cut.deck.pools[feel]) === JSON.stringify(probe.deck.pools[feel]), "a seventh place was kept: " + cut.deck.pools[feel]);
+});
 
 // What St. Pete read like before #33. These strings are typed out, not built from the config.
 const STPETE_BEFORE = {
