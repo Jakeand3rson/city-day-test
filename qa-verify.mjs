@@ -1,75 +1,113 @@
 import fs from "fs";
 import { parseHTML } from "linkedom";
 import vm from "vm";
+import { createHash } from "crypto";
+import Ajv2020 from "ajv/dist/2020.js";
 
 const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
-const { window, document } = parseHTML(html);
+const stopsFile = JSON.parse(fs.readFileSync(new URL("./data/stops.json", import.meta.url), "utf8"));
+const stopsSchema = JSON.parse(fs.readFileSync(new URL("./data/stops.schema.json", import.meta.url), "utf8"));
 
-const store = {};
-// Like a browser, setting location.hash without "#" stores it with one.
-const locationState = {
-  _hash: "",
-  get hash() { return this._hash; },
-  set hash(v) { v = String(v || ""); this._hash = v && v[0] !== "#" ? "#" + v : v; },
-  search: "",
-  pathname: "/city-day-test/",
-  href: "https://jakeand3rson.github.io/city-day-test/",
-  origin: "https://jakeand3rson.github.io"
-};
+// The page asks for data/stops.json by a relative path. This is the only address that answers.
+const STOPS_URL = /(^|\/)data\/stops\.json(\?|$)/;
+const served = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(JSON.parse(JSON.stringify(stopsFile))) });
 
-function applyUrl(url) {
-  if (typeof url !== "string") return;
-  const i = url.indexOf("#");
-  const before = i >= 0 ? url.slice(0, i) : url;
-  locationState.hash = i >= 0 ? url.slice(i) : "";
-  if (before) {
-    const q = before.indexOf("?");
-    locationState.pathname = (q >= 0 ? before.slice(0, q) : before) || locationState.pathname;
-    locationState.search = q >= 0 ? before.slice(q) : "";
+// One page in its own global. linkedom windows share state with each other, so each page gets a
+// plain global that borrows linkedom's pieces. fetchStops answers the page's request for the places
+// file (served by default), and every other address, like the weather, stays blocked.
+function makePage({ fetchStops = served, hash = "", store = {}, timers = { setTimeout, clearTimeout } } = {}) {
+  const { window: dom, document } = parseHTML(html);
+  const window = {};
+  const builtins = new Set(vm.runInNewContext("Object.getOwnPropertyNames(globalThis)"));
+  for (const k of Object.getOwnPropertyNames(dom)) {
+    if (!builtins.has(k)) Object.defineProperty(window, k, Object.getOwnPropertyDescriptor(dom, k));
   }
-  locationState.href = locationState.origin + locationState.pathname + locationState.search + locationState.hash;
-}
+  // linkedom serves these through its window without listing them.
+  for (const k of ["HTMLElement", "Event", "addEventListener", "removeEventListener", "dispatchEvent"]) {
+    window[k] = typeof dom[k] === "function" && /^[a-z]/.test(k) ? dom[k].bind(dom) : dom[k];
+  }
 
-// Node 21+ has a getter-only global `navigator`, so it is not assigned here.
-Object.assign(window, {
-  localStorage: {
-    getItem(k) { return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null; },
-    setItem(k, v) { store[k] = String(v); },
-    removeItem(k) { delete store[k]; }
-  },
-  history: { replaceState(_a, _b, url) { applyUrl(url); } },
-  scrollTo() {},
-  location: locationState,
-  btoa: (s) => Buffer.from(s, "binary").toString("base64"),
-  atob: (s) => Buffer.from(s, "base64").toString("binary"),
-  fetch: async () => { throw new Error("network blocked in QA"); },
-  alert() {},
-  console,
-  URLSearchParams
-});
-
-window.window = window;
-window.document = document;
-window.self = window;
-window.globalThis = window;
-
-if (!window.HTMLElement.prototype.closest) {
-  window.HTMLElement.prototype.closest = function (sel) {
-    let el = this;
-    while (el) {
-      if (el.matches && el.matches(sel)) return el;
-      el = el.parentElement;
-    }
-    return null;
+  // Like a browser, setting location.hash without "#" stores it with one.
+  const locationState = {
+    _hash: "",
+    get hash() { return this._hash; },
+    set hash(v) { v = String(v || ""); this._hash = v && v[0] !== "#" ? "#" + v : v; },
+    search: "",
+    pathname: "/city-day-test/",
+    href: "https://jakeand3rson.github.io/city-day-test/",
+    origin: "https://jakeand3rson.github.io"
   };
+  locationState.hash = hash;
+  const writes = { replaceState: 0, reload: 0 };
+
+  function applyUrl(url) {
+    if (typeof url !== "string") return;
+    const i = url.indexOf("#");
+    const before = i >= 0 ? url.slice(0, i) : url;
+    locationState.hash = i >= 0 ? url.slice(i) : "";
+    if (before) {
+      const q = before.indexOf("?");
+      locationState.pathname = (q >= 0 ? before.slice(0, q) : before) || locationState.pathname;
+      locationState.search = q >= 0 ? before.slice(q) : "";
+    }
+    locationState.href = locationState.origin + locationState.pathname + locationState.search + locationState.hash;
+  }
+  locationState.reload = () => { writes.reload++; };
+
+  // Node 21+ has a getter-only global `navigator`, so it is not assigned here.
+  Object.assign(window, {
+    localStorage: {
+      getItem(k) { return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null; },
+      setItem(k, v) { store[k] = String(v); },
+      removeItem(k) { delete store[k]; }
+    },
+    history: { replaceState(_a, _b, url) { writes.replaceState++; applyUrl(url); } },
+    scrollTo() {},
+    location: locationState,
+    btoa: (s) => Buffer.from(s, "binary").toString("base64"),
+    atob: (s) => Buffer.from(s, "base64").toString("binary"),
+    fetch: async (url, opts) => {
+      if (STOPS_URL.test(String(url))) return fetchStops(url, opts);
+      throw new Error("network blocked in QA");
+    },
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+    alert() {},
+    console,
+    URLSearchParams
+  });
+
+  window.window = window;
+  window.document = document;
+  window.self = window;
+  window.globalThis = window;
+
+  if (!window.HTMLElement.prototype.closest) {
+    window.HTMLElement.prototype.closest = function (sel) {
+      let el = this;
+      while (el) {
+        if (el.matches && el.matches(sel)) return el;
+        el = el.parentElement;
+      }
+      return null;
+    };
+  }
+
+  const scriptBody = [...document.querySelectorAll("script")].map((s) => s.textContent).filter(Boolean).join("\n;\n");
+  vm.createContext(window);
+  vm.runInContext(scriptBody, window);
+  return { window, document, store, locationState, writes, applyUrl };
 }
 
-const scriptBody = [...document.querySelectorAll("script")].map((s) => s.textContent).filter(Boolean).join("\n;\n");
-vm.createContext(window);
-vm.runInContext(scriptBody, window);
-
+const { window, document, store, locationState, applyUrl } = makePage();
 const g = window;
+await g.CATALOG_READY;
 const $ = (id) => document.getElementById(id);
+
+// The places City Day shipped with before the catalog moved to data/stops.json. They were written
+// as code, so they have no check date. Everything else in the file is an added place.
+const LEGACY_IDS = ["parking", "kahwa", "bodega", "stillwaters", "bellabrava", "paciugo", "boyd", "market", "mfa", "morean", "dali", "festival", "pier", "pumpkin", "artpool", "glass", "bench", "palehorse", "folk"];
+const ADDED = g.CATALOG.stops.filter((e) => !LEGACY_IDS.includes(e.id));
 
 // Every check runs at a fixed moment before the trip (Wed Oct 7, noon in St. Pete), so the suite
 // gives the same answer on Saturday as on any other day. Checks that need the day set their own clock.
@@ -1485,7 +1523,7 @@ check("catalog: a place isn't offered on days its source lists shorter hours or 
   assert(!open("tbw-discovery-center", "2026-12-15") && open("tbw-discovery-center", "2026-12-16"), "TBW's short day");
   assert(!open("st-pete-shuffleboard-club", "2026-11-05") && open("st-pete-shuffleboard-club", "2026-11-12"), "Shuffleboard's fundraiser night");
   assert(!open("st-pete-shuffleboard-club", "2026-12-24"), "Shuffleboard's Christmas Eve closure");
-  for (const e of g.PLACES) {
+  for (const e of ADDED) {
     for (const iso of (e.closedDates || []).concat(e.skipDates || [])) assert(g.parseDate(iso), e.id + " has a bad date " + iso);
   }
 });
@@ -1556,7 +1594,7 @@ check("catalog: at least 35 places, each with a source and hours", () => {
     const days = [0, 1, 2, 3, 4, 5, 6].map((k) => { const x = new Date(2026, 9, 11 + k); return s.isOpen(x, g.isoDate(x)) ? s.hours(x, g.isoDate(x)) : ""; });
     if (!s.dated) assert(days.some(Boolean), s.id + " is never open in a normal week");
   }
-  for (const e of g.PLACES) {
+  for (const e of ADDED) {
     assert(/^\d{4}-\d{2}-\d{2}$/.test(e.hoursChecked || ""), e.id + " has no hoursChecked date");
     for (let k = 0; k < 7; k++) {
       const w = e.week[String(k)];
@@ -1566,7 +1604,7 @@ check("catalog: at least 35 places, each with a source and hours", () => {
 });
 
 check("catalog: the new places cover drift, cheap meals, coffee and dessert, kids, and rainy days", () => {
-  const added = g.PLACES;
+  const added = ADDED;
   const count = (f) => added.filter(f).length;
   assert(count((e) => e.feel === "drift") >= 3, "drift places added");
   assert(count((e) => (e.meal === "lunch" || e.meal === "dinner") && (e.costBand === "cheap" || e.costBand === "mid")) >= 4, "$ or $$ meals added");
@@ -1579,7 +1617,7 @@ check("catalog: the new places cover drift, cheap meals, coffee and dessert, kid
 check("catalog: ids are unique, no bars or breweries added, every feel and meal is valid", () => {
   const ids = g.STOPS.map((s) => s.id);
   assert(new Set(ids).size === ids.length, "duplicate ids");
-  for (const e of g.PLACES) {
+  for (const e of ADDED) {
     assert(!e.bar && !/\b(?:bar|brewery|brewing|taproom|pub)\b/i.test(e.name), e.id + " looks like a bar");
     assert(["taste", "drift", "dig", "soft"].includes(e.feel), e.id + " feel " + e.feel);
     assert(!e.meal || ["coffee", "lunch", "dinner", "dessert", "snack"].includes(e.meal), e.id + " meal " + e.meal);
@@ -2187,6 +2225,287 @@ check("food: a dinner that's too late hands over to an alternate that still fits
   g.openDay(p, { mode: "create" });
   assert(g.anchorView().id === "pin-wok-bowl", "desk shows " + g.anchorView().id);
   g.clockOverride = PINNED;
+});
+
+
+// --- #13: the places live in data/stops.json ---
+
+// The same probes that captured qa-fixtures/before-the-catalog-move.json from 40a974a, the last
+// commit where the places were code. Replaying them proves the move changed nothing.
+function catalogProbes(g, makePlan, createHash) {
+  const sha = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+
+  const BRIEF_DATES = ["2026-10-09", "2026-10-10", "2026-10-11", "2026-10-13", "2026-10-17", "2026-10-22", "2026-10-24", "2026-11-26", "2026-12-24", "2027-03-06", "2027-03-28", "2027-07-04"];
+  const BRIEF_NOTES = ["", "walking and coffee", "coffee, tacos, art, walking, music", "a nice dinner", "no seafood", "no museums", "art and glass", "drinks and beer", "we will drive, kids and a playground", "books and vintage shopping"];
+  const OCCASIONS = ["Anniversary", "Date", "Birthday", "Just because"];
+
+  function briefs() {
+    const out = [];
+    let n = 0;
+    for (const date of BRIEF_DATES) for (const must of BRIEF_NOTES) for (const kind of ["away", "celebrate", "easy"]) {
+      out.push({ date, must, kind, lean: n % 2 ? "gems" : "must", budgetAmount: ["", "40", "100", "200", "400"][n % 5], drink: n % 3 === 0 ? "yes" : "no", occasion: OCCASIONS[n % 4], rebuild: n % 3, allergy: n % 7 === 0 });
+      n++;
+    }
+    return out;
+  }
+
+  const decks = () => briefs().map((b) => g.buildDeck(makePlan(b)));
+
+  const DAYS = [];
+  for (let t = Date.UTC(2026, 9, 1); t <= Date.UTC(2027, 11, 31); t += 86400000) DAYS.push(new Date(t).toISOString().slice(0, 10));
+  const KEY_DAYS = ["2026-10-10", "2026-10-11", "2026-10-17", "2026-10-22", "2026-10-24", "2026-11-26", "2026-12-24", "2026-12-25", "2026-12-31", "2027-02-07", "2027-02-08", "2027-02-09", "2027-02-10", "2027-02-11", "2027-02-12", "2027-02-13"];
+
+  // What a place says on one date, or null when it is closed. The line is read as a date for two people.
+  function read(s, iso) {
+    const d = g.parseDate(iso);
+    if (!s.isOpen(d, iso)) return null;
+    const hours = s.hours(d, iso);
+    const line = s.why({ iso, day: d.getDay(), when: g.formatWhen(d), hours, occ: "a date", on: "on " + d.toLocaleDateString("en-US", { weekday: "long" }) });
+    return { hours, start: s.start(d, iso), end: s.end(d, iso), gap: s.gap ? s.gap(d) : null, last: g.lastEntryOn(s, d, iso), stay: g.stayFor(s), why: line };
+  }
+
+  function hours(ids) {
+    const out = {};
+    for (const id of ids) out[id] = Object.fromEntries(KEY_DAYS.map((iso) => [iso, read(g.STOP_BY_ID[id], iso)]));
+    return out;
+  }
+
+  function hoursDigests() {
+    return Object.fromEntries(g.STOPS.map((s) => [s.id, sha(DAYS.map((iso) => read(s, iso)))]));
+  }
+
+  return { briefs, decks, hours, hoursDigests, sha, KEY_DAYS };
+}
+
+const beforeMove = JSON.parse(fs.readFileSync(new URL("./qa-fixtures/before-the-catalog-move.json", import.meta.url), "utf8"));
+const probes = catalogProbes(g, makePlan, createHash);
+
+// A page that has finished asking for the places, however that went.
+async function settled(options) {
+  const page = makePage(options);
+  await page.window.CATALOG_READY;
+  return page;
+}
+
+const offline = () => Promise.reject(new Error("offline"));
+const replies = (res) => () => Promise.resolve(res);
+const withBadStop = () => {
+  const bad = JSON.parse(JSON.stringify(stopsFile));
+  delete bad.stops[5].week;
+  return { ok: true, status: 200, json: () => Promise.resolve(bad) };
+};
+const catalogDown = {
+  "the request fails": offline,
+  "the file is missing": replies({ ok: false, status: 404, json: () => Promise.resolve({}) }),
+  "the file isn't JSON": replies({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError("Unexpected token <")) }),
+  "the file has no places": replies({ ok: true, status: 200, json: () => Promise.resolve({ city: "St. Petersburg", stops: [] }) }),
+  "one place can't be read": withBadStop
+};
+
+const linkOnPhone = OLD_LINKS[2].hash;
+const savedDay = () => {
+  const phone = {};
+  phone["cityday-test-v1"] = JSON.stringify({ last: "keep1", plans: { keep1: makePlan({ id: "keep1" }) } });
+  return phone;
+};
+
+const downPages = {};
+for (const [why, fetchStops] of Object.entries(catalogDown)) {
+  const phone = savedDay();
+  const before = JSON.stringify(phone);
+  downPages[why] = { page: await settled({ fetchStops, hash: linkOnPhone, store: phone }), before, phone };
+}
+const noLinkDown = await settled({ fetchStops: offline, store: savedDay() });
+
+// The same link, first while the file is down and then when it is back, on the same phone.
+const phoneAfterDown = savedDay();
+const phoneBeforeDown = JSON.stringify(phoneAfterDown);
+const downLink = await settled({ fetchStops: offline, hash: linkOnPhone, store: phoneAfterDown });
+const recovered = await settled({ hash: downLink.locationState.hash, store: phoneAfterDown });
+const control = await settled({ hash: linkOnPhone });
+
+// A request that never answers, with a timer the check can fire by hand.
+let fireTimer = null;
+let answerLate = null;
+const hung = makePage({
+  hash: linkOnPhone,
+  fetchStops: () => new Promise((resolve) => { answerLate = () => resolve({ ok: true, status: 200, json: () => Promise.resolve(JSON.parse(JSON.stringify(stopsFile))) }); }),
+  timers: { setTimeout: (fn, ms) => { fireTimer = { fn, ms }; return 1; }, clearTimeout() { fireTimer = null; } }
+});
+const hungWhileWaiting = { plan: hung.window.plan, stops: hung.window.STOPS.length, loading: !!hung.document.getElementById("loading"), aboutHidden: hung.document.getElementById("screen-about").classList.contains("hidden"), hash: hung.locationState.hash, replaceState: hung.writes.replaceState };
+const timerMs = fireTimer && fireTimer.ms;
+fireTimer.fn();
+await hung.window.CATALOG_READY;
+answerLate();
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+check("catalog file: every entry in data/stops.json passes data/stops.schema.json", () => {
+  const validate = new Ajv2020({ allErrors: true }).compile(stopsSchema);
+  const ok = validate(stopsFile);
+  assert(ok, JSON.stringify((validate.errors || []).slice(0, 3)));
+  assert(stopsFile.stops.length >= 49, "only " + stopsFile.stops.length + " places in the file");
+});
+
+check("catalog file: the schema rejects a missing required field and an unknown key", () => {
+  const validate = new Ajv2020({ allErrors: true }).compile(stopsSchema);
+  const fresh = () => JSON.parse(JSON.stringify(stopsFile));
+  const required = stopsSchema.$defs.stop.required;
+  for (const key of required) {
+    const file = fresh();
+    delete file.stops[3][key];
+    assert(!validate(file), "a place without " + key + " passed");
+  }
+  let file = fresh();
+  file.stops[3].sparkle = true;
+  assert(!validate(file), "an unknown key on a place passed");
+  file = fresh();
+  file.mood = "calm";
+  assert(!validate(file), "an unknown key at the top passed");
+  file = fresh();
+  file.stops[0].why = "Both lines.";
+  assert(!validate(file), "a place with both why and whyText passed");
+  file = fresh();
+  delete file.stops[0].whyText;
+  assert(!validate(file), "a place with no line about it passed");
+  file = fresh();
+  file.stops[1].costBand = "pricey";
+  assert(!validate(file), "a made-up price band passed");
+  file = fresh();
+  file.stops[1].week["7"] = [9, 17];
+  assert(!validate(file), "a seven-day-plus week passed");
+  file = fresh();
+  file.stops = [];
+  assert(!validate(file), "an empty list of places passed");
+});
+
+check("catalog file: ids are unique, and the page loaded every entry in file order", () => {
+  const ids = stopsFile.stops.map((e) => e.id);
+  assert(new Set(ids).size === ids.length, "duplicate ids");
+  assert(JSON.stringify(g.STOPS.map((s) => s.id)) === JSON.stringify(ids), "the page's places aren't the file's, in order");
+  assert(g.CATALOG.stops.length === ids.length && g.CATALOG.city === "St. Petersburg", "the loaded catalog isn't the file");
+  ids.forEach((id) => assert(g.STOP_BY_ID[id] && g.STOP_BY_ID[id].id === id, id + " isn't looked up by id"));
+  // The loaded JSON stays plain data: the page converts a copy.
+  g.CATALOG.stops.forEach((e) => assert(typeof e.isOpen === "undefined" && typeof e.why !== "function" && typeof e.hours === "undefined", e.id + " was changed in place"));
+  assert(!$("loading"), "the loading line is still there");
+});
+
+check("catalog file: no catalog is left in index.html", () => {
+  for (const text of ["var PLACES", "CLOSED_DALI", "CLOSED_MFA", "CLOSED_MOREAN", "CLOSED_GLASS", "GLASS_EARLY", "daliHours", "daliEnd", "benchHours", "inList"]) {
+    assert(!html.includes(text), "index.html still has " + text);
+  }
+  for (const e of stopsFile.stops) {
+    assert(!html.includes(e.address) && !html.includes(e.query), e.id + " is still written into index.html");
+  }
+  assert(/fetch\(CATALOG_URL, \{ cache: "no-cache" \}\)/.test(html) && /var CATALOG_URL = "data\/stops\.json";/.test(html), "the page doesn't ask for data/stops.json by a relative path");
+  assert(/<section id="screen-about" class="hidden">/.test(html) && /Loading the places…/.test(html), "the page doesn't hold the first screen until the places load");
+});
+
+// The name says 20 as the ticket does, but the page shipped with 19 hand-written places (LEGACY_IDS).
+check("catalog file: every whyText uses only {hours} {on} {occ} {when}, and hoursChecked is null only for the 20 entries that never had one", () => {
+  for (const e of stopsFile.stops) {
+    for (const line of [e.whyText].concat(Object.values(e.whyByDate || {})).filter(Boolean)) {
+      const left = line.replace(/\{(?:hours|on|occ|when)\}/g, "");
+      assert(!/[{}]/.test(left), e.id + " has a placeholder the page doesn't fill: " + line);
+    }
+    if (LEGACY_IDS.includes(e.id)) assert(e.hoursChecked === null, e.id + " was never checked, so hoursChecked must be null");
+    else assert(/^\d{4}-\d{2}-\d{2}$/.test(e.hoursChecked || ""), e.id + " needs the day its hours were checked");
+  }
+  assert(LEGACY_IDS.length === 19 && LEGACY_IDS.every((id) => g.STOP_BY_ID[id]), "the shipped-with list is off");
+  // A $ in a line is read as text.
+  const stop = g.weekStop({ id: "qa-dollar", week: { 0: [9, 17], 1: [9, 17], 2: [9, 17], 3: [9, 17], 4: [9, 17], 5: [9, 17], 6: [9, 17] }, whyText: "Costs $& and $1, open {hours} {on}." });
+  assert(stop.why({ iso: "2026-10-13", hours: "9am–5pm", on: "today" }) === "Costs $& and $1, open 9am–5pm today.", stop.why({ iso: "2026-10-13", hours: "9am–5pm", on: "today" }));
+});
+
+check("catalog file: same decks for the same brief and date as before the move", () => {
+  assert(probes.briefs().length === beforeMove.deckCount, "the brief list changed");
+  const now = probes.decks();
+  beforeMove.decks.forEach((x) => {
+    const at = probes.briefs().findIndex((b) => JSON.stringify(b) === JSON.stringify(x.brief));
+    assert(at >= 0, "a saved brief is gone: " + JSON.stringify(x.brief));
+    assert(JSON.stringify(now[at]) === JSON.stringify(x.deck), "a deck changed for " + JSON.stringify(x.brief) + ": " + JSON.stringify(now[at]));
+  });
+  assert(probes.sha(now) === beforeMove.deckDigest, "some of the " + beforeMove.deckCount + " decks changed");
+});
+
+check("catalog file: hand-written stops read the same hours and lines as before", () => {
+  const now = probes.hours(LEGACY_IDS);
+  for (const id of LEGACY_IDS) {
+    for (const iso of probes.KEY_DAYS) {
+      assert(JSON.stringify(now[id][iso]) === JSON.stringify(beforeMove.hours[id][iso]), id + " on " + iso + " is now " + JSON.stringify(now[id][iso]) + ", it was " + JSON.stringify(beforeMove.hours[id][iso]));
+    }
+  }
+  // Every place, every open day from 2026-10-01 through 2027-12-31: hours, start, end, gap, last entry, stay, line.
+  const digests = probes.hoursDigests();
+  for (const id of beforeMove.ids) assert(digests[id] === beforeMove.hoursDigest[id], id + " reads differently on some open day");
+  const g2 = g.STOP_BY_ID;
+  assert(g2.bench.bar === true && g2.parking.order === 0 && g2.mfa.cost === "ticket" && g2.kahwa.cost === null, "a plain field changed");
+  // A weekday a hand-written place is closed now says so, where it used to show its usual hours.
+  assert(g2.mfa.hours(g.parseDate("2026-10-12"), "2026-10-12") === "Closed", "closed Monday");
+});
+
+check("catalog file: every id the page shipped with on 40a974a is still in the file", () => {
+  const inFile = stopsFile.stops.map((e) => e.id);
+  assert(beforeMove.ids.length === 49, "the saved list of ids is off");
+  beforeMove.ids.forEach((id) => assert(inFile.includes(id), id + " is gone: sent links refer to it"));
+  const kept = inFile.filter((id) => beforeMove.ids.includes(id));
+  assert(JSON.stringify(kept) === JSON.stringify(beforeMove.ids), "the shipped places changed order");
+  OLD_LINKS.forEach((link) => {
+    const plan = g.decodePlan(link.hash.replace(/^#(?:play\/)?/, ""));
+    if (!plan.deck) return;
+    const ids = [plan.deck.anchor && plan.deck.anchor.id].concat(Object.values(plan.deck.pools).flat()).filter(Boolean);
+    ids.forEach((id) => assert(g.STOP_BY_ID[id], link.built + " names " + id + ", which isn't in the file"));
+  });
+});
+
+check("catalog file: if the file fails to load, the page says so and builds no day", () => {
+  for (const [why, { page, before, phone }] of Object.entries(downPages)) {
+    const w = page.window, doc = page.document;
+    const hidden = (id) => doc.getElementById(id).classList.contains("hidden");
+    assert(w.STOPS.length === 0 && Object.keys(w.STOP_BY_ID).length === 0 && w.CATALOG === null, why + ": some places loaded anyway");
+    assert(w.plan === null && w.mode === "play", why + ": a day was built");
+    const text = doc.getElementById("play").textContent;
+    assert(/Hmm/.test(text) && /The places didn't load\./.test(text), why + ": " + text);
+    assert(/City Day couldn't get its list of places, so it hasn't made a day\. Check your connection, then try again\./.test(text), why + ": no plain reason");
+    assert(/Your link is fine\. Nothing in it has changed\./.test(text), why + ": no word about the link");
+    assert(doc.querySelector('#play [role="alert"]'), why + ": not announced");
+    assert(!hidden("screen-play") && hidden("screen-about") && hidden("screen-form") && hidden("screen-desk"), why + ": the wrong screen is showing");
+    assert(!doc.getElementById("loading"), why + ": still says loading");
+    assert(!/btn-primary|class="err/.test(doc.getElementById("play").innerHTML), why + ": uses the red");
+    assert(page.writes.replaceState === 0, why + ": rewrote the address");
+    assert(page.locationState.hash === linkOnPhone, why + ": changed the hash");
+    assert(JSON.stringify(phone) === before, why + ": wrote to the phone's storage");
+    assert(w.parseIncomingHash().encoded === linkOnPhone.slice(6), why + ": the link isn't the one that was sent");
+    const retry = doc.getElementById("catalog-retry");
+    assert(retry && retry.textContent === "Try again", why + ": no way to try again");
+    retry.dispatchEvent(new w.Event("click", { bubbles: true }));
+    assert(page.writes.reload === 1, why + ": Try again didn't reload");
+  }
+  const bare = noLinkDown;
+  assert(/The places didn't load\./.test(bare.document.getElementById("play").textContent) && !/Your link is fine/.test(bare.document.getElementById("play").textContent), "no link: said something about a link");
+  assert(bare.document.getElementById("screen-form").classList.contains("hidden") && bare.window.plan === null, "no link: the form or a saved day opened");
+  assert(JSON.stringify(bare.store) === JSON.stringify(savedDay()), "no link: wrote to the phone's storage");
+  // It waits 15 seconds, then gives up. An answer after that is ignored.
+  const w = hung.window, doc = hung.document;
+  assert(timerMs === 15000, "waits " + timerMs + "ms");
+  assert(w.STOPS.length === 0 && w.plan === null && /The places didn't load\./.test(doc.getElementById("play").textContent), "no failure screen after the wait");
+  assert(hung.writes.replaceState === 0 && hung.locationState.hash === linkOnPhone, "the late answer touched the link");
+});
+
+check("catalog file: a #play/ link opened while the file is down keeps its hash and storage, then plays the same deck once it loads", () => {
+  assert(downLink.locationState.hash === linkOnPhone && downLink.writes.replaceState === 0, "the hash changed while the file was down");
+  assert(JSON.stringify(phoneAfterDown) === phoneBeforeDown && phoneBeforeDown === JSON.stringify(savedDay()), "storage changed while the file was down");
+  const back = recovered.window;
+  assert(back.mode === "play" && back.plan && back.plan.date === "2026-10-10", "the link didn't open once the file loaded");
+  assert(JSON.stringify(back.plan.deck) === JSON.stringify(control.window.plan.deck), "a different deck after the file loaded");
+  assert(recovered.locationState.hash === control.locationState.hash && /^#play\//.test(recovered.locationState.hash), "a different link after the file loaded");
+  assert(JSON.parse(phoneAfterDown["cityday-test-v1"]).plans.keep1, "the saved day is gone");
+  assert(!recovered.document.getElementById("screen-play").classList.contains("hidden") && /Alex and Riley/.test(recovered.document.getElementById("play").textContent), "no curtain");
+});
+
+check("catalog file: nothing opens a link or a saved day until the places have loaded", () => {
+  assert(hungWhileWaiting.plan === null && hungWhileWaiting.stops === 0, "a day opened before the places came");
+  assert(hungWhileWaiting.loading && hungWhileWaiting.aboutHidden, "the page didn't wait out loud");
+  assert(hungWhileWaiting.hash === linkOnPhone && hungWhileWaiting.replaceState === 0, "the link was touched while waiting");
 });
 
 const failed = results.filter((r) => r.startsWith("FAIL"));
