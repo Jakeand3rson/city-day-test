@@ -18,6 +18,7 @@
     "sun": { "$ref": "#/$defs/point", "description": "Where sunrise and sunset are worked out. Kept apart from weather because the two don't share a precision." },
     "rainLine": { "type": "string", "minLength": 1, "description": "One line on local rain, shown on the plan B screen after the forecast. Leave it out when there is nothing true to say." },
     "fixture": { "type": "boolean", "description": "True for a test-only city. The page never offers it." },
+    "status": { "enum": ["basic", "deep", "free"], "description": "How far this city has been prepared. basic is a start. deep means the research pass is done. free means the promotion rule in the city doc has been met. Leave it out only on a test fixture." },
     "stops": {
       "type": "array",
       "minItems": 1,
