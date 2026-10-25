@@ -39,7 +39,7 @@ These sit at the top of the file, before `stops`. Every one is required except `
 
 The check reads `data/cities.json` and each file that list names. It does not name cities in the page. A file marked `free` that misses the coverage fails `npm test`.
 
-The cities already listed in `data/cities.json` are the free seed. The owner approved that seed on 2026-10-25, which is the spot-check for those files. A city added later stays `basic` until it meets this rule.
+The cities already listed in `data/cities.json` are the free seed. The owner approved that seed on 2026-10-25, which is the spot-check for those files. Every file that list names is `free`. A city that is still `basic` or `deep` stays off the list until it meets the rule, then it is added at the end.
 
 The "N paid requests" part of the promotion rule is a TODO until a backend exists. This check does not count paid requests.
 

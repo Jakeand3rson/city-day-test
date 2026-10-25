@@ -3942,7 +3942,7 @@ check("city: status is basic, deep, or free, and free needs six places per feeli
   noDinner.stops.forEach((s) => { delete s.dinner; });
   assert(gaps(noDinner).includes("dinner"), "a free city with no dinner still passed");
   assert(/Deep research/.test(cityDoc) && /spot-check/.test(cityDoc) && /TODO/.test(cityDoc) && /paid request/.test(cityDoc), "the doc is missing the promotion rule");
-  assert(/does not count paid requests/.test(cityDoc), "the doc enforces paid requests");
+  assert(/does not count paid requests/.test(cityDoc), "the doc should say paid requests are not counted");
 });
 
 check("friends: mood list rows are at least 44px tall (#65)", () => {
