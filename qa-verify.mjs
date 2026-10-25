@@ -3333,7 +3333,7 @@ check("city: the fixture file passes the schema, every place has a source and a 
 
 check("city: docs/adding-a-city.md names every config field, source and hoursChecked", () => {
   const fields = Object.keys(stopsSchema.properties).filter((k) => k !== "$schema" && k !== "stops");
-  assert(fields.join() === "city,cityId,short,region,regionNames,timeZone,weather,sun,rainLine,fixture", "the schema's fields: " + fields);
+  assert(fields.join() === "city,cityId,short,region,regionNames,timeZone,weather,sun,rainLine,fixture,status", "the schema's fields: " + fields);
   fields.forEach((k) => assert(cityDoc.includes("`" + k + "`"), "the doc doesn't name " + k));
   ["`source`", "`hoursChecked`", "data/<cityId>.json", "data/stops.json", "data/cities.json", "`loadCatalog`"].forEach((word) => assert(cityDoc.includes(word), "the doc doesn't say " + word));
   assert(/`data\/stops\.json` stays first/.test(cityDoc) && /never removed/.test(cityDoc), "the doc doesn't say stops.json comes first and a listed city is never removed");
@@ -3893,6 +3893,56 @@ check("play: the mood list names no place, mood or category (#65)", () => {
     const hits = quoted.filter((q) => words.has(q));
     assert(!hits.length, fn.name + " names " + hits.join(", "));
   });
+});
+
+check("city: status is basic, deep, or free, and free needs six places per feeling and one dinner", () => {
+  const validate = catalogValidator();
+  const feelings = ["taste", "drift", "dig", "soft"];
+  const gaps = (city) => {
+    const miss = [];
+    feelings.forEach((feel) => {
+      const n = city.stops.filter((s) => s.feel === feel).length;
+      if (n < 6) miss.push(feel);
+    });
+    if (city.stops.filter((s) => s.dinner === true).length < 1) miss.push("dinner");
+    return miss;
+  };
+  assert(stopsSchema.properties.status.enum.join() === "basic,deep,free", "status enum: " + stopsSchema.properties.status.enum);
+  assert(!stopsSchema.required.includes("status"), "status should stay optional");
+  const listed = citiesFile.map((path) => ({
+    path,
+    city: JSON.parse(fs.readFileSync(new URL("./" + path, import.meta.url), "utf8"))
+  }));
+  assert(listed.length >= 1, "data/cities.json is empty");
+  listed.forEach(({ path, city }) => {
+    assert(validate(city), path + " " + JSON.stringify(validate.errors && validate.errors.slice(0, 2)));
+    assert(city.status === "free", path + " is " + city.status);
+    assert(gaps(city).length === 0, path + " misses " + gaps(city).join(", "));
+  });
+  const sample = clone(listed[0].city);
+  ["basic", "deep", "free"].forEach((status) => {
+    const ok = clone(sample);
+    ok.status = status;
+    assert(validate(ok), status + " should pass the schema");
+  });
+  const bad = clone(sample);
+  bad.status = "other";
+  assert(validate(bad) === false, "a status outside the enum passed");
+  const thin = clone(sample);
+  let kept = 0;
+  thin.stops.forEach((s) => {
+    if (s.feel === feelings[0]) {
+      kept += 1;
+      if (kept > 5) delete s.feel;
+    }
+  });
+  assert(thin.stops.filter((s) => s.feel === feelings[0]).length === 5, "the short copy has " + thin.stops.filter((s) => s.feel === feelings[0]).length);
+  assert(gaps(thin).includes(feelings[0]), "a feeling with five places still passed");
+  const noDinner = clone(sample);
+  noDinner.stops.forEach((s) => { delete s.dinner; });
+  assert(gaps(noDinner).includes("dinner"), "a free city with no dinner still passed");
+  assert(/Deep research/.test(cityDoc) && /spot-check/.test(cityDoc) && /TODO/.test(cityDoc) && /paid request/.test(cityDoc), "the doc is missing the promotion rule");
+  assert(/does not count paid requests/.test(cityDoc), "the doc enforces paid requests");
 });
 
 check("friends: mood list rows are at least 44px tall (#65)", () => {

@@ -13,7 +13,7 @@ Adding a city means three things: its file, one line at the end of `data/cities.
 
 ## The config
 
-These sit at the top of the file, before `stops`. Every one is required except `rainLine` and `fixture`.
+These sit at the top of the file, before `stops`. Every one is required except `rainLine`, `fixture`, and `status`.
 
 | Field | What it is |
 | --- | --- |
@@ -27,6 +27,21 @@ These sit at the top of the file, before `stops`. Every one is required except `
 | `sun` | `{ "lat": ..., "lon": ... }` where sunrise and sunset are worked out. Separate from `weather` because the two don't have to match. Parks that open by the sun use it. |
 | `rainLine` | One true line about local rain, shown on the plan B screen after the forecast. Leave it out when there is nothing true to say. |
 | `fixture` | `true` for a test-only city. The page never offers it. Leave it out for a real city. |
+| `status` | `basic`, `deep`, or `free`. A new city starts at `basic`. Leave it out only on a test fixture. |
+
+## When a city is free
+
+`deep` means the research pass is done. `free` means all three of these are true:
+
+- Deep research is done. Every place already has a source, and the hours were checked the way the rest of this doc says.
+- The owner has spot-checked the city.
+- Coverage meets the minimum in every category. Each feeling (`taste`, `drift`, `dig`, `soft`) has at least six places, and at least one place is a dinner. Museums and dated events count. Six is the pool size in the charter, so a free city can fill a feeling.
+
+The check reads `data/cities.json` and each file that list names. It does not name cities in the page. A file marked `free` that misses the coverage fails `npm test`.
+
+The cities already listed in `data/cities.json` are the free seed. The owner approved that seed on 2026-10-25, which is the spot-check for those files. A city added later stays `basic` until it meets this rule.
+
+The "N paid requests" part of the promotion rule is a TODO until a backend exists. This check does not count paid requests.
 
 ## Rules that never bend
 
