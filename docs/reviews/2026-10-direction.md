@@ -15,7 +15,7 @@ Your answers to section 13, and what they change. These override anything below 
 
 1. Everyone gets mystery. The "mystery or plan" choice is gone. On the anniversary, the mystery went stale toward the end of the day and you wanted options, so "Show me the list" is always there and gets louder later in the day (built: after three stops, or after 3pm on the day).
 2. A real, usable version of the paid day goes to friends for free, to get real feedback. Built on the city-day-test branch; see section 14.
-3. Free and paid are split by time and memory, not by mystery (section 12, rewritten). Free: one day, planned close in, and the link only works for a few days. $15: plan further out, and keep a report of every stop you made, on the list or not, with what you loved and didn't.
+3. A free day in a city already marked free keeps the same brief and the same generated day (section 12). Shuffle, "Not this. Try again," a server-saved day, deep filters, and a city that is not already free are paid. Decided 2026-10-25. How far ahead you can plan, how long the link works, and the kept report stay in section 12.
 4. Refunds: yes. $15 per day trip.
 5. The original feeling names stay. Alternatives are in section 15 for you to pick from.
 
@@ -298,12 +298,16 @@ The guardrails, merged from the original and the audit:
 
 ## 12. Free and paid (rewritten October 6)
 
-Free and paid run the same day. Paid buys time and memory.
+A free day in a city already marked free uses this same generated day and the same brief. Shuffle, "Not this. Try again," a server-saved day, deep filters, and a city that is not already free are paid. Paid also buys time and memory, in the rows that say so. Decided 2026-10-25.
 
 | Feature | Free | Paid, $15 per day trip | Why the line is here |
 |---|---|---|---|
 | The brief, the note, the fixed point | Yes | Yes | The brief is what makes the day good. Holding it back would make free feel like a different product. |
-| Mystery loop, Shuffle, "Surprise me," "Show me the list" | Yes | Yes | Your call: everyone gets mystery, and the list is the way out when it goes stale. |
+| The mystery loop, "Surprise me," "Show me the list" | Yes | Yes | Everyone gets the reveal, and the list is the way out when it goes stale. |
+| Shuffle, "Not this. Try again" | No | Yes | Decided 2026-10-25. A free day still shows the control, locked, with an upgrade hint. |
+| A server-saved day | No | Yes | Decided 2026-10-25. The day you are in still plays from the link and this phone. Keeping it on the server is paid. |
+| Deep filters | No | Yes | Decided 2026-10-25. Named in the entitlement check. No controls until those filters are decided. |
+| A city that is not already free | No | Yes | Decided 2026-10-25. A city marked free stays on the free day. |
 | Verified places for the date, weather plan B | Yes | Yes | Free dates are close in, so the forecast is usually out. |
 | How far ahead you can plan | Today through 3 days out | Any date ahead | Decided Oct 7. Planning ahead is what people book for occasions, so it is the natural thing to pay for. |
 | How long the link works | Until the day after the date | Kept | Decided Oct 7: the free site is only available for a few days. |

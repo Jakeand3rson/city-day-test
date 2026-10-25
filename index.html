@@ -159,6 +159,11 @@
       cursor: pointer;
       margin-top: 0.55rem;
     }
+    .btn { min-height: 44px; }
+    .btn:disabled, .btn[aria-disabled="true"] { opacity: 1; cursor: not-allowed; }
+    .btn-peach:disabled { background: var(--peach); color: var(--ink); }
+    .btn-ghost:disabled { background: transparent; color: var(--ink); }
+    .upgrade { margin: 0.35rem 0.2rem 0.15rem; opacity: 1; color: var(--ink); }
     .btn:active { transform: scale(0.98); }
     .btn-primary { background: var(--red); color: var(--bg); }
     .btn-ink { background: var(--ink); color: var(--bg); }
@@ -474,6 +479,10 @@
           <p>City</p>
           <div class="city-fixed" id="city-fixed"></div>
           <div class="pills hidden" id="city-pick" role="group" aria-label="City"></div>
+          <div id="request-city-block">
+            <button type="button" class="btn btn-ghost" id="request-city" disabled aria-disabled="true" aria-describedby="upgrade-request">Request a city</button>
+            <p class="meta upgrade" id="upgrade-request">Requesting a city is part of a paid day.</p>
+          </div>
           <p class="meta" style="margin-top:0.35rem">This test only.</p>
         </div>
         <details class="set" id="set-box">
@@ -570,6 +579,7 @@
     </section>
   </div>
 
+  <script src="entitlements.js"></script>
   <script>
     var STORE = "cityday-test-v1";
     var PLAY_PREFIX = "cityday-play-state-";
@@ -757,6 +767,11 @@
       return Object.keys(CITIES).map(function (id) { return CITIES[id]; }).filter(function (c) { return c.fixture !== true; });
     }
 
+    // A city with no status still follows the old picker. basic and deep stay loaded, and stay off this list.
+    function freeCities() {
+      return realCities().filter(function (c) { return c.status == null || c.status === "free"; });
+    }
+
     // The city's parking place, or null when it has none.
     function parkingId(cid) {
       var found = STOPS.filter(function (s) { return s.parking === true && s.city === (cid || cityOf(plan).cityId); })[0];
@@ -889,6 +904,7 @@
       if (!isPoint(data.weather) || !isPoint(data.sun)) throw new Error(data.cityId + " is missing where it is.");
       if (data.rainLine != null && !isText(data.rainLine)) throw new Error(data.cityId + " has a rain line that isn't text.");
       if (data.fixture != null && typeof data.fixture !== "boolean") throw new Error(data.cityId + " has a fixture flag that isn't true or false.");
+      if (data.status != null && data.status !== "basic" && data.status !== "deep" && data.status !== "free") throw new Error(data.cityId + " has a status that isn't one of the three.");
       if (CITIES[data.cityId] || cityIdFor(data.city)) throw new Error(data.cityId + " is already loaded.");
       if (earlier.some(function (m) { return m.city.cityId === data.cityId || m.city.name === data.city; })) throw new Error(data.cityId + " is already loaded.");
       if (!isText(data.timeZone)) throw new Error(data.cityId + " doesn't say its time zone.");
@@ -896,7 +912,8 @@
       new Intl.DateTimeFormat("en-US", { timeZone: data.timeZone });
       var city = {
         cityId: data.cityId, name: data.city, short: data.short, region: data.region, regionNames: data.regionNames,
-        timeZone: data.timeZone, weather: data.weather, sun: data.sun, rainLine: data.rainLine || "", fixture: data.fixture === true
+        timeZone: data.timeZone, weather: data.weather, sun: data.sun, rainLine: data.rainLine || "", fixture: data.fixture === true,
+        status: data.status == null ? undefined : data.status
       };
       var made = [], seen = {};
       data.stops.forEach(function (raw) {
@@ -2112,7 +2129,14 @@
       if (name === "parked") { st.parked = true; savePlay(); return go("feel"); }
       if (name === "feel") return chooseFeel(arg);
       if (name === "reveal") return revealNow();
-      if (name === "shuffle") return view.feel === "anchor" ? shuffleDinner() : shuffleFeel();
+      if (name === "shuffle") {
+        if (!checkEntitlement({ record: null, action: "shuffle" }).allowed) return;
+        return view.feel === "anchor" ? shuffleDinner() : shuffleFeel();
+      }
+      if (name === "save-day") {
+        if (!checkEntitlement({ record: null, action: "save-day" }).allowed) return;
+        return;
+      }
       if (name === "options") return openOptions();
       if (name === "pick") return pickOption(arg);
       if (name === "back") {
@@ -2123,7 +2147,10 @@
       }
       if (name === "here") return markHere(arg);
       if (name === "skip") return skipHere(arg);
-      if (name === "pass") return passHere(arg);
+      if (name === "pass") {
+        if (!checkEntitlement({ record: null, action: "reroll" }).allowed) return;
+        return passHere(arg);
+      }
       if (name === "rate") return rateLast(arg);
       if (name === "list") return go("list");
       if (name === "iffy") return go("iffy");
@@ -2442,7 +2469,8 @@
           "<h1>" + esc(title) + "</h1>" +
           '<p class="lede">' + esc(lede) + "</p>" +
           '<button type="button" class="btn btn-primary" data-act="reveal">Reveal the stop</button>' +
-          (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle">' + (dinner ? "Shuffle another dinner" : "Shuffle another for this feeling") + "</button>" : noShuffleHtml(a)) +
+          (canShuffle ? '<button type="button" class="btn btn-peach" data-act="shuffle" disabled aria-disabled="true" aria-describedby="upgrade-shuffle">' + (dinner ? "Shuffle another dinner" : "Shuffle another for this feeling") + "</button>" +
+          '<p class="meta upgrade" id="upgrade-shuffle">Shuffle is part of a paid day.</p>' : noShuffleHtml(a)) +
           seeAllHtml() +
           '<button type="button" class="btn btn-ghost" data-act="back">Different feeling</button>' +
         "</div>"
@@ -2474,7 +2502,8 @@
           dirBtn(v) +
           dayStartsHtml() +
           '<button type="button" class="btn btn-cyan" data-act="here" data-arg="' + esc(v.id) + '">We\'re here / on our way</button>' +
-          (isAnchor ? "" : '<button type="button" class="btn btn-ghost" data-act="pass" data-arg="' + esc(v.id) + '">Not this. Try again</button>') +
+          (isAnchor ? "" : '<button type="button" class="btn btn-ghost" data-act="pass" data-arg="' + esc(v.id) + '" disabled aria-disabled="true" aria-describedby="upgrade-reroll">Not this. Try again</button>' +
+          '<p class="meta upgrade" id="upgrade-reroll">Trying another is part of a paid day.</p>') +
           '<button type="button" class="skip" data-act="back">Back to choosing</button>' +
         "</div>"
       );
@@ -2575,6 +2604,8 @@
       var trail = playState().trail;
       var html = '<p class="kicker">Your day</p><h1>Our day so far.</h1>';
       html += '<p class="lede">' + esc(formatWhen(parseDate(plan.date))) + ". Every stop you tapped, and everything you found.</p>";
+      html += '<button type="button" class="btn btn-ghost" data-act="save-day" disabled aria-disabled="true" aria-describedby="upgrade-save">Save this day</button>';
+      html += '<p class="meta upgrade" id="upgrade-save">Saving a day is part of a paid day.</p>';
       if (!trail.length) {
         html += '<p class="note">Nothing yet. Tap "We\'re here" when you get somewhere, or log something you found.</p>';
       } else {
@@ -2808,7 +2839,7 @@
 
     // One city shows its name. Two or more real cities show a button each.
     function renderCityPick(p) {
-      var cities = realCities();
+      var cities = freeCities();
       var fixed = document.getElementById("city-fixed"), pick = document.getElementById("city-pick");
       if (cities.length < 2) {
         pick.classList.add("hidden");

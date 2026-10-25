@@ -1,9 +1,12 @@
 import fs from "fs";
+import { createRequire } from "module";
 import { parseHTML } from "linkedom";
 import vm from "vm";
 import { createHash } from "crypto";
 import Ajv2020 from "ajv/dist/2020.js";
 
+const require = createRequire(import.meta.url);
+const { checkEntitlement, ENTITLEMENT_ACTIONS } = require("./entitlements.js");
 const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
 const stopsFile = JSON.parse(fs.readFileSync(new URL("./data/stops.json", import.meta.url), "utf8"));
 const kirklandFile = JSON.parse(fs.readFileSync(new URL("./data/kirkland.json", import.meta.url), "utf8"));
@@ -106,7 +109,8 @@ function makePage({ fetchList = servedList, fetchStops = served, fetchKirkland =
     };
   }
 
-  const scriptBody = [...document.querySelectorAll("script")].map((s) => s.textContent).filter(Boolean).join("\n;\n");
+  const entitlementSource = fs.readFileSync(new URL("./entitlements.js", import.meta.url), "utf8");
+  const scriptBody = entitlementSource + "\n;\n" + [...document.querySelectorAll("script")].map((s) => s.textContent).filter(Boolean).join("\n;\n");
   vm.createContext(window);
   vm.runInContext(scriptBody, window);
   return { window, document, store, locationState, writes, applyUrl };
@@ -143,6 +147,20 @@ g.act = function (name, arg) {
 function click(el) {
   assert(el, "nothing to click");
   el.dispatchEvent(new window.Event("click", { bubbles: true }));
+}
+
+// The static page always asks with a free record. These checks stand in a paid
+// record for the real check, then put the page's own check back.
+function withPaid(page, fn) {
+  const real = page.checkEntitlement;
+  page.checkEntitlement = function (input) {
+    return real(Object.assign({}, input, { record: { tier: "paid" } }));
+  };
+  try {
+    return fn();
+  } finally {
+    page.checkEntitlement = real;
+  }
 }
 
 function assert(cond, msg) {
@@ -522,45 +540,76 @@ check("play: a day-early We're here or Not this waits until the plan date", () =
   }
 });
 
-check("play: Not this, try again swaps in another from the same feeling", () => {
+check("play: Not this stays on the card and does not swap the place", () => {
   startPlay({ date: "2026-10-10", must: "coffee, gelato, market" });
   g.act("begin");
   g.act("feel", "taste");
   g.act("reveal");
   const first = g.view.pending;
+  const passed = g.playState().passed.join();
+  const btn = $("play").querySelector('[data-act="pass"]');
+  assert(btn && btn.disabled && /Trying another is part of a paid day\./.test(playText()), "reroll isn't locked");
   g.act("pass", first);
-  assert(g.playState().passed.includes(first), "pass saved");
-  assert(g.view.panel === "commit" && g.view.pending && g.view.pending !== first, "panel " + g.view.panel + " pending " + g.view.pending);
-  assert(g.plan.deck.pools.taste.includes(g.view.pending), "replacement from the same feeling");
+  assert(g.view.panel === "reveal" && g.view.pending === first && g.playState().passed.join() === passed && !g.playState().skip.includes(first), "pass changed the card");
 });
 
-check("play: Not this lines up another place, and the passed place comes back later (#62)", () => {
+check("play: Not this, try again swaps in another from the same feeling on a paid record (#62)", () => {
+  withPaid(g, () => {
+    startPlay({ date: "2026-10-10", must: "coffee, gelato, market" });
+    g.act("begin");
+    g.act("feel", "taste");
+    g.act("reveal");
+    const first = g.view.pending;
+    g.act("pass", first);
+    assert(g.playState().passed.includes(first), "pass saved");
+    assert(g.view.panel === "commit" && g.view.pending && g.view.pending !== first, "panel " + g.view.panel + " pending " + g.view.pending);
+    assert(g.plan.deck.pools.taste.includes(g.view.pending), "replacement from the same feeling");
+  });
+});
+
+check("play: Not this lines up nothing new, and the place stays the one revealed (#62)", () => {
   startPlay({ date: "2026-10-10", must: "coffee, gelato, market" });
   g.act("begin");
   g.act("feel", "taste");
   g.act("reveal");
   const first = g.view.pending;
-  const before = playText();
   g.act("pass", first);
-  assert(/Another place is lined up\./.test(playText()), playText().slice(0, 400));
-  assert(!/Another place is lined up\./.test(before), "the line was already there");
-  assert(g.view.panel === "commit" && g.view.pending !== first, "still veiled, new pending " + g.view.pending);
-  const seen = new Set([first]);
-  let guard = 0;
-  while (g.view.panel === "commit" && g.view.pending && !seen.has(g.view.pending) && guard < 8) {
-    const id = g.view.pending;
-    seen.add(id);
-    g.act("reveal");
-    assert(!/Another place is lined up\./.test(playText()), "reveal should name the place");
-    g.act("pass", id);
-    guard++;
-  }
-  assert(g.view.panel === "commit" && g.view.pending === first, "the passed place didn't come back once the others were passed too: " + g.view.pending);
-  assert(g.playState().passed.includes(first) && !g.playState().skip.includes(first) && g.offered("taste").includes(first), "a passed place left the pool: " + g.offered("taste"));
+  assert(g.view.panel === "reveal" && g.view.pending === first && g.playState().passed.length === 0, "Not this lined up another place");
   g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
   g.act("begin");
   g.act("feel", "taste");
-  assert(g.playState().passed.includes(first) && !g.playState().skip.includes(first) && g.offered("taste").includes(first), "passed place gone after reload");
+  assert(g.playState().passed.length === 0 && g.offered("taste").includes(first), "the place left the pool");
+});
+
+check("play: Not this lines up another place, and the passed place comes back later on a paid record (#62)", () => {
+  withPaid(g, () => {
+    startPlay({ date: "2026-10-10", must: "coffee, gelato, market" });
+    g.act("begin");
+    g.act("feel", "taste");
+    g.act("reveal");
+    const first = g.view.pending;
+    const before = playText();
+    g.act("pass", first);
+    assert(/Another place is lined up\./.test(playText()), playText().slice(0, 400));
+    assert(!/Another place is lined up\./.test(before), "the line was already there");
+    assert(g.view.panel === "commit" && g.view.pending !== first, "still veiled, new pending " + g.view.pending);
+    const seen = new Set([first]);
+    let guard = 0;
+    while (g.view.panel === "commit" && g.view.pending && !seen.has(g.view.pending) && guard < 8) {
+      const id = g.view.pending;
+      seen.add(id);
+      g.act("reveal");
+      assert(!/Another place is lined up\./.test(playText()), "reveal should name the place");
+      g.act("pass", id);
+      guard++;
+    }
+    assert(g.view.panel === "commit" && g.view.pending === first, "the passed place didn't come back once the others were passed too: " + g.view.pending);
+    assert(g.playState().passed.includes(first) && !g.playState().skip.includes(first) && g.offered("taste").includes(first), "a passed place left the pool: " + g.offered("taste"));
+    g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+    g.act("begin");
+    g.act("feel", "taste");
+    assert(g.playState().passed.includes(first) && !g.playState().skip.includes(first) && g.offered("taste").includes(first), "passed place gone after reload");
+  });
 });
 
 // --- #62: Not now and Never are different things ---
@@ -594,23 +643,35 @@ function expectedQueue(page, feel, passedOrder) {
   return open.filter((id) => !passedOrder.includes(id)).concat(passedOrder.filter((id) => open.includes(id)));
 }
 
-check("play: a place you pass on comes back at the next pick of that feeling (#62)", () => {
+check("play: a place you try to pass on stays the revealed place (#62)", () => {
   playOnTheDay();
   const feel = moodWith(g, 2);
-  const open = g.offered(feel).slice();
   g.act("feel", feel);
-  const seen = [];
-  for (let i = 0; i < open.length; i++) {
-    seen.push(passOnPending(g));
-    assert(g.playState().skip.length === 0, "Not this made a permanent no: " + g.playState().skip);
-    if (i < open.length - 1) assert(g.view.panel === "commit" && !seen.includes(g.view.pending), "an unseen place should be next: " + g.view.pending);
-  }
-  assert(g.playState().passed.join() === seen.join(), "passed isn't in the order passed: " + g.playState().passed);
-  assert(g.view.panel === "commit" && g.view.pending === seen[0], "the first place passed on should come back first, got " + g.view.pending);
-  assert(new Set(seen).size === open.length, "a place showed twice before every place showed once");
-  g.act("back");
-  g.act("feel", feel);
-  assert(g.view.pending === seen[0], "the next pick of the feeling isn't the oldest pass");
+  g.act("reveal");
+  const id = g.view.pending;
+  g.act("pass", id);
+  assert(g.view.panel === "reveal" && g.view.pending === id && g.playState().passed.length === 0 && g.playState().skip.length === 0, "Not this moved the place");
+});
+
+check("play: a place you pass on comes back at the next pick of that feeling on a paid record (#62)", () => {
+  withPaid(g, () => {
+    playOnTheDay();
+    const feel = moodWith(g, 2);
+    const open = g.offered(feel).slice();
+    g.act("feel", feel);
+    const seen = [];
+    for (let i = 0; i < open.length; i++) {
+      seen.push(passOnPending(g));
+      assert(g.playState().skip.length === 0, "Not this made a permanent no: " + g.playState().skip);
+      if (i < open.length - 1) assert(g.view.panel === "commit" && !seen.includes(g.view.pending), "an unseen place should be next: " + g.view.pending);
+    }
+    assert(g.playState().passed.join() === seen.join(), "passed isn't in the order passed: " + g.playState().passed);
+    assert(g.view.panel === "commit" && g.view.pending === seen[0], "the first place passed on should come back first, got " + g.view.pending);
+    assert(new Set(seen).size === open.length, "a place showed twice before every place showed once");
+    g.act("back");
+    g.act("feel", feel);
+    assert(g.view.pending === seen[0], "the next pick of the feeling isn't the oldest pass");
+  });
 });
 
 check("play: the next pick of a feeling shows unseen places before passed ones (#62)", () => {
@@ -674,65 +735,82 @@ check("play: the same feeling can be picked again while it has open, unvisited p
   assert(g.offered(feel).includes(first), "a passed place isn't on offer");
 });
 
-check("play: Shuffle cycles every open, unvisited place in the feeling, passed ones included, then loops (#62)", () => {
+check("play: Shuffle stays locked and does not cycle the feeling (#62)", () => {
   playOnTheDay();
   const feel = moodWith(g, 3);
-  const open = g.offered(feel).slice();
-  g.act("feel", feel);
-  const passedOne = passOnPending(g);
-  g.act("back");
   g.act("feel", feel);
   const start = g.view.pending;
   const passedBefore = g.playState().passed.join();
-  const order = [start];
-  for (let i = 1; i < open.length; i++) {
-    g.act("shuffle");
-    assert(g.view.panel === "commit", "Shuffle left the hidden card");
-    order.push(g.view.pending);
-  }
-  assert(new Set(order).size === open.length && order.every((id) => open.includes(id)), "Shuffle missed a place or showed one twice: " + order);
-  assert(order.includes(passedOne), "the passed place wasn't in the cycle");
-  assert(order.join() === expectedQueue(g, feel, [passedOne]).join(), "Shuffle isn't unseen first, then passed: " + order);
+  const btn = $("play").querySelector('[data-act="shuffle"]');
+  assert(btn && btn.disabled && /Shuffle is part of a paid day\./.test(playText()), "shuffle isn't locked");
   g.act("shuffle");
-  assert(g.view.pending === start, "Shuffle didn't loop back to the start");
+  assert(g.view.panel === "commit" && g.view.pending === start, "Shuffle left the hidden card");
   assert(g.playState().passed.join() === passedBefore && g.playState().skip.length === 0, "Shuffle wrote something");
-  // A card that isn't in the queue any more goes to the front.
-  g.view.pending = "";
-  g.act("shuffle");
-  assert(g.view.pending === order[0], "a card that fell out of the queue should restart at the front");
+});
+
+check("play: Shuffle cycles every open, unvisited place in the feeling, passed ones included, then loops on a paid record (#62)", () => {
+  withPaid(g, () => {
+    playOnTheDay();
+    const feel = moodWith(g, 3);
+    const open = g.offered(feel).slice();
+    g.act("feel", feel);
+    const passedOne = passOnPending(g);
+    g.act("back");
+    g.act("feel", feel);
+    const start = g.view.pending;
+    const passedBefore = g.playState().passed.join();
+    const order = [start];
+    for (let i = 1; i < open.length; i++) {
+      g.act("shuffle");
+      assert(g.view.panel === "commit", "Shuffle left the hidden card");
+      order.push(g.view.pending);
+    }
+    assert(new Set(order).size === open.length && order.every((id) => open.includes(id)), "Shuffle missed a place or showed one twice: " + order);
+    assert(order.includes(passedOne), "the passed place wasn't in the cycle");
+    assert(order.join() === expectedQueue(g, feel, [passedOne]).join(), "Shuffle isn't unseen first, then passed: " + order);
+    g.act("shuffle");
+    assert(g.view.pending === start, "Shuffle didn't loop back to the start");
+    assert(g.playState().passed.join() === passedBefore && g.playState().skip.length === 0, "Shuffle wrote something");
+    // A card that isn't in the queue any more goes to the front.
+    g.view.pending = "";
+    g.act("shuffle");
+    assert(g.view.pending === order[0], "a card that fell out of the queue should restart at the front");
+  });
 });
 
 check("play: visited and Not for us places never come back that day, even after a reload (#62)", () => {
-  const p = playOnTheDay();
-  const feel = moodWith(g, 3);
-  const open = g.offered(feel).slice();
-  g.act("feel", feel);
-  const visited = g.view.pending;
-  g.act("here", visited);
-  g.act("list");
-  const never = g.offered(feel)[0];
-  g.act("skip", never);
-  g.act("feel", feel);
-  const passed = passOnPending(g);
-  assert(!g.playState().passed.includes(visited) && !g.playState().passed.includes(never), "a visited or turned-down place was written as passed");
-  const check = () => {
-    const state = g.playState();
-    assert(state.skip.includes(never) && state.passed.includes(passed) && state.trail.some((t) => t.id === visited), "state lost: " + JSON.stringify(state));
-    assert(!g.offered(feel).includes(visited) && !g.offered(feel).includes(never) && g.offered(feel).includes(passed), "offered: " + g.offered(feel));
-    g.act("back");
-    for (let i = 0; i < open.length + 2; i++) {
-      g.act("feel", feel);
-      assert(g.view.pending !== visited && g.view.pending !== never, "a place we're done with came back: " + g.view.pending);
-      g.act("shuffle");
-      assert(g.view.pending !== visited && g.view.pending !== never, "Shuffle brought back a place we're done with");
+  withPaid(g, () => {
+    const p = playOnTheDay();
+    const feel = moodWith(g, 3);
+    const open = g.offered(feel).slice();
+    g.act("feel", feel);
+    const visited = g.view.pending;
+    g.act("here", visited);
+    g.act("list");
+    const never = g.offered(feel)[0];
+    g.act("skip", never);
+    g.act("feel", feel);
+    const passed = passOnPending(g);
+    assert(!g.playState().passed.includes(visited) && !g.playState().passed.includes(never), "a visited or turned-down place was written as passed");
+    const check = () => {
+      const state = g.playState();
+      assert(state.skip.includes(never) && state.passed.includes(passed) && state.trail.some((t) => t.id === visited), "state lost: " + JSON.stringify(state));
+      assert(!g.offered(feel).includes(visited) && !g.offered(feel).includes(never) && g.offered(feel).includes(passed), "offered: " + g.offered(feel));
       g.act("back");
-    }
-  };
-  check();
-  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
-  g.clockOverride = new Date(p.date + "T12:00:00-04:00");
-  g.act("begin");
-  check();
+      for (let i = 0; i < open.length + 2; i++) {
+        g.act("feel", feel);
+        assert(g.view.pending !== visited && g.view.pending !== never, "a place we're done with came back: " + g.view.pending);
+        g.act("shuffle");
+        assert(g.view.pending !== visited && g.view.pending !== never, "Shuffle brought back a place we're done with");
+        g.act("back");
+      }
+    };
+    check();
+    g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+    g.clockOverride = new Date(p.date + "T12:00:00-04:00");
+    g.act("begin");
+    check();
+  });
 });
 
 check("play: a feeling's button hides only when nothing in it is open, unvisited, and not turned down (#62)", () => {
@@ -1014,10 +1092,8 @@ check("review: a preview on the creator's phone never touches the real day", () 
   g.act("begin");
   g.act("feel", "taste");
   g.act("reveal");
-  g.act("pass", g.view.pending);
-  g.act("reveal");
   g.act("here", g.view.pending);
-  assert(g.playState().trail.length === 1 && g.playState().passed.length === 1, "preview trail recorded");
+  assert(g.playState().trail.length === 1 && g.playState().passed.length === 0, "preview trail recorded");
   locationState.hash = "";
   locationState.search = "?create=" + encodeURIComponent(p.id);
   g.boot();
@@ -2418,17 +2494,25 @@ check("food: on the day, Shuffle swaps the dinner and the choice survives a relo
   dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5, alts: ["stillwaters", "baba-on-central"] });
   at("2026-10-13", "17:00");
   g.act("begin"); g.act("feel", "anchor");
-  assert(/Shuffle another dinner/.test(playText()), "no dinner Shuffle");
-  const first = g.anchorView().id;
+  assert(/Shuffle another dinner/.test(playText()) && /Shuffle is part of a paid day\./.test(playText()), "no locked dinner Shuffle");
+  const locked = g.anchorView().id;
   g.act("shuffle");
-  const second = g.anchorView().id;
-  assert(first === "bellabrava" && ["stillwaters", "baba-on-central"].includes(second), first + " -> " + second);
-  g.act("reveal");
-  assert(new RegExp(g.STOP_BY_ID[second].name).test(playText()), "reveal shows the shuffled dinner");
-  g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
-  assert(g.anchorView().id === second && g.view.pending === "anchor", "lost the shuffled dinner on reload");
-  g.act("here", second);
-  assert(g.anchorDone() && g.visitedIds().includes(second), "We're here logged " + g.visitedIds());
+  assert(locked === "bellabrava" && g.anchorView().id === locked, locked + " changed on a free day");
+  withPaid(g, () => {
+    dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "bellabrava", time: 18, leave: 17.5, alts: ["stillwaters", "baba-on-central"] });
+    at("2026-10-13", "17:00");
+    g.act("begin"); g.act("feel", "anchor");
+    const first = g.anchorView().id;
+    g.act("shuffle");
+    const second = g.anchorView().id;
+    assert(first === "bellabrava" && ["stillwaters", "baba-on-central"].includes(second), first + " -> " + second);
+    g.act("reveal");
+    assert(new RegExp(g.STOP_BY_ID[second].name).test(playText()), "reveal shows the shuffled dinner");
+    g.openDay(g.decodePlan(g.encodePlan(g.linkPlan(g.plan))), { mode: "play" });
+    assert(g.anchorView().id === second && g.view.pending === "anchor", "lost the shuffled dinner on reload");
+    g.act("here", second);
+    assert(g.anchorDone() && g.visitedIds().includes(second), "We're here logged " + g.visitedIds());
+  });
   // Too late for an alternate: it isn't swapped in. On Tuesdays Pin Wok closes at 9pm, Stillwaters at 10pm.
   dayWith("2026-10-13", { taste: [] }, { type: "stop", id: "stillwaters", time: 18, leave: 17.5, alts: ["pin-wok-bowl"] });
   at("2026-10-13", "17:00");
@@ -3604,18 +3688,24 @@ check("city: in a second city, a place you pass on comes back (#62)", () => {
   assert(!fx.beforePlanDay() && fx.offered(feel).length === wanted.length, "setup: " + fx.offered(feel));
   fx.act("begin");
   fx.act("feel", feel);
-  const seen = [];
-  for (let i = 0; i < wanted.length; i++) {
-    fx.act("reveal");
-    seen.push(fx.view.pending);
-    fx.act("pass", fx.view.pending);
-  }
-  assert(new Set(seen).size === wanted.length, "a place showed twice before each had shown once: " + seen);
-  assert(fx.playState().skip.length === 0 && fx.playState().passed.join() === seen.join(), "passed: " + fx.playState().passed);
-  assert(fx.view.panel === "commit" && fx.view.pending === seen[0], "the passed place didn't come back: " + fx.view.pending);
   fx.act("reveal");
-  fx.act("here", fx.view.pending);
-  assert(fx.playState().trail.length === 1, "We're here in the second city didn't log");
+  const stayed = fx.view.pending;
+  fx.act("pass", stayed);
+  assert(fx.view.panel === "reveal" && fx.view.pending === stayed && fx.playState().passed.length === 0 && fx.playState().skip.length === 0, "free Not this moved the place: " + fx.view.pending);
+  withPaid(fx, () => {
+    const seen = [];
+    for (let i = 0; i < wanted.length; i++) {
+      fx.act("reveal");
+      seen.push(fx.view.pending);
+      fx.act("pass", fx.view.pending);
+    }
+    assert(new Set(seen).size === wanted.length, "a place showed twice before each had shown once: " + seen);
+    assert(fx.playState().skip.length === 0 && fx.playState().passed.join() === seen.join(), "passed: " + fx.playState().passed);
+    assert(fx.view.panel === "commit" && fx.view.pending === seen[0], "the passed place didn't come back: " + fx.view.pending);
+    fx.act("reveal");
+    fx.act("here", fx.view.pending);
+    assert(fx.playState().trail.length === 1, "We're here in the second city didn't log");
+  });
 });
 
 check("play: passing and shuffling name no place, mood or category (#62)", () => {
@@ -3778,11 +3868,17 @@ check("play: tapping a mood list row reveals that place on the normal card, and 
   assert(g.view.panel === "commit" && g.view.pending !== target && g.moodQueue(next).includes(g.view.pending), "the next mood didn't pick");
   g.act("options");
   assert(!rowIds().includes(target), "a checked-in place is still listed");
-  // Not this after a list pick works like any reveal.
+  // Free record: Not this after a list pick stays on that reveal. See all itself stays open.
   const again = rowIds()[0];
   g.act("pick", again);
+  const passBtn = $("play").querySelector('[data-act="pass"]');
+  assert(passBtn && passBtn.disabled, "Not this isn't locked on a free record");
   g.act("pass", again);
-  assert(g.playState().passed.includes(again) && g.view.panel === "commit", "Not this after a list pick");
+  assert(g.view.panel === "reveal" && g.view.pending === again && !g.playState().passed.includes(again), "free Not this after a list pick");
+  withPaid(g, () => {
+    g.act("pass", again);
+    assert(g.playState().passed.includes(again) && g.view.panel === "commit", "Not this after a list pick");
+  });
 });
 
 check("play: a mood list row that was checked in, turned down or closed in the meantime is not revealed (#65)", () => {
@@ -3949,6 +4045,102 @@ check("friends: mood list rows are at least 44px tall (#65)", () => {
   const css = [...document.querySelectorAll("style")].map((x) => x.textContent).join("\n");
   const rules = [...css.matchAll(/\.picks button\s*\{([^}]*)\}/g)];
   assert(rules.some((r) => /min-height:\s*44px/.test(r[1])), "no 44px min-height on .picks button");
+});
+
+const entitlementHost = makePage();
+await entitlementHost.window.CATALOG_READY;
+const entitlementPage = entitlementHost.window;
+
+check("entitlement: a free or missing record is denied the paid actions, and a paid record allows only the named ones", () => {
+  const paid = { tier: "paid" };
+  const free = { tier: "free" };
+  const named = Object.keys(ENTITLEMENT_ACTIONS);
+  named.forEach((action) => {
+    const cityStatus = action === "request-city" ? "basic" : undefined;
+    assert(checkEntitlement({ record: free, action, cityStatus }).allowed === (ENTITLEMENT_ACTIONS[action] === "free"), action + " on a free record");
+    assert(checkEntitlement({ record: null, action, cityStatus }).allowed === (ENTITLEMENT_ACTIONS[action] === "free"), action + " with no record");
+    assert(checkEntitlement({ record: paid, action, cityStatus }).allowed === true, action + " on a paid record");
+  });
+  assert(checkEntitlement({ record: free, action: "request-city", cityStatus: "free" }).allowed === true, "a free city was treated as a new request");
+  assert(checkEntitlement({ record: free, action: "request-city", cityStatus: "deep" }).allowed === false, "a deep city was allowed");
+  assert(checkEntitlement({ record: free, action: "request-city" }).allowed === false, "a missing status was allowed");
+  assert(checkEntitlement({ record: paid, action: "request-city", cityStatus: "deep" }).allowed === true, "a paid record could not request a deep city");
+  assert(checkEntitlement({ record: { tier: "other" }, action: "shuffle" }).allowed === false, "an unknown tier could shuffle");
+  assert(checkEntitlement({ record: free, action: "unlisted" }).allowed === false, "an unknown action was allowed for free");
+  assert(checkEntitlement({ record: paid, action: "unlisted" }).allowed === false, "an unknown action was allowed for paid");
+  assert(checkEntitlement({ record: null, action: "play-day" }).allowed === true && checkEntitlement({ record: null, action: "brief" }).allowed === true, "the day was denied when the record was missing");
+  const down = {};
+  Object.defineProperty(down, "tier", { get() { throw new Error("unread"); } });
+  assert(checkEntitlement({ record: down, action: "shuffle" }).allowed === false, "a failed read allowed a shuffle");
+  assert(checkEntitlement({ record: down, action: "play-day" }).allowed === true, "a failed read stopped the day");
+  assert(!html.includes("deep-filter") && !html.includes("noise") && !/kid-friendly|music taste/.test(html), "a deep filter control is on the page");
+});
+
+check("entitlement: a free city still builds the same day, and shuffle and reroll stay locked", () => {
+  const before = g.buildDeck(makePlan({ date: "2026-10-10", must: "coffee, tacos, art, walking", budgetAmount: "200" }));
+  const after = g.buildDeck(makePlan({ date: "2026-10-10", must: "coffee, tacos, art, walking", budgetAmount: "200" }));
+  assert(JSON.stringify(before) === JSON.stringify(after), "the deck moved between two builds");
+  assert(before.pools.taste && before.pools.taste.length >= 1, "the day has no tasty pool");
+  playOnTheDay();
+  const feel = moodWith(g, 2);
+  g.act("feel", feel);
+  const pending = g.view.pending;
+  const passed = g.playState().passed.join();
+  const skip = g.playState().skip.join();
+  const seeAll = document.querySelector('#play [data-act="options"]');
+  assert(seeAll && !seeAll.disabled && seeAll.getAttribute("aria-disabled") !== "true" && /See all /.test(seeAll.textContent), "See all was locked");
+  const shuffle = document.querySelector('#play [data-act="shuffle"]');
+  assert(shuffle && shuffle.disabled && /Shuffle is part of a paid day\./.test(playText()), "shuffle isn't locked: " + playText().slice(0, 280));
+  g.act("shuffle");
+  assert(g.view.pending === pending && g.playState().passed.join() === passed && g.playState().skip.join() === skip, "shuffle changed the card");
+  g.act("reveal");
+  const revealed = g.view.pending;
+  const reroll = document.querySelector('#play [data-act="pass"]');
+  assert(reroll && reroll.disabled && /Trying another is part of a paid day\./.test(playText()), "reroll isn't locked");
+  g.act("pass", revealed);
+  assert(g.view.panel === "reveal" && g.view.pending === revealed && g.playState().passed.join() === passed, "reroll changed the card");
+  g.act("trail");
+  const save = document.querySelector('#play [data-act="save-day"]');
+  assert(save && save.disabled && /Saving a day is part of a paid day\./.test(playText()), "save isn't locked");
+  g.act("save-day");
+  assert(g.view.panel === "trail" && g.playState().passed.join() === passed, "save changed the day");
+  g.setMode("create");
+  const request = document.getElementById("request-city");
+  assert(request && request.disabled && request.parentElement.id !== "city-pick" && /Requesting a city is part of a paid day\./.test(document.body.textContent), "request isn't locked");
+  assert(request.textContent === "Request a city", "the request control says " + request.textContent);
+});
+
+check("entitlement: a basic or deep city stays out of the picker and still plays from a link", () => {
+  const page = entitlementPage;
+  const doc = entitlementHost.document;
+  const basic = clone(fixtureFile);
+  Object.assign(basic, { cityId: "qa-basic", city: "Basic City (QA only)", short: "Basic City", fixture: false, status: "basic" });
+  basic.stops.forEach((s) => { s.id = "qa-basic-" + s.id; });
+  page.addCity(basic);
+  assert(page.CITIES["qa-basic"] && page.CITIES["qa-basic"].status === "basic", "the basic city didn't load");
+  page.setMode("create");
+  page.plan = null;
+  page.fillForm(null);
+  const labels = [...doc.querySelectorAll("#city-pick button")].map((b) => b.textContent);
+  const fixed = doc.getElementById("city-fixed").textContent;
+  assert(!labels.includes("Basic City (QA only)") && fixed !== "Basic City (QA only)", "the basic city is on offer: " + labels.join("|") + fixed);
+  const deep = clone(basic);
+  Object.assign(deep, { cityId: "qa-deep", city: "Deep City (QA only)", short: "Deep City", status: "deep" });
+  deep.stops.forEach((s) => { s.id = s.id.replace("qa-basic", "qa-deep"); });
+  page.addCity(deep);
+  page.fillForm(null);
+  const labelsAfter = [...doc.querySelectorAll("#city-pick button")].map((b) => b.textContent);
+  assert(!labelsAfter.includes("Deep City (QA only)"), "the deep city is on offer");
+  const played = page.decodePlan(page.encodePlan(Object.assign(makePlan({ city: "qa-basic", date: "2026-10-10" }), { deck: page.buildDeck(makePlan({ city: "qa-basic", date: "2026-10-10" })) })));
+  page.clockOverride = new Date("2026-10-07T12:00:00-04:00");
+  page.openDay(played, { mode: "play" });
+  assert(page.plan && page.plan.city === "qa-basic", "the link didn't open the basic city");
+  const bad = clone(basic);
+  bad.cityId = "qa-bad-status";
+  bad.city = "Bad Status (QA only)";
+  bad.status = "other";
+  bad.stops.forEach((s) => { s.id = "qa-bad-" + s.id; });
+  assert(throwsError(() => page.readCity(bad)), "a status outside the three loaded");
 });
 
 const failed = results.filter((r) => r.startsWith("FAIL"));
